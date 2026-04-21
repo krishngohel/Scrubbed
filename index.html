@@ -88,16 +88,16 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
   100%{transform:translateX(110%); backdrop-filter:blur(0px) brightness(1);   background:transparent}
 }
 
-.hero-inner{max-width:min(92vw,2000px);width:100%;display:grid;grid-template-columns:clamp(380px,40%,620px) 1fr;gap:clamp(48px,5vw,100px);align-items:center;position:relative;z-index:2}
+.hero-inner{max-width:min(92vw,2000px);width:100%;display:grid;grid-template-columns:clamp(380px,40%,620px) 1fr;gap:clamp(88px,9vw,164px);align-items:center;position:relative;z-index:2}
 
 /* ── LEFT: Cards ── */
-.hero-cards-col{position:relative;height:clamp(400px,36vw,560px);animation:fadeUp 0.9s ease 0.12s both;z-index:3}
-.cards-dots{position:absolute;top:-30px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10}
-.dot-btn{height:5px;border-radius:3px;border:none;cursor:pointer;background:var(--forest-pale);transition:all 0.35s;padding:0}
-.dot-btn.active{width:18px;background:var(--forest)}
-.dot-btn:not(.active){width:5px}
+.hero-cards-col{position:relative;height:clamp(400px,36vw,560px);animation:fadeUp 0.9s ease 0.12s both;z-index:3;display:flex;flex-direction:column;justify-content:center}
+.cards-dots{position:absolute;right:-22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:10}
+.dot-btn{width:5px;border-radius:3px;border:none;cursor:pointer;background:var(--forest-pale);transition:all 0.35s;padding:0}
+.dot-btn.active{height:18px;background:var(--forest)}
+.dot-btn:not(.active){height:5px}
 
-.cards-stack{position:relative;height:100%}
+.cards-stack{position:relative;height:clamp(200px,20vw,260px);width:100%}
 
 /* Card transitions — spring ease, NO blur on any card */
 .task-card{
@@ -1036,24 +1036,66 @@ setInterval(()=>{
 },3800);
 
 /* ── AUDIO ── */
-let audioOn=false,audioCtx=null,gainNode=null,nodesRunning=[];
+let audioOn=false,audioCtx=null,gainNode=null,nodesRunning=[],chirpTimeouts=[];
 const audioBtnEl=document.getElementById('audio-btn');
 function startAmbient(){
   audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   gainNode=audioCtx.createGain();gainNode.gain.setValueAtTime(0,audioCtx.currentTime);
-  gainNode.gain.linearRampToValueAtTime(0.06,audioCtx.currentTime+2);
+  gainNode.gain.linearRampToValueAtTime(0.07,audioCtx.currentTime+3);
   gainNode.connect(audioCtx.destination);
-  [[55,.4],[110,.25],[165,.18],[220,.12]].forEach(([f,a])=>{
+
+  function mkNoise(secs){
+    const len=audioCtx.sampleRate*secs,buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    return buf;
+  }
+  function noiseLayer(hp,lp,vol,secs){
+    const src=audioCtx.createBufferSource();src.buffer=mkNoise(secs);src.loop=true;
+    const hpf=audioCtx.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=hp;
+    const lpf=audioCtx.createBiquadFilter();lpf.type='lowpass';lpf.frequency.value=lp;
+    const g=audioCtx.createGain();g.gain.value=vol;
+    src.connect(hpf);hpf.connect(lpf);lpf.connect(g);g.connect(gainNode);src.start();
+    nodesRunning.push(src);
+  }
+  // Layered rain: bright hiss + mid body + distant low rumble
+  noiseLayer(1400,7000,0.26,5);
+  noiseLayer(380,2200,0.17,7);
+  noiseLayer(60,380,0.11,9);
+
+  // Wind swell — bandpass noise with slow LFO
+  const wSrc=audioCtx.createBufferSource();wSrc.buffer=mkNoise(11);wSrc.loop=true;
+  const wFilt=audioCtx.createBiquadFilter();wFilt.type='bandpass';wFilt.frequency.value=110;wFilt.Q.value=0.45;
+  const wGain=audioCtx.createGain();wGain.gain.value=0.09;
+  const lfo=audioCtx.createOscillator();lfo.frequency.value=0.07;
+  const lfoG=audioCtx.createGain();lfoG.gain.value=0.065;
+  lfo.connect(lfoG);lfoG.connect(wGain.gain);
+  wSrc.connect(wFilt);wFilt.connect(wGain);wGain.connect(gainNode);
+  wSrc.start();lfo.start();nodesRunning.push(wSrc,lfo);
+
+  // Gentle bird chirps at random intervals
+  function chirp(){
+    if(!audioCtx||audioCtx.state==='closed')return;
+    const freq=1700+Math.random()*2200,t=audioCtx.currentTime;
     const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    o.type='sine';o.frequency.value=f;g.gain.value=a;
-    o.connect(g);g.connect(gainNode);o.start();nodesRunning.push(o);
-  });
-  const bs=audioCtx.sampleRate*4,buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate),d=buf.getChannelData(0);
-  for(let i=0;i<bs;i++)d[i]=(Math.random()*2-1)*0.012;
-  const src=audioCtx.createBufferSource();src.buffer=buf;src.loop=true;
-  src.connect(gainNode);src.start();nodesRunning.push(src);
+    o.type='sine';
+    o.frequency.setValueAtTime(freq,t);
+    o.frequency.linearRampToValueAtTime(freq*(1.14+Math.random()*0.22),t+0.1);
+    o.frequency.linearRampToValueAtTime(freq*0.87,t+0.22);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.02,t+0.04);g.gain.linearRampToValueAtTime(0,t+0.28);
+    o.connect(g);g.connect(gainNode);o.start(t);o.stop(t+0.32);nodesRunning.push(o);
+    if(Math.random()>0.5){
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain(),t2=t+0.4;
+      o2.type='sine';
+      o2.frequency.setValueAtTime(freq*0.93,t2);o2.frequency.linearRampToValueAtTime(freq*1.1,t2+0.09);o2.frequency.linearRampToValueAtTime(freq*0.84,t2+0.18);
+      g2.gain.setValueAtTime(0,t2);g2.gain.linearRampToValueAtTime(0.014,t2+0.03);g2.gain.linearRampToValueAtTime(0,t2+0.22);
+      o2.connect(g2);g2.connect(gainNode);o2.start(t2);o2.stop(t2+0.26);nodesRunning.push(o2);
+    }
+    chirpTimeouts.push(setTimeout(chirp,4000+Math.random()*8000));
+  }
+  chirpTimeouts.push(setTimeout(chirp,1800+Math.random()*2500));
 }
 function stopAmbient(){
+  chirpTimeouts.forEach(t=>clearTimeout(t));chirpTimeouts=[];
   if(!gainNode)return;
   gainNode.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1.5);
   setTimeout(()=>{nodesRunning.forEach(n=>{try{n.stop()}catch(e){}});nodesRunning=[];if(audioCtx){audioCtx.close();audioCtx=null}},1600);
@@ -1066,3 +1108,4 @@ audioBtnEl.addEventListener('click',()=>{
 </script>
 </body>
 </html>
+<!--  -->
