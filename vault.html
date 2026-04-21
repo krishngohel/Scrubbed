@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -32,7 +33,7 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .nav-ctas{display:flex;gap:10px;align-items:center}
 .btn-ghost{background:transparent;border:none;cursor:pointer;font-size:13.5px;font-family:var(--font-body);color:var(--ink-faint);padding:8px 16px;border-radius:8px;transition:all 0.2s}
 .btn-ghost:hover{color:var(--forest);background:rgba(45,90,39,0.08)}
-.btn-upload-nav{background:transparent;color:var(--ink);border:1.5px solid rgba(30,46,28,0.26);border-radius:100px;padding:8px 24px;font-size:13px;font-family:var(--font-body);font-weight:500;cursor:pointer;transition:all 0.28s;letter-spacing:0.03em;display:inline-flex;align-items:center;gap:7px}
+.btn-upload-nav{background:transparent;color:var(--ink);border:1.5px solid rgba(30,46,28,0.26);border-radius:100px;padding:8px 22px;font-size:13px;font-family:var(--font-body);font-weight:500;cursor:pointer;transition:all 0.28s;letter-spacing:0.03em;display:inline-flex;align-items:center;gap:7px}
 .btn-upload-nav:hover{background:var(--forest);color:#fff;border-color:var(--forest);box-shadow:0 2px 14px rgba(45,90,39,0.32);transform:translateY(-1px)}
 .btn-nav{background:var(--forest);color:#fff;border:none;cursor:pointer;font-size:13.5px;font-family:var(--font-body);font-weight:500;padding:9px 20px;border-radius:8px;letter-spacing:0.01em;transition:all 0.25s;box-shadow:0 2px 14px rgba(45,90,39,0.3);text-decoration:none;display:inline-flex;align-items:center}
 .btn-nav:hover{background:var(--forest-mid);transform:translateY(-1px)}
@@ -46,23 +47,22 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .wash-3{width:380px;height:380px;top:35%;left:42%;background:radial-gradient(circle,rgba(168,201,160,0.28) 0%,rgba(45,90,39,0.08) 50%,transparent 70%);animation-duration:26s;animation-delay:-13s;opacity:0.6}
 @keyframes wash-drift{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(18px,-24px) scale(1.04)}50%{transform:translate(-13px,17px) scale(0.96)}75%{transform:translate(21px,11px) scale(1.02)}}
 
-.vault-hero-inner{max-width:min(92vw,2000px);width:100%;display:grid;grid-template-columns:1fr clamp(320px,36%,560px);gap:clamp(72px,8vw,140px);align-items:center;position:relative;z-index:2}
-
+.vault-hero-inner{max-width:min(92vw,2000px);width:100%;display:grid;grid-template-columns:1fr clamp(300px,34%,520px);gap:clamp(72px,8vw,140px);align-items:center;position:relative;z-index:2}
 .vault-hero-text{animation:fadeUp 0.9s ease 0.1s both}
 .vault-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(45,90,39,0.08);border:1px solid rgba(45,90,39,0.2);border-radius:100px;padding:5px 14px 5px 10px;margin-bottom:28px}
 .eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--forest);animation:pulse-dot 2.5s ease-in-out infinite}
 .eyebrow-text{font-size:12px;font-weight:400;color:var(--forest);letter-spacing:0.04em}
-.vault-headline{font-family:var(--font-display);font-size:clamp(60px,6.8vw,118px);font-weight:300;line-height:0.92;letter-spacing:-0.035em;color:var(--ink);margin-bottom:22px}
+.vault-headline{font-family:var(--font-display);font-size:clamp(58px,6.5vw,112px);font-weight:300;line-height:0.92;letter-spacing:-0.035em;color:var(--ink);margin-bottom:22px}
 .vault-headline em{font-style:italic;color:var(--orange);display:block}
 .vault-tagline{font-family:var(--font-display);font-size:clamp(20px,2vw,30px);font-weight:300;font-style:italic;color:var(--forest);margin-bottom:18px;letter-spacing:-0.01em}
-.vault-sub{font-size:clamp(15px,1.1vw,17px);font-weight:300;color:var(--ink-faint);line-height:1.72;max-width:540px;margin-bottom:36px}
+.vault-sub{font-size:clamp(15px,1.1vw,17px);font-weight:300;color:var(--ink-faint);line-height:1.72;max-width:520px;margin-bottom:36px}
 .vault-ctas{display:flex;gap:12px;flex-wrap:wrap}
-.btn-hp{background:var(--forest);color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all 0.3s;box-shadow:0 2px 20px rgba(45,90,39,0.28);text-decoration:none;display:inline-block}
+.btn-hp{background:var(--forest);color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all 0.3s;box-shadow:0 2px 20px rgba(45,90,39,0.28);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
 .btn-hp:hover{background:var(--forest-mid);transform:translateY(-2px);box-shadow:0 6px 28px rgba(45,90,39,0.38)}
 .btn-ho{background:transparent;color:var(--ink-faint);font-family:var(--font-body);border:1px solid rgba(45,90,39,0.24);border-radius:10px;padding:14px 28px;font-size:15px;font-weight:400;cursor:pointer;transition:all 0.3s;text-decoration:none;display:inline-block}
 .btn-ho:hover{border-color:var(--orange);color:var(--orange);transform:translateY(-2px)}
 
-/* Vault preview card (hero right) */
+/* Hero right — vault preview */
 .vault-preview-col{animation:fadeUp 0.9s ease 0.28s both}
 .vpc-wrap{background:rgba(255,255,255,0.93);border:1px solid rgba(45,90,39,0.12);border-radius:20px;overflow:hidden;backdrop-filter:blur(20px);box-shadow:0 4px 8px rgba(30,46,28,0.04),0 14px 36px rgba(30,46,28,0.10),0 36px 80px rgba(30,46,28,0.07)}
 .vpc-topbar{padding:16px 20px 12px;border-bottom:1px solid var(--misty);display:flex;align-items:center;justify-content:space-between}
@@ -71,18 +71,41 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .vpc-name{font-size:13px;font-weight:500;color:var(--ink);letter-spacing:0.01em}
 .vpc-badge{font-size:9.5px;font-family:var(--font-mono);font-weight:300;color:var(--forest);background:rgba(45,90,39,0.08);border:1px solid rgba(45,90,39,0.18);border-radius:100px;padding:2px 9px;letter-spacing:0.06em}
 .vpc-tabs{display:flex;padding:0 20px;border-bottom:1px solid var(--misty)}
-.vpc-tab{background:none;border:none;cursor:pointer;font-size:12px;font-family:var(--font-body);font-weight:400;color:var(--ink-faint);padding:9px 14px 11px;border-bottom:2px solid transparent;transition:all 0.2s;letter-spacing:0.01em}
+.vpc-tab{background:none;border:none;cursor:pointer;font-size:12px;font-family:var(--font-body);font-weight:400;color:var(--ink-faint);padding:9px 14px 11px;border-bottom:2px solid transparent;transition:all 0.2s}
 .vpc-tab.active{color:var(--forest);border-bottom-color:var(--forest);font-weight:500}
 .vpc-list{padding:6px 0 4px}
 .vpc-item{display:flex;align-items:center;gap:10px;padding:10px 20px;transition:background 0.15s}
 .vpc-item:hover{background:rgba(45,90,39,0.04)}
-.vpc-item-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-family:var(--font-mono);font-weight:300;color:#fff}
+.vpc-item-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .vpc-item-info{flex:1;min-width:0}
 .vpc-item-name{font-size:12.5px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
 .vpc-item-sub{font-size:10.5px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint)}
 .vpc-item-type{font-size:9px;font-family:var(--font-mono);font-weight:300;letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;padding:2px 7px;white-space:nowrap}
-.vpc-add{display:flex;align-items:center;gap:7px;margin:8px 20px 16px;padding:9px 14px;border:1px dashed rgba(45,90,39,0.28);border-radius:9px;background:transparent;cursor:pointer;font-size:12px;font-family:var(--font-body);color:var(--ink-faint);transition:all 0.2s;width:calc(100% - 40px)}
+.vpc-add{display:flex;align-items:center;gap:7px;margin:8px 20px 14px;padding:9px 14px;border:1px dashed rgba(45,90,39,0.28);border-radius:9px;background:transparent;cursor:pointer;font-size:12px;font-family:var(--font-body);color:var(--ink-faint);transition:all 0.2s;width:calc(100% - 40px)}
 .vpc-add:hover{border-color:var(--forest);color:var(--forest);background:rgba(45,90,39,0.04)}
+
+/* ══ VAULT ABOUT (forest green break) ══ */
+#vault-about{padding:clamp(80px,8vw,130px) clamp(28px,5vw,80px);background:var(--forest);position:relative;overflow:hidden}
+#vault-about::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 40%,rgba(212,98,26,0.18) 0%,transparent 58%)}
+.va-inner{max-width:1100px;margin:0 auto;position:relative;z-index:1}
+.va-label{font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:rgba(255,255,255,0.45);font-weight:500;font-family:var(--font-body);margin-bottom:20px;
+  opacity:0;transform:translateY(12px);transition:opacity 0.55s cubic-bezier(0.16,1,0.3,1) 0ms,transform 0.55s cubic-bezier(0.16,1,0.3,1) 0ms}
+.va-rule{height:1px;background:rgba(255,255,255,0.18);transform-origin:left;transform:scaleX(0);transition:transform 1.3s cubic-bezier(0.16,1,0.3,1) 0.1s;margin-bottom:44px}
+.va-text{font-family:var(--font-display);font-size:clamp(24px,3vw,40px);font-weight:300;line-height:1.35;color:rgba(255,255,255,0.88);letter-spacing:-0.01em;margin-bottom:28px;
+  opacity:0;transform:translateX(-18px);transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1) calc(var(--vi,0)*180ms + 200ms),transform 0.8s cubic-bezier(0.16,1,0.3,1) calc(var(--vi,0)*180ms + 200ms)}
+.va-text:last-of-type{margin-bottom:52px}
+.va-text strong{font-weight:400;color:#fff}
+.va-text em{font-style:italic;color:var(--orange-pale)}
+.va-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;
+  opacity:0;transform:translateY(20px);transition:opacity 0.7s cubic-bezier(0.16,1,0.3,1) 0.72s,transform 0.7s cubic-bezier(0.16,1,0.3,1) 0.72s}
+.va-stat{padding:24px 28px;background:rgba(255,255,255,0.06);border-radius:4px}
+.va-stat:first-child{border-radius:12px 4px 4px 12px}
+.va-stat:last-child{border-radius:4px 12px 12px 4px}
+.va-stat-num{display:block;font-family:var(--font-display);font-size:clamp(36px,4vw,56px);font-weight:300;color:#fff;letter-spacing:-0.03em;line-height:1}
+.va-stat-label{display:block;font-size:11px;font-family:var(--font-mono);font-weight:300;color:rgba(255,255,255,0.45);letter-spacing:0.08em;text-transform:uppercase;margin-top:6px}
+#vault-about.va-visible .va-label,#vault-about.va-visible .va-text{opacity:1;transform:none}
+#vault-about.va-visible .va-rule{transform:scaleX(1)}
+#vault-about.va-visible .va-stats{opacity:1;transform:none}
 
 /* ══ SHARED ══ */
 .section-label{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--orange);font-weight:500;margin-bottom:12px;font-family:var(--font-body)}
@@ -90,20 +113,22 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .section-heading em{font-style:italic;color:var(--forest)}
 .section-sub{font-size:16px;font-weight:300;color:var(--ink-faint);line-height:1.65;max-width:640px}
 
-/* ══ TEMPLATES SECTION ══ */
+/* ══ TEMPLATES ══ */
 #templates{padding:clamp(80px,8vw,130px) clamp(28px,5vw,80px);background:var(--warm-white);border-top:1px solid var(--misty)}
 .templates-inner{max-width:1700px;margin:0 auto}
 .templates-header{margin-bottom:52px}
-.template-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:20px}
+.tpl-section-label,.tpl-section-heading,.tpl-section-sub{opacity:0;transform:translateY(18px);transition:opacity 0.65s cubic-bezier(0.16,1,0.3,1) calc(var(--hi,0)*110ms),transform 0.65s cubic-bezier(0.16,1,0.3,1) calc(var(--hi,0)*110ms)}
+.tpl-header-visible .tpl-section-label,.tpl-header-visible .tpl-section-heading,.tpl-header-visible .tpl-section-sub{opacity:1;transform:none}
+.template-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
 
 .tpl-card{background:#fff;border:1px solid var(--misty);border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:0 2px 8px rgba(30,46,28,0.04);
   opacity:0;transform:translateY(22px);
-  transition:opacity 0.6s cubic-bezier(0.16,1,0.3,1) calc(var(--ti,0)*65ms),
-             transform 0.6s cubic-bezier(0.16,1,0.3,1) calc(var(--ti,0)*65ms),
+  transition:opacity 0.58s cubic-bezier(0.16,1,0.3,1) calc(var(--ti,0)*60ms),
+             transform 0.58s cubic-bezier(0.16,1,0.3,1) calc(var(--ti,0)*60ms),
              box-shadow 0.28s,border-color 0.28s}
 .tpl-card.sr-visible{opacity:1;transform:translateY(0)}
 .tpl-card:hover{box-shadow:0 8px 30px rgba(30,46,28,0.13);border-color:rgba(45,90,39,0.22);transform:translateY(-3px) !important}
-.tpl-accent-bar{height:3px;width:100%}
+.tpl-accent-bar{height:3px}
 .tpl-body{padding:20px 22px 18px}
 .tpl-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
 .tpl-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -115,14 +140,41 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .tpl-create-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
 .tpl-meta-tag{font-size:10.5px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);letter-spacing:0.04em;display:flex;align-items:center;gap:5px}
 
-/* ══ MY VAULT SECTION ══ */
+/* ══ MY VAULT ══ */
 #my-vault{padding:clamp(70px,7vw,110px) clamp(28px,5vw,80px);background:var(--off-white);border-top:1px solid var(--misty)}
 .my-vault-inner{max-width:1700px;margin:0 auto}
-.vault-header-row{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px}
-.vault-empty-state{text-align:center;padding:80px 48px;background:#fff;border:1px solid var(--misty);border-radius:20px;box-shadow:0 2px 12px rgba(30,46,28,0.04)}
+.vault-hdr-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:32px}
+.vault-hdr-left .section-label,.vault-hdr-left .section-heading{opacity:0;transform:translateY(18px);transition:opacity 0.65s cubic-bezier(0.16,1,0.3,1) calc(var(--hi,0)*110ms),transform 0.65s cubic-bezier(0.16,1,0.3,1) calc(var(--hi,0)*110ms)}
+.vault-hdr-left.vh-visible .section-label,.vault-hdr-left.vh-visible .section-heading{opacity:1;transform:none}
+.vault-hdr-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding-bottom:6px;opacity:0;transform:translateY(14px);transition:opacity 0.65s cubic-bezier(0.16,1,0.3,1) 0.15s,transform 0.65s cubic-bezier(0.16,1,0.3,1) 0.15s}
+.vault-hdr-actions.vh-visible{opacity:1;transform:none}
+.btn-export-all{background:transparent;color:var(--forest);border:1.5px solid rgba(45,90,39,0.35);border-radius:9px;padding:10px 22px;font-size:13px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all 0.26s;display:flex;align-items:center;gap:7px}
+.btn-export-all:hover{background:var(--forest);color:#fff;border-color:var(--forest);box-shadow:0 2px 14px rgba(45,90,39,0.28)}
+
+/* File grid */
+.vf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.vf-card{background:#fff;border:1px solid var(--misty);border-radius:14px;overflow:hidden;transition:box-shadow 0.26s,transform 0.26s;opacity:0;transform:translateY(16px);transition:opacity 0.55s cubic-bezier(0.16,1,0.3,1) calc(var(--fi,0)*55ms),transform 0.55s cubic-bezier(0.16,1,0.3,1) calc(var(--fi,0)*55ms),box-shadow 0.26s}
+.vf-card.sr-visible{opacity:1;transform:none}
+.vf-card:hover{box-shadow:0 6px 24px rgba(30,46,28,0.1);transform:translateY(-2px) !important}
+.vf-accent{height:3px}
+.vf-body{padding:17px 19px 15px}
+.vf-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:11px}
+.vf-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vf-type-badge{font-size:9px;font-family:var(--font-mono);font-weight:300;letter-spacing:0.08em;text-transform:uppercase;border-radius:5px;padding:2px 7px;margin-top:2px}
+.vf-name{font-family:var(--font-display);font-size:17px;font-weight:300;color:var(--ink);margin-bottom:3px;letter-spacing:-0.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vf-meta{font-size:12px;font-weight:300;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.vf-updated{font-size:10px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);opacity:0.65;letter-spacing:0.03em;margin-bottom:13px}
+.vf-actions{display:flex;gap:7px;padding-top:12px;border-top:1px solid var(--misty)}
+.vf-btn{font-size:12px;font-family:var(--font-body);font-weight:400;border:1px solid var(--misty);border-radius:6px;padding:6px 12px;cursor:pointer;background:transparent;color:var(--ink-faint);transition:all 0.2s}
+.vf-btn.edit:hover{color:var(--forest);border-color:var(--forest);background:rgba(45,90,39,0.06)}
+.vf-btn.export:hover{color:var(--orange);border-color:var(--orange);background:rgba(212,98,26,0.06)}
+.vf-btn.del:hover{color:#c0392b;border-color:#c0392b;background:rgba(192,57,43,0.05)}
+
+/* Empty state */
+.vault-empty-state{text-align:center;padding:80px 48px;background:#fff;border:1px solid var(--misty);border-radius:20px}
 .ves-icon{width:52px;height:52px;border-radius:13px;background:var(--forest-mist);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
-.ves-title{font-family:var(--font-display);font-size:clamp(24px,2.4vw,32px);font-weight:300;color:var(--ink);margin-bottom:10px;letter-spacing:-0.01em}
-.ves-sub{font-size:14px;font-weight:300;color:var(--ink-faint);line-height:1.65;max-width:380px;margin:0 auto 28px}
+.ves-title{font-family:var(--font-display);font-size:clamp(22px,2.2vw,30px);font-weight:300;color:var(--ink);margin-bottom:10px;letter-spacing:-0.01em}
+.ves-sub{font-size:14px;font-weight:300;color:var(--ink-faint);line-height:1.65;max-width:360px;margin:0 auto 28px}
 .ves-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 
 /* ══ MODAL ══ */
@@ -151,18 +203,18 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .sheet-scroll{flex:1;overflow:auto;min-height:0}
 .sheet-table{width:100%;border-collapse:collapse;font-size:13px}
 .sheet-table thead th{background:var(--off-white);font-size:10px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.09em;padding:9px 13px;border-bottom:2px solid var(--misty);border-right:1px solid var(--misty);text-align:left;white-space:nowrap;position:sticky;top:0;z-index:2;user-select:none}
-.sheet-table thead th.row-num-head{width:42px;text-align:center}
+.sheet-table thead th.rn{width:42px;text-align:center}
 .sheet-table tbody tr{border-bottom:1px solid rgba(236,234,227,0.8)}
 .sheet-table tbody tr:hover{background:rgba(45,90,39,0.025)}
 .sheet-table tbody td{padding:0;border-right:1px solid rgba(236,234,227,0.6)}
-.sheet-table tbody td.row-num{text-align:center;font-size:9.5px;font-family:var(--font-mono);color:var(--ink-faint);background:var(--off-white);width:42px;padding:11px 0;border-right:2px solid var(--misty);user-select:none}
-.sheet-cell{display:block;padding:9px 13px;outline:none;min-height:36px;font-family:var(--font-body);font-weight:300;color:var(--ink);font-size:13px;transition:background 0.15s;white-space:nowrap;overflow:hidden}
+.sheet-table tbody td.rn{text-align:center;font-size:9.5px;font-family:var(--font-mono);color:var(--ink-faint);background:var(--off-white);width:42px;padding:10px 0;border-right:2px solid var(--misty);user-select:none}
+.sheet-cell{display:block;padding:9px 13px;outline:none;min-height:36px;font-family:var(--font-body);font-weight:300;color:var(--ink);font-size:13px;white-space:nowrap;overflow:hidden;transition:background 0.15s}
 .sheet-cell:focus{background:rgba(45,90,39,0.06);white-space:normal}
-.sheet-cell:empty::before{content:attr(data-ph);color:rgba(122,138,120,0.5);pointer-events:none;font-style:italic}
+.sheet-cell:empty::before{content:attr(data-ph);color:rgba(122,138,120,0.45);pointer-events:none;font-style:italic}
 .sheet-foot{padding:12px 26px;border-top:1px solid var(--misty);display:flex;align-items:center;justify-content:space-between;background:var(--off-white);flex-shrink:0}
 .add-row-btn{font-size:12.5px;font-family:var(--font-body);font-weight:400;color:var(--forest);background:transparent;border:1px solid rgba(45,90,39,0.28);border-radius:7px;padding:7px 16px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:5px}
 .add-row-btn:hover{background:rgba(45,90,39,0.06);border-color:var(--forest)}
-.row-count{font-size:11px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);letter-spacing:0.04em}
+.row-count-lbl{font-size:11px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);letter-spacing:0.04em}
 
 /* Document editor */
 .doc-editor{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -186,21 +238,9 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 /* ══ SCROLL REVEAL ══ */
 .sr-fade-up{opacity:0;transform:translateY(30px);transition:opacity 0.72s cubic-bezier(0.16,1,0.3,1),transform 0.72s cubic-bezier(0.16,1,0.3,1)}
 .sr-fade-up.sr-visible{opacity:1;transform:translateY(0)}
-.sr-stagger>*{opacity:0;transform:translateY(22px);transition:opacity 0.68s cubic-bezier(0.16,1,0.3,1) calc(var(--sr-i,0)*110ms),transform 0.68s cubic-bezier(0.16,1,0.3,1) calc(var(--sr-i,0)*110ms)}
-.sr-stagger.sr-visible>*{opacity:1;transform:translateY(0)}
 .sr-panel{position:relative;overflow:hidden}
 .sr-panel::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.08) 40%,rgba(255,255,255,0.18) 50%,rgba(255,255,255,0.08) 60%,transparent 100%);transform:translateX(-110%);pointer-events:none;z-index:0;transition:transform 1.1s cubic-bezier(0.16,1,0.3,1)}
 .sr-panel.sr-visible::before{transform:translateX(110%)}
-.sr-templates-header .section-label,
-.sr-templates-header .section-heading,
-.sr-templates-header .section-sub{opacity:0;transform:translateY(18px);transition:opacity 0.65s cubic-bezier(0.16,1,0.3,1) calc(var(--hi,0)*110ms),transform 0.65s cubic-bezier(0.16,1,0.3,1) calc(var(--hi,0)*110ms)}
-.sr-templates-header.sr-visible .section-label,
-.sr-templates-header.sr-visible .section-heading,
-.sr-templates-header.sr-visible .section-sub{opacity:1;transform:translateY(0)}
-.sr-vault-header .section-label,
-.sr-vault-header .section-heading{opacity:0;transform:translateY(18px);transition:opacity 0.65s cubic-bezier(0.16,1,0.3,1) calc(var(--hi,0)*110ms),transform 0.65s cubic-bezier(0.16,1,0.3,1) calc(var(--hi,0)*110ms)}
-.sr-vault-header.sr-visible .section-label,
-.sr-vault-header.sr-visible .section-heading{opacity:1;transform:translateY(0)}
 
 /* ══ FOOTER ══ */
 footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padding:clamp(40px,5vw,72px) clamp(28px,5vw,80px) clamp(28px,4vw,52px)}
@@ -257,18 +297,13 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
   <div class="wash wash-1"></div>
   <div class="wash wash-2"></div>
   <div class="wash wash-3"></div>
-
   <div class="vault-hero-inner">
-    <!-- LEFT: Text -->
     <div class="vault-hero-text">
       <div class="vault-eyebrow">
         <div class="eyebrow-dot"></div>
         <span class="eyebrow-text">Your application record — organized and ready</span>
       </div>
-      <h1 class="vault-headline">
-        The
-        <em>Vault.</em>
-      </h1>
+      <h1 class="vault-headline">The<em>Vault.</em></h1>
       <p class="vault-tagline">Turn your experiences into credentials.</p>
       <p class="vault-sub">Every clinical hour, every recommender, every activity — stored in one structured profile that never forgets what you've done. The Vault is what Scrubbed draws from to build every outline, so nothing gets left behind when it matters most.</p>
       <div class="vault-ctas">
@@ -276,17 +311,12 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
         <label for="vault-file-input" class="btn-ho" style="cursor:pointer">Upload a file →</label>
       </div>
     </div>
-
-    <!-- RIGHT: Preview card -->
     <div class="vault-preview-col">
       <div class="vpc-wrap">
         <div class="vpc-topbar">
           <div class="vpc-topbar-left">
             <div class="vpc-logo-mark">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="3" width="18" height="18" rx="3" stroke="white" stroke-width="2"/>
-                <path d="M3 9h18M9 21V9" stroke="white" stroke-width="2"/>
-              </svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="white" stroke-width="2"/><path d="M3 9h18M9 21V9" stroke="white" stroke-width="2"/></svg>
             </div>
             <span class="vpc-name">Premed Vault</span>
           </div>
@@ -297,7 +327,7 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
           <button class="vpc-tab">Documents</button>
           <button class="vpc-tab">Hour Logs</button>
         </div>
-        <div class="vpc-list" id="vpc-list"><!-- populated by JS --></div>
+        <div class="vpc-list" id="vpc-list"></div>
         <button class="vpc-add" onclick="document.getElementById('templates').scrollIntoView({behavior:'smooth'})">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add new from template or upload
@@ -307,40 +337,59 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
   </div>
 </section>
 
+<!-- VAULT ABOUT — forest green break -->
+<section id="vault-about">
+  <div class="va-inner">
+    <div class="va-label">THE VAULT</div>
+    <div class="va-rule"></div>
+    <p class="va-text" style="--vi:0">Your application isn't scattered across folders, sticky notes, and memory anymore. <strong>Everything you've done lives here</strong> — structured, searchable, and ready.</p>
+    <p class="va-text" style="--vi:1">Build your record once. Every outline SecondaryAI generates draws directly from what's in your Vault — <em>your real experiences, your real credentials,</em> not generic placeholders.</p>
+    <div class="va-stats">
+      <div class="va-stat"><span class="va-stat-num">9</span><span class="va-stat-label">Template types</span></div>
+      <div class="va-stat"><span class="va-stat-num">1</span><span class="va-stat-label">Unified profile</span></div>
+      <div class="va-stat"><span class="va-stat-num">∞</span><span class="va-stat-label">Outlines generated</span></div>
+    </div>
+  </div>
+</section>
+
 <!-- TEMPLATE LIBRARY -->
 <section id="templates" class="sr-panel">
   <div class="templates-inner">
-    <div class="templates-header sr-templates-header" id="tpl-header">
-      <div class="section-label" style="--hi:0">TEMPLATES</div>
-      <h2 class="section-heading" style="--hi:1">Build your record, <em>your way</em></h2>
-      <p class="section-sub" style="--hi:2">Choose a template to start a new file — or upload any existing document and Scrubbed will convert it into the standard format automatically.</p>
+    <div class="templates-header" id="tpl-header">
+      <div class="section-label tpl-section-label" style="--hi:0">TEMPLATES</div>
+      <h2 class="section-heading tpl-section-heading" style="--hi:1">Build your record, <em>your way</em></h2>
+      <p class="section-sub tpl-section-sub" style="--hi:2">Choose a template to create a new file — or upload any existing document and Scrubbed will convert it to the standard format automatically.</p>
     </div>
-    <div class="template-grid" id="template-grid"><!-- populated by JS --></div>
+    <div class="template-grid" id="template-grid"></div>
   </div>
 </section>
 
 <!-- MY VAULT -->
 <section id="my-vault" class="sr-panel">
   <div class="my-vault-inner">
-    <div class="vault-header-row sr-vault-header" id="vault-hdr">
-      <div>
+    <div class="vault-hdr-row">
+      <div class="vault-hdr-left" id="vault-hdr-left">
         <div class="section-label" style="--hi:0">MY FILES</div>
         <h2 class="section-heading" style="--hi:1">Your <em>record</em></h2>
       </div>
-      <label for="vault-file-input" class="btn-hp" style="cursor:pointer;margin-bottom:6px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="margin-right:7px;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Upload file
-      </label>
+      <div class="vault-hdr-actions" id="vault-hdr-actions">
+        <button class="btn-export-all" onclick="exportAllFiles()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export All
+        </button>
+        <label for="vault-file-input" class="btn-hp" style="cursor:pointer;font-size:13px;padding:10px 22px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload file
+        </label>
+      </div>
     </div>
-    <div class="sr-fade-up vault-empty-state" id="vault-empty">
+    <div class="vf-grid" id="vf-grid" style="display:none"></div>
+    <div class="vault-empty-state sr-fade-up" id="vault-empty">
       <div class="ves-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--forest)" stroke-width="1.6"/>
-          <path d="M3 9h18M9 21V9" stroke="var(--forest)" stroke-width="1.6"/>
-        </svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--forest)" stroke-width="1.6"/><path d="M3 9h18M9 21V9" stroke="var(--forest)" stroke-width="1.6"/></svg>
       </div>
       <h3 class="ves-title">Your vault is empty</h3>
-      <p class="ves-sub">Choose a template above or upload any file to start building your application record. Scrubbed will format everything automatically.</p>
+      <p class="ves-sub">Choose a template above or upload any file to start building your application record.</p>
       <div class="ves-actions">
         <a href="#templates" class="btn-hp">Browse templates</a>
         <label for="vault-file-input" class="btn-ho" style="cursor:pointer">Upload a file</label>
@@ -355,7 +404,7 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
     <div class="footer-top">
       <div>
         <span class="footer-col-title">Company</span>
-        <a href="#" class="footer-link">About</a>
+        <a href="index.html#manifesto" class="footer-link">About</a>
         <a href="#" class="footer-link">Careers</a>
         <a href="#" class="footer-link">Privacy Policy</a>
         <a href="#" class="footer-link">Terms &amp; Conditions</a>
@@ -369,17 +418,17 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
       </div>
       <div>
         <span class="footer-col-title">Resources</span>
-        <a href="#" class="footer-link">Getting Started</a>
+        <a href="index.html#how-it-works" class="footer-link">Getting Started</a>
         <a href="#" class="footer-link">Help Center</a>
         <a href="#" class="footer-link">Secondary Essay Guide</a>
         <a href="#" class="footer-link">Give Feedback</a>
       </div>
       <div>
         <span class="footer-col-title">For Students</span>
-        <a href="#" class="footer-link">How Scrubbed works</a>
+        <a href="index.html#how-it-works" class="footer-link">How Scrubbed works</a>
         <a href="#" class="footer-link">School Coverage</a>
         <a href="#" class="footer-link">Pricing</a>
-        <a href="#" class="footer-link">Early Access</a>
+        <a href="index.html#get-started" class="footer-link">Early Access</a>
       </div>
       <div>
         <span class="footer-col-title">Follow Us</span>
@@ -410,7 +459,7 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
         <button class="modal-cancel" onclick="closeModal()">Cancel</button>
       </div>
     </div>
-    <div class="modal-body" id="modal-body"><!-- populated by JS --></div>
+    <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
 
@@ -419,116 +468,130 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
 
 <script>
 /* ── TEMPLATE DATA ── */
-const TEMPLATES = [
-  {
-    id:'clinical-hours', name:'Clinical Hour Log', type:'spreadsheet',
-    desc:'Track patient contact hours by date, facility, and supervising physician.',
-    accent:'#3d7a35',
-    meta:[{label:'Institution / Program',ph:'e.g. St. Mary\'s Hospital'},{label:'Date Range',ph:'e.g. Jan 2024 – Present'}],
-    cols:['Date','Institution / Department','Supervising Physician','Role / Activity','Hours','Cumulative','Notes'],
-    rows:10,
-  },
-  {
-    id:'volunteer-hours', name:'Volunteer Hour Log', type:'spreadsheet',
-    desc:'Log non-clinical community service and outreach work across organizations.',
-    accent:'#5a9e50',
-    meta:[{label:'Primary Organization',ph:'e.g. Red Cross'},{label:'Date Range',ph:'e.g. Sep 2023 – Present'}],
-    cols:['Date','Organization','Role','Supervisor','Hours','Cumulative','Notes'],
-    rows:10,
-  },
-  {
-    id:'shadowing-log', name:'Physician Shadowing Log', type:'spreadsheet',
-    desc:'Document shadowing sessions with specialty, setting, and key observations.',
-    accent:'#2d5a27',
-    meta:[{label:'Primary Physician',ph:'e.g. Dr. Sarah Chen, MD'},{label:'Date Range',ph:'e.g. Mar 2024 – Jun 2024'}],
-    cols:['Date','Physician','Specialty','Setting','Procedures Observed','Hours','Cumulative'],
-    rows:10,
-  },
-  {
-    id:'research-log', name:'Research Log', type:'spreadsheet',
-    desc:'Track lab hours, projects, and contributions across research positions.',
-    accent:'#d4621a',
-    meta:[{label:'PI / Lab',ph:'e.g. Dr. Williams Lab, Stanford'},{label:'Project',ph:'e.g. CRISPR editing in T-cells'}],
-    cols:['Date','PI / Lab','Project','Tasks & Contributions','Hours','Cumulative','Notes'],
-    rows:10,
-  },
-  {
-    id:'employment-record', name:'Work & Employment Record', type:'spreadsheet',
-    desc:'Document paid employment, internships, and relevant work experience.',
-    accent:'#e07535',
-    meta:[{label:'Employer',ph:'e.g. General Hospital'},{label:'Position',ph:'e.g. Medical Scribe'}],
-    cols:['Date Range','Employer','Position','Responsibilities','Avg. Hrs/Wk','Total Hours','Notes'],
-    rows:8,
-  },
-  {
-    id:'recommendation-letter', name:'Recommendation Letter', type:'document',
-    desc:'Structure context and key talking points to share with your recommenders.',
-    accent:'#3d7a35',
-    meta:[{label:'Recommender Name',ph:'e.g. Dr. James Carter'},{label:'Relationship',ph:'e.g. Research Supervisor'}],
-    sections:[
-      {label:'Recommender Details',ph:'Full name, title, institution, email, and your relationship. Include how long and in what context they know you.'},
-      {label:'Experiences to Reference',ph:'Specific projects, accomplishments, or moments you\'d like highlighted. Be concrete — dates, outcomes, your role.'},
-      {label:'Qualities to Emphasize',ph:'Character traits, skills, or work ethic you hope they address. Why are you a strong candidate for medical school?'},
-      {label:'Additional Context',ph:'Anything else that would help the recommender write a comprehensive, personal letter on your behalf.'},
-    ],
-  },
-  {
-    id:'personal-statement', name:'Personal Statement', type:'document',
-    desc:'Draft your AMCAS personal statement with a clear, section-by-section structure.',
-    accent:'#2d5a27',
-    meta:[{label:'Character Limit',ph:'5,300 characters (AMCAS)'},{label:'Draft Version',ph:'e.g. v1'}],
-    sections:[
-      {label:'Opening Hook',ph:'A scene, moment, or image that draws the reader in immediately. Avoid "I have always wanted to be a doctor."'},
-      {label:'Why Medicine',ph:'The genuine, specific reason medicine is your path. Ground it in a real experience or realization — not abstraction.'},
-      {label:'Formative Experiences',ph:'2–3 experiences that shaped your understanding of medicine, patients, or yourself. Connect them to your narrative.'},
-      {label:'What You Bring',ph:'What kind of physician will you be? What does your background, perspective, or skill set uniquely contribute?'},
-      {label:'Closing',ph:'A forward-looking close that returns to your opening theme and leaves a clear impression of who you are and why medicine.'},
-    ],
-  },
-  {
-    id:'activity-description', name:'Activity Description', type:'document',
-    desc:'Write AMCAS-format activity entries with role, impact, and reflection.',
-    accent:'#d4621a',
-    meta:[{label:'Activity Name',ph:'e.g. Emergency Department Volunteer'},{label:'Activity Type',ph:'e.g. Clinical Volunteer Work'}],
-    sections:[
-      {label:'Organization & Role',ph:'Organization name, your specific role, supervisor name and contact, and relevant dates.'},
-      {label:'Dates & Total Hours',ph:'Start and end dates (or "Present") and total hours logged in this activity.'},
-      {label:'Description & Impact',ph:'What did you do, and why did it matter? Write in first person. Be concrete about your contributions and outcomes. (700 chars max for AMCAS)'},
-      {label:'Reflection & Growth',ph:'What did you learn about medicine, patients, or yourself? How did this shape your path to medical school?'},
-    ],
-  },
-  {
-    id:'secondary-essay', name:'Secondary Essay', type:'document',
-    desc:'Store and organize secondary essays by school, prompt, and outline.',
-    accent:'#e07535',
-    meta:[{label:'School',ph:'e.g. Johns Hopkins School of Medicine'},{label:'Word / Char Limit',ph:'e.g. 300 words'}],
-    sections:[
-      {label:'Prompt',ph:'Paste the exact secondary prompt here verbatim.'},
-      {label:'Outline',ph:'Key points, experiences, and angle for this essay. Reference your Vault entries by name — e.g. "Clinical Hours — St. Mary\'s", "Rec. Letter — Dr. Chen".'},
-      {label:'Draft',ph:'Your essay draft. Write in first person. Prioritize specificity — this school, this prompt, your unique record.'},
-    ],
-  },
+const TEMPLATES=[
+  {id:'clinical-hours',name:'Clinical Hour Log',type:'spreadsheet',desc:'Track patient contact hours by date, facility, and supervising physician.',accent:'#3d7a35',
+   meta:[{label:'Institution / Program',ph:'e.g. St. Mary\'s Hospital'},{label:'Date Range',ph:'e.g. Jan 2024 – Present'}],
+   cols:['Date','Institution / Department','Supervising Physician','Role / Activity','Hours','Cumulative','Notes'],rows:10},
+  {id:'volunteer-hours',name:'Volunteer Hour Log',type:'spreadsheet',desc:'Log non-clinical community service and outreach work across organizations.',accent:'#5a9e50',
+   meta:[{label:'Primary Organization',ph:'e.g. Red Cross'},{label:'Date Range',ph:'e.g. Sep 2023 – Present'}],
+   cols:['Date','Organization','Role','Supervisor','Hours','Cumulative','Notes'],rows:10},
+  {id:'shadowing-log',name:'Physician Shadowing Log',type:'spreadsheet',desc:'Document shadowing sessions with specialty, setting, and key observations.',accent:'#2d5a27',
+   meta:[{label:'Primary Physician',ph:'e.g. Dr. Sarah Chen, MD'},{label:'Date Range',ph:'e.g. Mar 2024 – Jun 2024'}],
+   cols:['Date','Physician','Specialty','Setting','Procedures Observed','Hours','Cumulative'],rows:10},
+  {id:'research-log',name:'Research Log',type:'spreadsheet',desc:'Track lab hours, projects, and contributions across research positions.',accent:'#d4621a',
+   meta:[{label:'PI / Lab',ph:'e.g. Dr. Williams Lab, Stanford'},{label:'Project',ph:'e.g. CRISPR editing in T-cells'}],
+   cols:['Date','PI / Lab','Project','Tasks & Contributions','Hours','Cumulative','Notes'],rows:10},
+  {id:'employment-record',name:'Work & Employment Record',type:'spreadsheet',desc:'Document paid employment, internships, and relevant work experience.',accent:'#e07535',
+   meta:[{label:'Employer',ph:'e.g. General Hospital'},{label:'Position',ph:'e.g. Medical Scribe'}],
+   cols:['Date Range','Employer','Position','Responsibilities','Avg. Hrs/Wk','Total Hours','Notes'],rows:8},
+  {id:'recommendation-letter',name:'Recommendation Letter',type:'document',desc:'Structure context and key talking points to share with your recommenders.',accent:'#3d7a35',
+   meta:[{label:'Recommender Name',ph:'e.g. Dr. James Carter'},{label:'Relationship',ph:'e.g. Research Supervisor'}],
+   sections:[{label:'Recommender Details',ph:'Full name, title, institution, email, and your relationship. Include how long and in what context they know you.'},
+             {label:'Experiences to Reference',ph:'Specific projects, accomplishments, or moments you\'d like highlighted. Be concrete — dates, outcomes, your role.'},
+             {label:'Qualities to Emphasize',ph:'Character traits, skills, or work ethic you hope they address. Why are you a strong candidate for medical school?'},
+             {label:'Additional Context',ph:'Anything that would help the recommender write a comprehensive, personal letter on your behalf.'}]},
+  {id:'personal-statement',name:'Personal Statement',type:'document',desc:'Draft your AMCAS personal statement with a clear, section-by-section structure.',accent:'#2d5a27',
+   meta:[{label:'Character Limit',ph:'5,300 characters (AMCAS)'},{label:'Draft Version',ph:'e.g. v1'}],
+   sections:[{label:'Opening Hook',ph:'A scene, moment, or image that draws the reader in. Avoid "I have always wanted to be a doctor."'},
+             {label:'Why Medicine',ph:'The genuine, specific reason medicine is your path. Ground it in a real experience — not abstraction.'},
+             {label:'Formative Experiences',ph:'2–3 experiences that shaped your understanding of medicine, patients, or yourself.'},
+             {label:'What You Bring',ph:'What kind of physician will you be? What does your background uniquely contribute?'},
+             {label:'Closing',ph:'A forward-looking close that returns to your opening theme and leaves a clear impression of who you are.'}]},
+  {id:'activity-description',name:'Activity Description',type:'document',desc:'Write AMCAS-format activity entries with role, impact, and reflection.',accent:'#d4621a',
+   meta:[{label:'Activity Name',ph:'e.g. Emergency Department Volunteer'},{label:'Activity Type',ph:'e.g. Clinical Volunteer Work'}],
+   sections:[{label:'Organization & Role',ph:'Organization name, your specific role, supervisor name and contact, and relevant dates.'},
+             {label:'Dates & Total Hours',ph:'Start and end dates (or "Present") and total hours logged.'},
+             {label:'Description & Impact',ph:'What did you do, and why did it matter? First person, concrete. (700 chars max for AMCAS)'},
+             {label:'Reflection & Growth',ph:'What did you learn about medicine, patients, or yourself?'}]},
+  {id:'secondary-essay',name:'Secondary Essay',type:'document',desc:'Store and organize secondary essays by school, prompt, and outline.',accent:'#e07535',
+   meta:[{label:'School',ph:'e.g. Johns Hopkins School of Medicine'},{label:'Word / Char Limit',ph:'e.g. 300 words'}],
+   sections:[{label:'Prompt',ph:'Paste the exact secondary prompt here verbatim.'},
+             {label:'Outline',ph:'Key points, experiences, and angle for this essay. Reference your Vault entries by name.'},
+             {label:'Draft',ph:'Your essay draft. First person. Prioritize specificity — this school, this prompt, your record.'}]},
 ];
 
-/* ── DEMO FILES for vault preview ── */
-const DEMO_FILES = [
-  {name:'Clinical Hour Log',type:'SPREADSHEET',detail:'247 hrs logged',accent:'#3d7a35',date:'Today'},
-  {name:'Rec. Letter — Dr. Chen',type:'DOCUMENT',detail:'4 sections',accent:'#d4621a',date:'2 days ago'},
-  {name:'Volunteer Hour Log',type:'SPREADSHEET',detail:'84 hrs logged',accent:'#5a9e50',date:'5 days ago'},
-  {name:'Personal Statement',type:'DOCUMENT',detail:'Draft v3',accent:'#2d5a27',date:'1 week ago'},
-  {name:'Shadowing Log',type:'SPREADSHEET',detail:'120 hrs logged',accent:'#3d7a35',date:'2 weeks ago'},
-];
+/* ── FILE STATE ── */
+const STORAGE_KEY='scrubbed_vault_v1';
+let vaultFiles=[];
+
+function loadFiles(){
+  try{vaultFiles=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){vaultFiles=[]}
+  renderFileGrid();
+}
+function persistFiles(){localStorage.setItem(STORAGE_KEY,JSON.stringify(vaultFiles))}
+
+function renderFileGrid(){
+  const empty=document.getElementById('vault-empty');
+  const grid=document.getElementById('vf-grid');
+  if(vaultFiles.length===0){
+    empty.style.display='';grid.style.display='none';
+  }else{
+    empty.style.display='none';grid.style.display='';
+    grid.innerHTML='';
+    vaultFiles.forEach((f,i)=>{
+      const card=buildFileCard(f,i);
+      grid.appendChild(card);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>card.classList.add('sr-visible')));
+    });
+  }
+}
+
+function buildFileCard(f,idx){
+  const isSheet=f.type==='spreadsheet';
+  const accent=f.accent||'#3d7a35';
+  const badgeBg=isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)';
+  const badgeColor=isSheet?'var(--forest)':'var(--orange)';
+  const iconSvg=isSheet
+    ?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`
+    :`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+  const metaSummary=f.meta&&f.meta[0]&&f.meta[0].value?f.meta[0].value:f.name;
+  const updated=relativeTime(f.updatedAt);
+  const div=document.createElement('div');
+  div.className='vf-card';
+  div.style.cssText=`--fi:${idx}`;
+  div.innerHTML=`
+    <div class="vf-accent" style="background:${accent}"></div>
+    <div class="vf-body">
+      <div class="vf-top">
+        <div class="vf-icon" style="background:${accent}18">${iconSvg}</div>
+        <span class="vf-type-badge" style="background:${badgeBg};color:${badgeColor}">${isSheet?'SPREADSHEET':'DOCUMENT'}</span>
+      </div>
+      <div class="vf-name">${f.name}</div>
+      <div class="vf-meta">${metaSummary}</div>
+      <div class="vf-updated">Updated ${updated}</div>
+      <div class="vf-actions">
+        <button class="vf-btn edit" onclick="openModal('${f.templateId}','${f.id}')">Edit</button>
+        <button class="vf-btn export" onclick="exportFile('${f.id}')">Export</button>
+        <button class="vf-btn del" onclick="deleteFile('${f.id}')">Delete</button>
+      </div>
+    </div>`;
+  return div;
+}
+
+function relativeTime(ts){
+  if(!ts)return'just now';
+  const d=Date.now()-ts;
+  if(d<60000)return'just now';
+  if(d<3600000)return`${Math.floor(d/60000)}m ago`;
+  if(d<86400000)return`${Math.floor(d/3600000)}h ago`;
+  if(d<604800000)return`${Math.floor(d/86400000)}d ago`;
+  return new Date(ts).toLocaleDateString();
+}
+
+function deleteFile(id){
+  vaultFiles=vaultFiles.filter(f=>f.id!==id);
+  persistFiles();renderFileGrid();showToast('File removed from Vault');
+}
 
 /* ── NATURE CANVAS ── */
 (function(){
-  const cv=document.getElementById('nature-canvas');
-  const cx=cv.getContext('2d');
+  const cv=document.getElementById('nature-canvas'),cx=cv.getContext('2d');
   let W,H,leaves;
   const COLORS=['#3d7a35','#5a9e50','#a8c9a0','#2d5a27','#7ab870','#c2ddbf'];
   function resize(){W=cv.width=cv.offsetWidth||window.innerWidth;H=cv.height=cv.offsetHeight||window.innerHeight;init()}
   function rnd(a,b){return a+Math.random()*(b-a)}
   function pick(a){return a[Math.floor(Math.random()*a.length)]}
-  function mkLeaf(fromTop){return{x:rnd(-40,W+40),y:fromTop?rnd(-120,-10):rnd(-H,H),sz:rnd(7,22),vx:rnd(-0.22,0.22),vy:rnd(0.08,0.28),rot:rnd(0,Math.PI*2),rotV:rnd(-0.008,0.008),wob:rnd(0,Math.PI*2),wobV:rnd(0.004,0.012),alpha:rnd(0.05,0.14),color:pick(COLORS)}}
+  function mkLeaf(t){return{x:rnd(-40,W+40),y:t?rnd(-120,-10):rnd(-H,H),sz:rnd(7,22),vx:rnd(-0.22,0.22),vy:rnd(0.08,0.28),rot:rnd(0,Math.PI*2),rotV:rnd(-0.008,0.008),wob:rnd(0,Math.PI*2),wobV:rnd(0.004,0.012),alpha:rnd(0.05,0.14),color:pick(COLORS)}}
   function init(){leaves=Array.from({length:110},()=>mkLeaf(false))}
   function drawLeaf(l){cx.save();cx.translate(l.x+Math.sin(l.wob)*10,l.y);cx.rotate(l.rot);cx.globalAlpha=l.alpha;cx.fillStyle=l.color;cx.strokeStyle='rgba(30,70,20,0.08)';cx.lineWidth=0.5;cx.beginPath();cx.ellipse(0,0,l.sz*0.36,l.sz,0,0,Math.PI*2);cx.fill();cx.stroke();cx.restore()}
   function frame(){cx.clearRect(0,0,W,H);for(let i=0;i<leaves.length;i++){const l=leaves[i];l.x+=l.vx+Math.sin(l.wob)*0.15;l.y+=l.vy;l.rot+=l.rotV;l.wob+=l.wobV;if(l.y>H+50)leaves[i]=mkLeaf(true);drawLeaf(l)}requestAnimationFrame(frame)}
@@ -544,59 +607,55 @@ window.addEventListener('scroll',()=>{
   lastY=y;
 },{passive:true});
 
-/* ── VAULT PREVIEW ── */
+/* ── VAULT PREVIEW DEMO ── */
 (function(){
+  const DEMO=[
+    {name:'Clinical Hour Log',type:'SPREADSHEET',detail:'247 hrs logged',accent:'#3d7a35',date:'Today'},
+    {name:'Rec. Letter — Dr. Chen',type:'DOCUMENT',detail:'4 sections',accent:'#d4621a',date:'2 days ago'},
+    {name:'Volunteer Hour Log',type:'SPREADSHEET',detail:'84 hrs logged',accent:'#5a9e50',date:'5 days ago'},
+    {name:'Personal Statement',type:'DOCUMENT',detail:'Draft v3',accent:'#2d5a27',date:'1 week ago'},
+    {name:'Shadowing Log',type:'SPREADSHEET',detail:'120 hrs logged',accent:'#3d7a35',date:'2 weeks ago'},
+  ];
   const list=document.getElementById('vpc-list');
-  DEMO_FILES.forEach(f=>{
+  DEMO.forEach(f=>{
     const isSheet=f.type==='SPREADSHEET';
-    const bgAlpha=isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)';
-    const textColor=isSheet?'var(--forest)':'var(--orange)';
-    const div=document.createElement('div');
-    div.className='vpc-item';
-    div.innerHTML=`
-      <div class="vpc-item-icon" style="background:${f.accent}22">
-        ${isSheet
-          ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${f.accent}" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`
-          : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${f.accent}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`
-        }
-      </div>
-      <div class="vpc-item-info">
-        <div class="vpc-item-name">${f.name}</div>
-        <div class="vpc-item-sub">${f.detail} &nbsp;·&nbsp; ${f.date}</div>
-      </div>
-      <span class="vpc-item-type" style="background:${f.accent}18;color:${f.accent}">${f.type}</span>`;
-    list.appendChild(div);
+    const el=document.createElement('div');el.className='vpc-item';
+    el.innerHTML=`<div class="vpc-item-icon" style="background:${f.accent}20">${isSheet
+      ?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${f.accent}" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`
+      :`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${f.accent}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+    }</div>
+    <div class="vpc-item-info"><div class="vpc-item-name">${f.name}</div><div class="vpc-item-sub">${f.detail} · ${f.date}</div></div>
+    <span class="vpc-item-type" style="background:${f.accent}18;color:${f.accent}">${f.type}</span>`;
+    list.appendChild(el);
   });
 })();
 
-/* ── RENDER TEMPLATES ── */
+/* ── RENDER TEMPLATE CARDS ── */
 (function(){
   const grid=document.getElementById('template-grid');
   TEMPLATES.forEach((t,i)=>{
     const isSheet=t.type==='spreadsheet';
     const badgeBg=isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)';
     const badgeColor=isSheet?'var(--forest)':'var(--orange)';
-    const badgeText=isSheet?'SPREADSHEET':'DOCUMENT';
     const iconSvg=isSheet
-      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`
-      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+      ?`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`
+      :`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
     const card=document.createElement('div');
-    card.className='tpl-card';
-    card.style.cssText=`--ti:${i}`;
+    card.className='tpl-card';card.style.cssText=`--ti:${i}`;
     card.innerHTML=`
       <div class="tpl-accent-bar" style="background:${t.accent}"></div>
       <div class="tpl-body">
         <div class="tpl-top">
           <div class="tpl-icon" style="background:${t.accent}15">${iconSvg}</div>
-          <span class="tpl-type-badge" style="background:${badgeBg};color:${badgeColor}">${badgeText}</span>
+          <span class="tpl-type-badge" style="background:${badgeBg};color:${badgeColor}">${isSheet?'SPREADSHEET':'DOCUMENT'}</span>
         </div>
         <div class="tpl-name">${t.name}</div>
         <div class="tpl-desc">${t.desc}</div>
         <div class="tpl-foot">
           <button class="tpl-create-btn" style="background:${t.accent}" onclick="openModal('${t.id}')">Create</button>
           <span class="tpl-meta-tag">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            ${isSheet ? t.cols.length+' columns' : t.sections.length+' sections'}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${isSheet?t.cols.length+' columns':t.sections.length+' sections'}
           </span>
         </div>
       </div>`;
@@ -605,177 +664,260 @@ window.addEventListener('scroll',()=>{
 })();
 
 /* ── MODAL ── */
-let currentTemplate=null;
+let currentTemplate=null,editingFileId=null;
 
-function openModal(id){
-  const t=TEMPLATES.find(x=>x.id===id);
+function openModal(templateId,fileId=null){
+  const t=TEMPLATES.find(x=>x.id===templateId);
   if(!t)return;
-  currentTemplate=t;
+  currentTemplate=t;editingFileId=fileId;
   const isSheet=t.type==='spreadsheet';
   document.getElementById('modal-title').textContent=t.name;
   const badge=document.getElementById('modal-badge');
   badge.textContent=isSheet?'SPREADSHEET':'DOCUMENT';
-  badge.style.background=isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)';
-  badge.style.color=isSheet?'var(--forest)':'var(--orange)';
+  badge.style.cssText=`background:${isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)'};color:${isSheet?'var(--forest)':'var(--orange)'}`;
+  document.getElementById('modal-save').textContent=fileId?'Save Changes':'Save to Vault';
   document.getElementById('modal-body').innerHTML=isSheet?buildSheet(t):buildDoc(t);
-  if(isSheet)initSheet(t);
-  else initDoc(t);
+  if(isSheet)initSheet();else initDoc();
+  if(fileId){
+    const existing=vaultFiles.find(f=>f.id===fileId);
+    if(existing)populateModal(existing);
+  }
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow='hidden';
+}
+
+function populateModal(file){
+  const metaInputs=[...document.querySelectorAll('.smt-input')];
+  (file.meta||[]).forEach((m,i)=>{if(metaInputs[i])metaInputs[i].value=m.value||''});
+  if(file.type==='spreadsheet'&&file.rows){
+    const tbody=document.getElementById('sheet-body');
+    tbody.innerHTML='';
+    const extraRows=Math.max(0,file.rows.length-currentTemplate.rows);
+    file.rows.forEach((row,rIdx)=>{
+      const tr=buildSheetRow(rIdx+1,row);
+      tbody.appendChild(tr);
+    });
+    for(let r=file.rows.length+1;r<=currentTemplate.rows;r++)tbody.appendChild(buildSheetRow(r,null));
+    updateRowCount();
+    initSheet();
+  }else if(file.type==='document'&&file.sections){
+    const contents=[...document.querySelectorAll('.doc-section-content')];
+    file.sections.forEach((s,i)=>{if(contents[i]&&s.content)contents[i].textContent=s.content});
+    initDoc();
+  }
 }
 
 function closeModal(){
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow='';
-  currentTemplate=null;
+  currentTemplate=null;editingFileId=null;
 }
 
-document.getElementById('modal-overlay').addEventListener('click',function(e){
-  if(e.target===this)closeModal();
-});
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal()});
 
 function saveModal(){
-  closeModal();
-  showToast('Saved to Vault');
+  if(!currentTemplate)return;
+  const isSheet=currentTemplate.type==='spreadsheet';
+  const metaInputs=[...document.querySelectorAll('.smt-input')];
+  const meta=currentTemplate.meta.map((m,i)=>({label:m.label,value:metaInputs[i]?.value||''}));
+  const now=Date.now();
+  let data={};
+  if(isSheet){
+    const rows=[];
+    document.querySelectorAll('#sheet-body tr').forEach(tr=>{
+      rows.push([...tr.querySelectorAll('.sheet-cell')].map(c=>c.textContent.trim()));
+    });
+    data={rows,cols:currentTemplate.cols};
+  }else{
+    data={sections:[...document.querySelectorAll('.doc-section-content')].map((el,i)=>({
+      label:currentTemplate.sections[i].label,content:el.innerText.trim()
+    }))};
+  }
+  const displayName=meta[0]?.value||currentTemplate.name;
+  if(editingFileId){
+    const idx=vaultFiles.findIndex(f=>f.id===editingFileId);
+    if(idx>=0)vaultFiles[idx]={...vaultFiles[idx],name:displayName,meta,...data,updatedAt:now};
+  }else{
+    vaultFiles.unshift({id:`${currentTemplate.id}-${now}`,templateId:currentTemplate.id,name:displayName,type:currentTemplate.type,accent:currentTemplate.accent,createdAt:now,updatedAt:now,meta,...data});
+  }
+  persistFiles();renderFileGrid();closeModal();
+  showToast(editingFileId?'Changes saved':'Saved to Vault');
 }
 
 /* Sheet builder */
 function buildSheet(t){
-  const metaFields=t.meta.map(m=>`
-    <div class="smt-field">
-      <span class="smt-label">${m.label}</span>
-      <input class="smt-input" type="text" placeholder="${m.ph}"/>
-    </div>`).join('');
-  const headers=`<th class="row-num-head">#</th>`+t.cols.map(c=>`<th>${c}</th>`).join('');
-  let bodyRows='';
-  for(let r=1;r<=t.rows;r++){
-    const cells=t.cols.map((c,ci)=>`<td><div class="sheet-cell" contenteditable="true" data-ph="${getColPh(c,ci)}" spellcheck="false"></div></td>`).join('');
-    bodyRows+=`<tr><td class="row-num">${r}</td>${cells}</tr>`;
-  }
-  return `<div class="sheet-editor">
-    <div class="sheet-meta-bar">${metaFields}</div>
-    <div class="sheet-scroll">
-      <table class="sheet-table" id="active-sheet">
-        <thead><tr>${headers}</tr></thead>
-        <tbody id="sheet-body">${bodyRows}</tbody>
-      </table>
-    </div>
+  const metaHtml=t.meta.map(m=>`<div class="smt-field"><span class="smt-label">${m.label}</span><input class="smt-input" type="text" placeholder="${m.ph}"/></div>`).join('');
+  let bodyHtml='';for(let r=1;r<=t.rows;r++)bodyHtml+=buildSheetRowHtml(r,null,t);
+  return`<div class="sheet-editor">
+    <div class="sheet-meta-bar">${metaHtml}</div>
+    <div class="sheet-scroll"><table class="sheet-table" id="active-sheet">
+      <thead><tr><th class="rn">#</th>${t.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+      <tbody id="sheet-body">${bodyHtml}</tbody>
+    </table></div>
     <div class="sheet-foot">
-      <button class="add-row-btn" onclick="addSheetRow()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Row
-      </button>
-      <span class="row-count" id="row-count">${t.rows} rows</span>
+      <button class="add-row-btn" onclick="addSheetRow()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>
+      <span class="row-count-lbl" id="row-count-lbl">${t.rows} rows</span>
     </div>
   </div>`;
 }
 
-function getColPh(col,idx){
-  const phs={'Date':'MM/DD/YYYY','Hours':'0.0','Cumulative':'0.0','Notes':'Optional notes...'};
-  return phs[col]||'—';
+function buildSheetRowHtml(n,data,t){
+  const cols=t||(currentTemplate);
+  const cells=(cols.cols||[]).map((c,ci)=>{
+    const val=data&&data[ci]!=null?data[ci]:'';
+    return`<td><div class="sheet-cell" contenteditable="true" data-ph="${getColPh(c)}" spellcheck="false">${escHtml(val)}</div></td>`;
+  }).join('');
+  return`<tr><td class="rn">${n}</td>${cells}</tr>`;
 }
 
-function initSheet(t){
+function buildSheetRow(n,data){
+  const tr=document.createElement('tr');
+  const cells=(currentTemplate.cols||[]).map((c,ci)=>{
+    const val=data&&data[ci]!=null?data[ci]:'';
+    return`<td><div class="sheet-cell" contenteditable="true" data-ph="${getColPh(c)}" spellcheck="false">${escHtml(val)}</div></td>`;
+  }).join('');
+  tr.innerHTML=`<td class="rn">${n}</td>${cells}`;
+  return tr;
+}
+
+function getColPh(col){return({'Date':'MM/DD/YYYY','Hours':'0.0','Cumulative':'0.0','Notes':'Optional...','Avg. Hrs/Wk':'0'})[col]||''}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function initSheet(){
   document.querySelectorAll('.sheet-cell').forEach(cell=>{
     cell.addEventListener('keydown',e=>{
       if(e.key==='Tab'){
         e.preventDefault();
         const cells=[...document.querySelectorAll('.sheet-cell')];
-        const idx=cells.indexOf(cell);
-        const next=cells[e.shiftKey?idx-1:idx+1];
+        const next=cells[cells.indexOf(cell)+(e.shiftKey?-1:1)];
         if(next)next.focus();
       }
     });
   });
 }
 
+function updateRowCount(){
+  const lbl=document.getElementById('row-count-lbl');
+  if(lbl)lbl.textContent=`${document.querySelectorAll('#sheet-body tr').length} rows`;
+}
+
 window.addSheetRow=function(){
   if(!currentTemplate)return;
   const tbody=document.getElementById('sheet-body');
-  const rows=tbody.querySelectorAll('tr');
-  const n=rows.length+1;
-  const cells=currentTemplate.cols.map((c,ci)=>`<td><div class="sheet-cell" contenteditable="true" data-ph="${getColPh(c,ci)}" spellcheck="false"></div></td>`).join('');
-  const tr=document.createElement('tr');
-  tr.innerHTML=`<td class="row-num">${n}</td>${cells}`;
+  const n=tbody.querySelectorAll('tr').length+1;
+  const tr=buildSheetRow(n,null);
   tbody.appendChild(tr);
-  initSheet(currentTemplate);
-  document.getElementById('row-count').textContent=`${n} rows`;
+  initSheet();updateRowCount();
   tr.querySelector('.sheet-cell').focus();
 };
 
 /* Doc builder */
 function buildDoc(t){
-  const metaFields=t.meta.map(m=>`
-    <div class="smt-field">
-      <span class="smt-label">${m.label}</span>
-      <input class="smt-input" type="text" placeholder="${m.ph}"/>
-    </div>`).join('');
-  const sections=t.sections.map(s=>`
-    <div class="doc-section">
-      <div class="doc-section-label">${s.label}</div>
-      <div class="doc-section-content" contenteditable="true" data-ph="${s.ph}" spellcheck="true"></div>
-    </div>`).join('');
-  return `<div class="doc-editor">
-    <div class="doc-meta-bar">${metaFields}</div>
-    <div class="doc-scroll">
-      <div class="doc-page" id="doc-page">${sections}</div>
-    </div>
-    <div class="doc-foot">
-      <span class="doc-wc" id="doc-wc">0 words</span>
-    </div>
+  const metaHtml=t.meta.map(m=>`<div class="smt-field"><span class="smt-label">${m.label}</span><input class="smt-input" type="text" placeholder="${m.ph}"/></div>`).join('');
+  const sectionsHtml=t.sections.map(s=>`<div class="doc-section"><div class="doc-section-label">${s.label}</div><div class="doc-section-content" contenteditable="true" data-ph="${s.ph}" spellcheck="true"></div></div>`).join('');
+  return`<div class="doc-editor">
+    <div class="doc-meta-bar">${metaHtml}</div>
+    <div class="doc-scroll"><div class="doc-page" id="doc-page">${sectionsHtml}</div></div>
+    <div class="doc-foot"><span class="doc-wc" id="doc-wc">0 words</span></div>
   </div>`;
 }
 
 function initDoc(){
-  const page=document.getElementById('doc-page');
-  if(!page)return;
+  const page=document.getElementById('doc-page');if(!page)return;
   const update=()=>{
-    const text=page.innerText||'';
-    const words=text.trim().split(/\s+/).filter(w=>w.length>0).length;
-    const wc=document.getElementById('doc-wc');
-    if(wc)wc.textContent=`${words} word${words===1?'':'s'}`;
+    const words=(page.innerText||'').trim().split(/\s+/).filter(w=>w).length;
+    const el=document.getElementById('doc-wc');if(el)el.textContent=`${words} word${words===1?'':'s'}`;
   };
-  page.addEventListener('input',update);
-  update();
+  page.addEventListener('input',update);update();
 }
 
-/* ── UPLOAD HANDLING ── */
-function handleFiles(files){
-  if(!files||!files.length)return;
-  const names=[...files].map(f=>f.name).join(', ');
-  showToast(files.length===1?`"${files[0].name}" added to Vault`:`${files.length} files added to Vault`);
+/* ── EXPORT ── */
+function exportFile(id){
+  const f=vaultFiles.find(x=>x.id===id);
+  if(!f)return;
+  f.type==='spreadsheet'?exportXlsx([f],f.name):exportPdf(f);
 }
-const vaultInput=document.getElementById('vault-file-input');
-if(vaultInput)vaultInput.addEventListener('change',function(){handleFiles(this.files);this.value=''});
+
+function exportXlsx(files,filename){
+  if(typeof XLSX==='undefined'){showToast('Export library loading — try again');return}
+  const wb=XLSX.utils.book_new();
+  files.forEach(f=>{
+    if(f.type!=='spreadsheet')return;
+    const wsData=[(f.cols||[]),...(f.rows||[]).filter(r=>r.some(c=>c))];
+    if(f.meta&&f.meta.length){
+      wsData.unshift([]);
+      f.meta.forEach(m=>{if(m.value)wsData.unshift([m.label,m.value])});
+    }
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb,ws,(f.name||'Sheet').substring(0,31));
+  });
+  XLSX.writeFile(wb,`${(filename||'Vault_Export').replace(/[^a-zA-Z0-9 _-]/g,'_')}.xlsx`);
+  showToast('Exported as .xlsx');
+}
+
+function exportPdf(f){
+  const metaLines=(f.meta||[]).filter(m=>m.value).map(m=>`<span><strong>${m.label}:</strong> ${m.value}</span>`).join(' &nbsp;·&nbsp; ');
+  const body=(f.sections||[]).map(s=>`
+    <div style="margin-bottom:28px">
+      <div style="font-size:9px;font-family:monospace;text-transform:uppercase;letter-spacing:0.1em;color:#888;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #eee">${s.label}</div>
+      <div style="font-size:14px;line-height:1.78;color:#1e2e1c">${s.content?s.content.replace(/\n/g,'<br>'):'<em style="color:#bbb">Not filled in</em>'}</div>
+    </div>`).join('');
+  const win=window.open('','_blank','width=840,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><title>${f.name}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+    <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans',sans-serif;max-width:720px;margin:0 auto;padding:52px 60px;background:#fff;color:#1e2e1c}h1{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:300;margin-bottom:6px;letter-spacing:-0.02em}.meta{font-size:11px;color:#999;font-family:monospace;margin-bottom:40px}@media print{body{padding:32px}}</style>
+    </head><body>
+    <h1>${f.name}</h1>${metaLines?`<div class="meta">${metaLines}</div>`:'<br/>'}
+    ${body}
+    <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),400))<\/script>
+    </body></html>`);
+  win.document.close();
+  showToast('Opening PDF print dialog');
+}
+
+function exportAllFiles(){
+  if(vaultFiles.length===0){showToast('No files to export');return}
+  const sheets=vaultFiles.filter(f=>f.type==='spreadsheet');
+  const docs=vaultFiles.filter(f=>f.type==='document');
+  if(sheets.length>0)exportXlsx(sheets,'Premed_Vault_Logs');
+  docs.forEach((f,i)=>setTimeout(()=>exportPdf(f),i*600+(sheets.length>0?400:0)));
+  showToast(`Exporting ${vaultFiles.length} file${vaultFiles.length>1?'s':''}`);
+}
+
+/* ── UPLOAD ── */
+document.getElementById('vault-file-input').addEventListener('change',function(){
+  if(!this.files||!this.files.length)return;
+  const count=this.files.length;
+  showToast(count===1?`"${this.files[0].name}" added to Vault`:`${count} files added to Vault`);
+  this.value='';
+});
 
 /* ── TOAST ── */
 let toastTimer=null;
 function showToast(msg){
   const el=document.getElementById('vault-toast');
-  el.textContent=msg;
-  el.classList.add('show');
+  el.textContent=msg;el.classList.add('show');
   if(toastTimer)clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
 }
 
 /* ── SCROLL REVEAL ── */
-function observe(selector,onVisible,opts={}){
-  const els=typeof selector==='string'?document.querySelectorAll(selector):[selector];
-  const io=new IntersectionObserver(entries=>{
-    entries.forEach(e=>{if(e.isIntersecting){onVisible(e.target);if(opts.once!==false)io.unobserve(e.target)}});
-  },{threshold:opts.threshold??0.12,...opts});
+function observe(sel,cb,opts={}){
+  const els=typeof sel==='string'?[...document.querySelectorAll(sel)]:[sel];
+  const io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){cb(e.target);if(opts.once!==false)io.unobserve(e.target)}})},{threshold:opts.threshold??0.1,...opts});
   els.forEach(el=>io.observe(el));
 }
 
 observe('.sr-panel',el=>el.classList.add('sr-visible'),{threshold:0.06});
-observe('#tpl-header',el=>el.classList.add('sr-visible'),{threshold:0.25});
-observe('#vault-hdr',el=>el.classList.add('sr-visible'),{threshold:0.25});
+observe('#vault-about',el=>el.classList.add('va-visible'),{threshold:0.15});
+observe('#tpl-header',el=>el.classList.add('tpl-header-visible'),{threshold:0.25});
+observe('#vault-hdr-left',el=>el.classList.add('vh-visible'),{threshold:0.25});
+observe('#vault-hdr-actions',el=>el.classList.add('vh-visible'),{threshold:0.25});
 observe('#vault-empty',el=>el.classList.add('sr-visible'),{threshold:0.15});
+document.querySelectorAll('.tpl-card').forEach(c=>observe(c,el=>el.classList.add('sr-visible'),{threshold:0.08}));
 
-/* Template cards — observe each individually for stagger */
-document.querySelectorAll('.tpl-card').forEach(card=>{
-  observe(card,el=>el.classList.add('sr-visible'),{threshold:0.1});
-});
+/* ── INIT ── */
+loadFiles();
 </script>
 </body>
 </html>
