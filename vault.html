@@ -176,8 +176,13 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .doc-section-content{font-size:14.5px;font-family:var(--font-body);font-weight:300;color:var(--ink);line-height:1.76;outline:none;border:1px solid transparent;border-radius:7px;padding:10px 13px;min-height:64px;transition:border-color 0.2s,background 0.2s}
 .doc-section-content:focus{border-color:rgba(45,90,39,0.28);background:rgba(45,90,39,0.018)}
 .doc-section-content:empty::before{content:attr(data-ph);color:rgba(122,138,120,0.45);pointer-events:none;font-style:italic}
-.doc-foot{padding:12px 26px;border-top:1px solid var(--misty);display:flex;align-items:center;justify-content:flex-end;background:var(--off-white);flex-shrink:0}
+.doc-foot{padding:12px 26px;border-top:1px solid var(--misty);display:flex;align-items:center;justify-content:space-between;background:var(--off-white);flex-shrink:0}
 .doc-wc{font-size:11px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);letter-spacing:0.04em}
+.blank-doc-btn{font-size:12.5px;font-family:var(--font-body);font-weight:400;color:var(--orange);background:transparent;border:1px solid rgba(212,98,26,0.28);border-radius:7px;padding:7px 16px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:5px}
+.blank-doc-btn:hover{background:rgba(212,98,26,0.06);border-color:var(--orange)}
+.doc-blank-area{font-size:14.5px;font-family:var(--font-body);font-weight:300;color:var(--ink);line-height:1.76;outline:none;min-height:420px;border:1px solid transparent;border-radius:7px;padding:10px 13px;transition:border-color 0.2s,background 0.2s;display:block;width:100%;box-sizing:border-box}
+.doc-blank-area:focus{border-color:rgba(212,98,26,0.28);background:rgba(212,98,26,0.018)}
+.doc-blank-area:empty::before{content:attr(data-ph);color:rgba(122,138,120,0.45);pointer-events:none;font-style:italic;display:block}
 
 /* ══ TOAST ══ */
 .vault-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(56px);background:var(--ink);color:#fff;padding:11px 26px;border-radius:100px;font-size:12px;font-family:var(--font-mono);font-weight:300;letter-spacing:0.06em;opacity:0;transition:all 0.38s cubic-bezier(0.16,1,0.3,1);z-index:600;white-space:nowrap;pointer-events:none}
@@ -216,6 +221,50 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
 /* KEYFRAMES */
 @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.65)}}
+
+/* ══ AUTH MODAL ══ */
+#auth-overlay{display:none;position:fixed;inset:0;background:rgba(20,30,20,0.52);backdrop-filter:blur(10px);z-index:800;align-items:center;justify-content:center;padding:24px}
+#auth-overlay.open{display:flex;animation:auth-fade-in 0.22s ease}
+@keyframes auth-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes auth-slide-up{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+#auth-modal{background:var(--off-white);border-radius:18px;width:100%;max-width:420px;padding:36px 32px 32px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.18),0 4px 20px rgba(45,90,39,0.1);animation:auth-slide-up 0.28s cubic-bezier(0.16,1,0.3,1)}
+#auth-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-faint);line-height:1;padding:4px 8px;border-radius:6px;transition:all 0.18s}
+#auth-close:hover{color:var(--ink);background:rgba(0,0,0,0.06)}
+#auth-tabs{display:flex;gap:4px;margin-bottom:28px;background:rgba(45,90,39,0.07);border-radius:10px;padding:4px}
+.auth-tab{flex:1;background:none;border:none;padding:9px 12px;font-size:13.5px;font-family:var(--font-body);color:var(--ink-faint);cursor:pointer;border-radius:7px;transition:all 0.2s;font-weight:400}
+.auth-tab.active{background:#fff;color:var(--forest);font-weight:500;box-shadow:0 1px 6px rgba(0,0,0,0.1)}
+.auth-field{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+.auth-field label{font-size:12px;font-weight:500;color:var(--ink-light);letter-spacing:0.04em;text-transform:uppercase}
+.auth-field input{border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;font-size:14px;font-family:var(--font-body);color:var(--ink);background:#fff;outline:none;transition:border-color 0.18s}
+.auth-field input:focus{border-color:var(--forest)}
+.auth-field input::placeholder{color:var(--ink-faint)}
+.auth-submit{width:100%;padding:13px;background:var(--forest);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;font-family:var(--font-body);cursor:pointer;margin-top:6px;transition:all 0.22s;box-shadow:0 2px 14px rgba(45,90,39,0.28);letter-spacing:0.01em}
+.auth-submit:hover{background:var(--forest-mid);transform:translateY(-1px)}
+.auth-submit:disabled{opacity:0.55;cursor:not-allowed;transform:none}
+.auth-error{font-size:13px;color:#c0392b;min-height:18px;margin-bottom:8px;line-height:1.4}
+#pw-reqs{list-style:none;margin:0 0 14px 0;padding:10px 14px;background:rgba(45,90,39,0.05);border-radius:9px;display:flex;flex-direction:column;gap:6px}
+#pw-reqs li{font-size:12.5px;color:var(--ink-faint);display:flex;align-items:center;gap:8px;transition:color 0.25s,opacity 0.25s}
+#pw-reqs li::before{content:'○';font-size:10px;flex-shrink:0;transition:all 0.25s}
+#pw-reqs li.met{color:var(--forest-pale);opacity:0.7}
+#pw-reqs li.met::before{content:'●';color:var(--forest-light)}
+#nav-user-btn{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:transparent;cursor:pointer;color:var(--ink-faint);transition:all 0.2s;flex-shrink:0}
+#nav-user-btn:hover{border-color:var(--forest);color:var(--forest);background:rgba(45,90,39,0.06)}
+#nav-user-btn.visible{display:flex}
+.user-menu-wrapper{position:relative}
+#user-dropdown{display:none;position:absolute;top:calc(100% + 10px);right:0;background:var(--off-white);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.13),0 2px 8px rgba(45,90,39,0.08);min-width:210px;overflow:hidden;z-index:400}
+#user-dropdown.open{display:block;animation:auth-slide-up 0.2s cubic-bezier(0.16,1,0.3,1)}
+.user-dropdown-header{padding:14px 16px 12px;border-bottom:1px solid var(--border)}
+.user-dropdown-greeting{font-size:11px;font-weight:500;color:var(--ink-faint);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px}
+.user-dropdown-username{font-size:14px;font-weight:500;color:var(--ink)}
+.user-dropdown-list{padding:6px}
+.user-dropdown-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;font-size:13.5px;font-family:var(--font-body);color:var(--ink-light);text-decoration:none;background:none;border:none;cursor:pointer;border-radius:8px;transition:all 0.18s;text-align:left}
+.user-dropdown-item:hover{background:rgba(45,90,39,0.07);color:var(--forest)}
+.user-dropdown-item svg{flex-shrink:0;opacity:0.55;transition:opacity 0.18s}
+.user-dropdown-item:hover svg{opacity:1}
+.user-dropdown-divider{border:none;border-top:1px solid var(--border);margin:4px 10px}
+.user-dropdown-logout{color:var(--ink-faint)}
+.user-dropdown-logout:hover{background:rgba(192,57,43,0.07);color:#c0392b}
+
 </style>
 </head>
 <body>
@@ -238,10 +287,32 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
     <a href="index.html#how-it-works">How it works</a>
     <a href="index.html#features">Features</a>
     <a href="index.html#get-started">Get started</a>
-    <a href="vault.html" class="active">The Premed Vault</a>
+    <a href="vault.html" class="active">The Vault</a>
   </div>
   <div class="nav-ctas">
-    <button class="btn-ghost">Log in</button>
+    <button class="btn-ghost" id="login-btn">Log in</button>
+    <div class="user-menu-wrapper">
+      <button id="nav-user-btn" aria-label="Account">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.866 3.582-7 8-7s8 3.134 8 7"/></svg>
+      </button>
+      <div id="user-dropdown">
+        <div class="user-dropdown-header">
+          <div class="user-dropdown-greeting">Signed in as</div>
+          <div class="user-dropdown-username" id="dropdown-username"></div>
+        </div>
+        <div class="user-dropdown-list">
+          <a href="vault.html" class="user-dropdown-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            My Vault
+          </a>
+          <hr class="user-dropdown-divider"/>
+          <button class="user-dropdown-item user-dropdown-logout" id="logout-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Log out
+          </button>
+        </div>
+      </div>
+    </div>
     <label for="vault-file-input" class="btn-upload-nav">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Upload
@@ -447,7 +518,7 @@ const TEMPLATES = [
   {
     id:'research-log', name:'Research Log', type:'spreadsheet',
     desc:'Track lab hours, projects, and contributions across research positions.',
-    accent:'#d4621a',
+    accent:'#3d7a35',
     meta:[{label:'PI / Lab',ph:'e.g. Dr. Williams Lab, Stanford'},{label:'Project',ph:'e.g. CRISPR editing in T-cells'}],
     cols:['Date','PI / Lab','Project','Tasks & Contributions','Hours','Cumulative','Notes'],
     rows:10,
@@ -455,7 +526,7 @@ const TEMPLATES = [
   {
     id:'employment-record', name:'Work & Employment Record', type:'spreadsheet',
     desc:'Document paid employment, internships, and relevant work experience.',
-    accent:'#e07535',
+    accent:'#5a9e50',
     meta:[{label:'Employer',ph:'e.g. General Hospital'},{label:'Position',ph:'e.g. Medical Scribe'}],
     cols:['Date Range','Employer','Position','Responsibilities','Avg. Hrs/Wk','Total Hours','Notes'],
     rows:8,
@@ -463,7 +534,7 @@ const TEMPLATES = [
   {
     id:'recommendation-letter', name:'Recommendation Letter', type:'document',
     desc:'Structure context and key talking points to share with your recommenders.',
-    accent:'#3d7a35',
+    accent:'#d4621a',
     meta:[{label:'Recommender Name',ph:'e.g. Dr. James Carter'},{label:'Relationship',ph:'e.g. Research Supervisor'}],
     sections:[
       {label:'Recommender Details',ph:'Full name, title, institution, email, and your relationship. Include how long and in what context they know you.'},
@@ -475,7 +546,7 @@ const TEMPLATES = [
   {
     id:'personal-statement', name:'Personal Statement', type:'document',
     desc:'Draft your AMCAS personal statement with a clear, section-by-section structure.',
-    accent:'#2d5a27',
+    accent:'#e07535',
     meta:[{label:'Character Limit',ph:'5,300 characters (AMCAS)'},{label:'Draft Version',ph:'e.g. v1'}],
     sections:[
       {label:'Opening Hook',ph:'A scene, moment, or image that draws the reader in immediately. Avoid "I have always wanted to be a doctor."'},
@@ -515,7 +586,7 @@ const DEMO_FILES = [
   {name:'Clinical Hour Log',type:'SPREADSHEET',detail:'247 hrs logged',accent:'#3d7a35',date:'Today'},
   {name:'Rec. Letter — Dr. Chen',type:'DOCUMENT',detail:'4 sections',accent:'#d4621a',date:'2 days ago'},
   {name:'Volunteer Hour Log',type:'SPREADSHEET',detail:'84 hrs logged',accent:'#5a9e50',date:'5 days ago'},
-  {name:'Personal Statement',type:'DOCUMENT',detail:'Draft v3',accent:'#2d5a27',date:'1 week ago'},
+  {name:'Personal Statement',type:'DOCUMENT',detail:'Draft v3',accent:'#e07535',date:'1 week ago'},
   {name:'Shadowing Log',type:'SPREADSHEET',detail:'120 hrs logged',accent:'#3d7a35',date:'2 weeks ago'},
 ];
 
@@ -721,6 +792,10 @@ function buildDoc(t){
       <div class="doc-page" id="doc-page">${sections}</div>
     </div>
     <div class="doc-foot">
+      <button class="blank-doc-btn" onclick="makeDocBlank()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Blank document
+      </button>
       <span class="doc-wc" id="doc-wc">0 words</span>
     </div>
   </div>`;
@@ -738,6 +813,20 @@ function initDoc(){
   page.addEventListener('input',update);
   update();
 }
+
+window.makeDocBlank=function(){
+  const page=document.getElementById('doc-page');
+  if(!page)return;
+  page.innerHTML='<div class="doc-blank-area" contenteditable="true" data-ph="Paste or type your document here…" spellcheck="true"></div>';
+  const area=page.querySelector('.doc-blank-area');
+  area.focus();
+  area.addEventListener('input',()=>{
+    const text=page.innerText||'';
+    const words=text.trim().split(/\s+/).filter(w=>w.length>0).length;
+    const wc=document.getElementById('doc-wc');
+    if(wc)wc.textContent=`${words} word${words===1?'':'s'}`;
+  });
+};
 
 /* ── UPLOAD HANDLING ── */
 function handleFiles(files){
@@ -776,6 +865,180 @@ observe('#vault-empty',el=>el.classList.add('sr-visible'),{threshold:0.15});
 document.querySelectorAll('.tpl-card').forEach(card=>{
   observe(card,el=>el.classList.add('sr-visible'),{threshold:0.1});
 });
+</script>
+
+<!-- ══ AUTH MODAL ══ -->
+<div id="auth-overlay">
+  <div id="auth-modal">
+    <button id="auth-close" aria-label="Close">&#x2715;</button>
+    <div id="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Log in</button>
+      <button class="auth-tab" data-tab="signup">Create account</button>
+    </div>
+    <form id="login-form">
+      <div class="auth-field">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" autocomplete="username" placeholder="your username"/>
+      </div>
+      <div class="auth-field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" autocomplete="current-password" placeholder="your password"/>
+      </div>
+      <p id="login-error" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Log in</button>
+    </form>
+    <form id="signup-form" style="display:none">
+      <div class="auth-field">
+        <label for="signup-username">Username</label>
+        <input type="text" id="signup-username" autocomplete="username" placeholder="choose a username"/>
+      </div>
+      <div class="auth-field">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" autocomplete="new-password" placeholder="create a password"/>
+      </div>
+      <ul id="pw-reqs">
+        <li data-req="length">At least 8 characters</li>
+        <li data-req="upper">One uppercase letter (A–Z)</li>
+        <li data-req="lower">One lowercase letter (a–z)</li>
+        <li data-req="digit">One number (0–9)</li>
+        <li data-req="special">One special character (!@#$…)</li>
+      </ul>
+      <div class="auth-field">
+        <label for="signup-confirm">Confirm password</label>
+        <input type="password" id="signup-confirm" autocomplete="new-password" placeholder="confirm your password"/>
+      </div>
+      <p id="signup-error" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Create account</button>
+    </form>
+  </div>
+</div>
+<script>
+/* ══ AUTH ══ */
+(function(){
+const TOKEN_KEY='scrubbed_token';
+const loginBtn=document.getElementById('login-btn');
+const navUserBtn=document.getElementById('nav-user-btn');
+const overlay=document.getElementById('auth-overlay');
+const closeBtn=document.getElementById('auth-close');
+const tabs=document.querySelectorAll('.auth-tab');
+const loginForm=document.getElementById('login-form');
+const signupForm=document.getElementById('signup-form');
+const loginError=document.getElementById('login-error');
+const signupError=document.getElementById('signup-error');
+const signupPw=document.getElementById('signup-password');
+
+const checks={
+  length:p=>p.length>=8,
+  upper:p=>/[A-Z]/.test(p),
+  lower:p=>/[a-z]/.test(p),
+  digit:p=>/[0-9]/.test(p),
+  special:p=>/[^A-Za-z0-9]/.test(p)
+};
+
+function updateReqs(pw){
+  document.querySelectorAll('#pw-reqs li').forEach(li=>{
+    li.classList.toggle('met',checks[li.dataset.req](pw));
+  });
+}
+function allMet(pw){return Object.values(checks).every(fn=>fn(pw))}
+
+async function checkSession(){
+  const token=localStorage.getItem(TOKEN_KEY);
+  if(!token)return;
+  try{
+    const res=await fetch('/me',{headers:{Authorization:`Bearer ${token}`}});
+    if(res.ok){const u=await res.json();setLoggedIn(u.username)}
+    else{localStorage.removeItem(TOKEN_KEY)}
+  }catch{localStorage.removeItem(TOKEN_KEY)}
+}
+
+function setLoggedIn(username){
+  if(loginBtn)loginBtn.style.display='none';
+  if(navUserBtn)navUserBtn.classList.add('visible');
+  const dn=document.getElementById('dropdown-username');
+  if(dn)dn.textContent=username;
+  overlay.classList.remove('open');
+}
+
+function openModal(tab){overlay.classList.add('open');switchTab(tab||'login')}
+function closeModal(){
+  overlay.classList.remove('open');
+  loginError.textContent='';signupError.textContent='';
+  loginForm.reset();signupForm.reset();updateReqs('');
+}
+function switchTab(tab){
+  tabs.forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  loginForm.style.display=tab==='login'?'block':'none';
+  signupForm.style.display=tab==='signup'?'block':'none';
+}
+
+if(loginBtn)loginBtn.addEventListener('click',()=>openModal('login'));
+if(closeBtn)closeBtn.addEventListener('click',closeModal);
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal()});
+tabs.forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+if(signupPw)signupPw.addEventListener('input',()=>updateReqs(signupPw.value));
+
+loginForm.addEventListener('submit',async e=>{
+  e.preventDefault();loginError.textContent='';
+  const username=document.getElementById('login-username').value.trim();
+  const password=document.getElementById('login-password').value;
+  if(!username||!password){loginError.textContent='Please enter username and password.';return}
+  const btn=loginForm.querySelector('.auth-submit');btn.disabled=true;
+  try{
+    const res=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data=await res.json();
+    if(res.ok){localStorage.setItem(TOKEN_KEY,data.token);setLoggedIn(data.user.username)}
+    else{loginError.textContent=data.error||'Login failed.'}
+  }catch{loginError.textContent='Unable to connect. Is the server running?'}
+  finally{btn.disabled=false}
+});
+
+signupForm.addEventListener('submit',async e=>{
+  e.preventDefault();signupError.textContent='';
+  const username=document.getElementById('signup-username').value.trim();
+  const password=document.getElementById('signup-password').value;
+  const confirm=document.getElementById('signup-confirm').value;
+  if(!username||!password){signupError.textContent='All fields are required.';return}
+  if(!allMet(password)){signupError.textContent='Password does not meet all requirements.';return}
+  if(password!==confirm){signupError.textContent='Passwords do not match.';return}
+  const btn=signupForm.querySelector('.auth-submit');btn.disabled=true;
+  try{
+    const res=await fetch('/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data=await res.json();
+    if(res.ok){
+      const lr=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+      const ld=await lr.json();
+      if(lr.ok){localStorage.setItem(TOKEN_KEY,ld.token);setLoggedIn(ld.user.username)}
+      else{signupError.textContent='Account created! Please log in.';switchTab('login')}
+    }else{signupError.textContent=data.error||'Signup failed.'}
+  }catch{signupError.textContent='Unable to connect. Is the server running?'}
+  finally{btn.disabled=false}
+});
+
+const dropdown=document.getElementById('user-dropdown');
+const logoutBtn=document.getElementById('logout-btn');
+
+if(navUserBtn&&dropdown){
+  navUserBtn.addEventListener('click',e=>{e.stopPropagation();dropdown.classList.toggle('open')});
+}
+document.addEventListener('click',e=>{
+  if(dropdown&&!dropdown.closest('.user-menu-wrapper').contains(e.target)){
+    dropdown.classList.remove('open');
+  }
+});
+if(logoutBtn){
+  logoutBtn.addEventListener('click',()=>{
+    localStorage.removeItem(TOKEN_KEY);
+    if(dropdown)dropdown.classList.remove('open');
+    if(navUserBtn)navUserBtn.classList.remove('visible');
+    if(loginBtn)loginBtn.style.display='';
+    const dn=document.getElementById('dropdown-username');
+    if(dn)dn.textContent='';
+  });
+}
+
+checkSession();
+})();
 </script>
 </body>
 </html>
