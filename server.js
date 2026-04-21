@@ -11,6 +11,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 app.use('/auth', authRoutes);
+app.use('/files', require('./routes/files'));
 
 app.get('/me', authMiddleware, (req, res) => {
   res.json({ id: req.user.id, username: req.user.username });

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(timeout 3 node server.js)",
+      "Bash(node server.js)"
+    ]
+  }
+}

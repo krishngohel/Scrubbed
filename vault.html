@@ -265,6 +265,30 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
 .user-dropdown-logout{color:var(--ink-faint)}
 .user-dropdown-logout:hover{background:rgba(192,57,43,0.07);color:#c0392b}
 
+/* ══ VAULT FILE GRID ══ */
+.vault-files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;margin-bottom:32px}
+.vf-card{background:#fff;border:1px solid var(--misty);border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(30,46,28,0.04);transition:box-shadow 0.22s,transform 0.22s}
+.vf-card:hover{box-shadow:0 8px 28px rgba(30,46,28,0.12);transform:translateY(-2px)}
+.vf-card-accent{height:3px;width:100%}
+.vf-card-body{padding:20px 22px 18px}
+.vf-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.vf-card-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vf-card-type{font-size:9px;font-family:var(--font-mono);font-weight:300;letter-spacing:0.09em;text-transform:uppercase;border-radius:5px;padding:3px 8px}
+.vf-card-name{font-size:15px;font-weight:500;color:var(--ink);margin-bottom:5px;line-height:1.3;letter-spacing:-0.01em}
+.vf-card-updated{font-size:11px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);margin-bottom:18px}
+.vf-card-actions{display:flex;gap:8px}
+.vf-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-family:var(--font-body);font-weight:400;padding:6px 13px;border-radius:7px;border:1px solid;cursor:pointer;transition:all 0.18s;background:transparent;line-height:1}
+.vf-btn-edit{color:var(--forest);border-color:rgba(45,90,39,0.28)}
+.vf-btn-edit:hover{background:rgba(45,90,39,0.07);border-color:var(--forest)}
+.vf-btn-delete{color:var(--ink-faint);border-color:rgba(30,46,28,0.16)}
+.vf-btn-delete:hover{color:#c0392b;border-color:rgba(192,57,43,0.3);background:rgba(192,57,43,0.05)}
+.vf-btn-danger{color:#c0392b!important;border-color:rgba(192,57,43,0.55)!important;background:rgba(192,57,43,0.08)!important;animation:pulse-danger 0.9s ease-in-out infinite alternate}
+@keyframes pulse-danger{from{background:rgba(192,57,43,0.08)}to{background:rgba(192,57,43,0.16)}}
+.vault-login-wall{text-align:center;padding:80px 48px;background:#fff;border:1px solid var(--misty);border-radius:20px;box-shadow:0 2px 12px rgba(30,46,28,0.04)}
+.vlw-icon{width:52px;height:52px;border-radius:13px;background:rgba(45,90,39,0.08);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.vlw-title{font-family:var(--font-display);font-size:clamp(22px,2.2vw,30px);font-weight:300;color:var(--ink);margin-bottom:10px}
+.vlw-sub{font-size:14px;font-weight:300;color:var(--ink-faint);line-height:1.65;max-width:360px;margin:0 auto 24px}
+
 </style>
 </head>
 <body>
@@ -403,7 +427,19 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
         Upload file
       </label>
     </div>
-    <div class="sr-fade-up vault-empty-state" id="vault-empty">
+    <!-- Login wall (shown when not logged in) -->
+    <div id="vault-login-wall" class="vault-login-wall">
+      <div class="vlw-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--forest)" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3 class="vlw-title">Sign in to access your Vault</h3>
+      <p class="vlw-sub">Your files are saved securely to your account. Log in or create a free account to view, edit, and manage your documents.</p>
+      <button class="btn-hp" onclick="window._openAuthModal&&window._openAuthModal('login')" style="margin-top:4px">Sign in</button>
+    </div>
+    <!-- Files grid (shown when logged in) -->
+    <div id="vault-files-grid" class="vault-files-grid" style="display:none"></div>
+    <!-- Empty state (shown when logged in but no files) -->
+    <div class="sr-fade-up vault-empty-state" id="vault-empty" style="display:none">
       <div class="ves-icon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--forest)" stroke-width="1.6"/>
@@ -624,6 +660,7 @@ window.addEventListener('scroll',()=>{
     const textColor=isSheet?'var(--forest)':'var(--orange)';
     const div=document.createElement('div');
     div.className='vpc-item';
+    div.dataset.demo='demo';
     div.innerHTML=`
       <div class="vpc-item-icon" style="background:${f.accent}22">
         ${isSheet
@@ -677,11 +714,13 @@ window.addEventListener('scroll',()=>{
 
 /* ── MODAL ── */
 let currentTemplate=null;
+let currentFileId=null;
 
 function openModal(id){
   const t=TEMPLATES.find(x=>x.id===id);
   if(!t)return;
   currentTemplate=t;
+  currentFileId=null;
   const isSheet=t.type==='spreadsheet';
   document.getElementById('modal-title').textContent=t.name;
   const badge=document.getElementById('modal-badge');
@@ -705,10 +744,250 @@ document.getElementById('modal-overlay').addEventListener('click',function(e){
   if(e.target===this)closeModal();
 });
 
-function saveModal(){
-  closeModal();
-  showToast('Saved to Vault');
+/* ── VAULT API HELPERS ── */
+function getToken(){return localStorage.getItem('scrubbed_token')}
+function authHeaders(){return{'Authorization':'Bearer '+getToken(),'Content-Type':'application/json'}}
+
+function collectMeta(){
+  const inputs=[...document.querySelectorAll('.smt-input')];
+  const result={};
+  if(currentTemplate&&currentTemplate.meta){
+    currentTemplate.meta.forEach((m,i)=>{if(inputs[i])result[m.label]=inputs[i].value});
+  }
+  return result;
 }
+
+function collectContent(){
+  if(!currentTemplate)return{};
+  if(currentTemplate.type==='spreadsheet'){
+    const rows=[...document.querySelectorAll('#sheet-body tr')].map(tr=>
+      [...tr.querySelectorAll('.sheet-cell')].map(c=>c.innerText||'')
+    );
+    return{rows};
+  }else{
+    const blankArea=document.querySelector('.doc-blank-area');
+    if(blankArea)return{blank:true,html:blankArea.innerHTML};
+    const sections=[...document.querySelectorAll('.doc-section')].map(s=>({
+      label:s.querySelector('.doc-section-label')?.textContent||'',
+      content:s.querySelector('.doc-section-content')?.innerHTML||''
+    }));
+    return{sections};
+  }
+}
+
+async function saveModal(){
+  if(!getToken()){showToast('Sign in to save files');return}
+  const name=currentTemplate?currentTemplate.name:'Untitled';
+  const type=currentTemplate?currentTemplate.type:'document';
+  const template_id=currentTemplate?currentTemplate.id:null;
+  const content=collectContent();
+  const meta=collectMeta();
+  try{
+    let resp;
+    if(currentFileId){
+      resp=await fetch('/files/'+currentFileId,{method:'PUT',headers:authHeaders(),body:JSON.stringify({name,content,meta})});
+    }else{
+      resp=await fetch('/files',{method:'POST',headers:authHeaders(),body:JSON.stringify({name,type,template_id,content,meta})});
+    }
+    if(!resp.ok)throw new Error('Save failed');
+    closeModal();
+    showToast(currentFileId?'File updated':'Saved to Vault');
+    loadFilesFromServer();
+  }catch(err){
+    showToast('Error saving file');
+  }
+}
+
+/* ── VAULT FILE LOADING ── */
+function timeAgo(dateStr){
+  const diff=Date.now()-new Date(dateStr).getTime();
+  const m=Math.floor(diff/60000);
+  if(m<1)return'just now';
+  if(m<60)return m+'m ago';
+  const h=Math.floor(m/60);
+  if(h<24)return h+'h ago';
+  const d=Math.floor(h/24);
+  if(d<30)return d+'d ago';
+  return new Date(dateStr).toLocaleDateString();
+}
+
+async function loadFilesFromServer(){
+  const loginWall=document.getElementById('vault-login-wall');
+  const grid=document.getElementById('vault-files-grid');
+  const empty=document.getElementById('vault-empty');
+  if(!getToken()){
+    if(loginWall)loginWall.style.display='';
+    if(grid)grid.style.display='none';
+    if(empty)empty.style.display='none';
+    return;
+  }
+  try{
+    const resp=await fetch('/files',{headers:authHeaders()});
+    if(!resp.ok)throw new Error();
+    const files=await resp.json();
+    if(loginWall)loginWall.style.display='none';
+    if(files.length===0){
+      if(grid)grid.style.display='none';
+      if(empty){empty.style.display='';empty.classList.add('sr-visible')}
+    }else{
+      if(empty)empty.style.display='none';
+      if(grid){grid.style.display='';renderVaultFiles(files,grid)}
+    }
+    renderVpcFiles(files);
+  }catch(e){
+    if(loginWall)loginWall.style.display='';
+    if(grid)grid.style.display='none';
+    if(empty)empty.style.display='none';
+  }
+}
+
+function renderVaultFiles(files,grid){
+  grid.innerHTML='';
+  files.forEach(f=>{
+    const isSheet=f.type==='spreadsheet';
+    const accent=isSheet?'var(--forest)':'var(--orange)';
+    const card=document.createElement('div');
+    card.className='vf-card';
+    card.innerHTML=`
+      <div class="vf-card-accent" style="background:${accent}"></div>
+      <div class="vf-card-body">
+        <div class="vf-card-top">
+          <div class="vf-card-icon" style="color:${accent}">
+            ${isSheet?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'}
+          </div>
+          <span class="vf-card-type">${isSheet?'Spreadsheet':'Document'}</span>
+        </div>
+        <div class="vf-card-name">${escHtml(f.name)}</div>
+        <div class="vf-card-updated">Updated ${timeAgo(f.updated_at)}</div>
+        <div class="vf-card-actions">
+          <button class="vf-btn vf-btn-edit" onclick="openFileForEdit(${f.id})">Edit</button>
+          <button class="vf-btn vf-btn-delete" data-id="${f.id}" onclick="deleteFile(${f.id},this)">Delete</button>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+function renderVpcFiles(files){
+  const list=document.getElementById('vpc-list');
+  if(!list)return;
+  list.querySelectorAll('[data-demo]').forEach(el=>el.remove());
+  files.forEach(f=>{
+    const isSheet=f.type==='spreadsheet';
+    const accent=isSheet?'var(--forest)':'var(--orange)';
+    const accentHex=isSheet?'#2d5a27':'#d4621a';
+    const div=document.createElement('div');
+    div.className='vpc-item';
+    div.dataset.demo='user';
+    div.style.cursor='pointer';
+    div.innerHTML=`
+      <div class="vpc-item-icon" style="background:${accentHex}22">
+        ${isSheet
+          ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accentHex}" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`
+          :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accentHex}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`}
+      </div>
+      <div class="vpc-item-info">
+        <div class="vpc-item-name">${escHtml(f.name)}</div>
+        <div class="vpc-item-sub">${isSheet?'Spreadsheet':'Document'} &nbsp;·&nbsp; ${timeAgo(f.updated_at)}</div>
+      </div>
+      <span class="vpc-item-type" style="background:${accentHex}18;color:${accentHex}">${isSheet?'SHEET':'DOC'}</span>`;
+    div.addEventListener('click',()=>openFileForEdit(f.id));
+    list.appendChild(div);
+  });
+}
+
+window.openFileForEdit=async function openFileForEdit(fileId){
+  if(!getToken())return;
+  try{
+    const resp=await fetch('/files',{headers:authHeaders()});
+    if(!resp.ok)throw new Error();
+    const files=await resp.json();
+    const f=files.find(x=>x.id===fileId);
+    if(!f)return;
+    const t=TEMPLATES.find(x=>x.id===f.template_id)||{
+      id:f.template_id,name:f.name,type:f.type,
+      meta:[],cols:['A','B','C','D'],rows:5,sections:[]
+    };
+    currentTemplate=t;
+    currentFileId=f.id;
+    const isSheet=t.type==='spreadsheet';
+    document.getElementById('modal-title').textContent=f.name;
+    const badge=document.getElementById('modal-badge');
+    badge.textContent=isSheet?'SPREADSHEET':'DOCUMENT';
+    badge.style.background=isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)';
+    badge.style.color=isSheet?'var(--forest)':'var(--orange)';
+    document.getElementById('modal-body').innerHTML=isSheet?buildSheet(t):buildDoc(t);
+    if(isSheet){initSheet(t);loadSheetContent(f)}
+    else{initDoc(t);loadDocContent(f)}
+    document.getElementById('modal-overlay').classList.add('open');
+    document.body.style.overflow='hidden';
+  }catch(e){showToast('Could not open file')}
+}
+
+function loadSheetContent(f){
+  const rows=f.content&&f.content.rows?f.content.rows:[];
+  const tbody=document.getElementById('sheet-body');
+  if(!tbody)return;
+  rows.forEach((row,ri)=>{
+    let tr=tbody.querySelectorAll('tr')[ri];
+    if(!tr){
+      addSheetRow();
+      tr=tbody.querySelectorAll('tr')[ri];
+    }
+    if(!tr)return;
+    const cells=tr.querySelectorAll('.sheet-cell');
+    row.forEach((val,ci)=>{if(cells[ci])cells[ci].innerText=val});
+  });
+  const metaInputs=[...document.querySelectorAll('.smt-input')];
+  if(f.meta&&currentTemplate&&currentTemplate.meta){
+    currentTemplate.meta.forEach((m,i)=>{if(metaInputs[i])metaInputs[i].value=f.meta[m.label]||''});
+  }
+}
+
+function loadDocContent(f){
+  const metaInputs=[...document.querySelectorAll('.smt-input')];
+  if(f.meta&&currentTemplate&&currentTemplate.meta){
+    currentTemplate.meta.forEach((m,i)=>{if(metaInputs[i])metaInputs[i].value=f.meta[m.label]||''});
+  }
+  const page=document.getElementById('doc-page');
+  if(!page||!f.content)return;
+  if(f.content.blank){
+    page.innerHTML=`<div class="doc-blank-area" contenteditable="true" spellcheck="true">${f.content.html||''}</div>`;
+    const area=page.querySelector('.doc-blank-area');
+    if(area)area.addEventListener('input',()=>{
+      const words=(page.innerText||'').trim().split(/\s+/).filter(w=>w.length>0).length;
+      const wc=document.getElementById('doc-wc');
+      if(wc)wc.textContent=`${words} word${words===1?'':'s'}`;
+    });
+  }else if(f.content.sections){
+    const secEls=page.querySelectorAll('.doc-section-content');
+    f.content.sections.forEach((s,i)=>{if(secEls[i])secEls[i].innerHTML=s.content||''});
+  }
+}
+
+window.deleteFile=async function(id,btn){
+  if(btn.dataset.confirming){
+    clearTimeout(btn._confirmTimer);
+    btn.disabled=true;
+    try{
+      const resp=await fetch('/files/'+id,{method:'DELETE',headers:authHeaders()});
+      if(!resp.ok)throw new Error();
+      showToast('File deleted');
+      loadFilesFromServer();
+    }catch(e){showToast('Delete failed');btn.disabled=false;btn.dataset.confirming='';btn.textContent='Delete';btn.classList.remove('vf-btn-danger')}
+    return;
+  }
+  btn.dataset.confirming='1';
+  btn.textContent='Are you sure?';
+  btn.classList.add('vf-btn-danger');
+  btn._confirmTimer=setTimeout(()=>{
+    btn.dataset.confirming='';
+    btn.textContent='Delete';
+    btn.classList.remove('vf-btn-danger');
+  },4000);
+};
 
 /* Sheet builder */
 function buildSheet(t){
@@ -829,10 +1108,27 @@ window.makeDocBlank=function(){
 };
 
 /* ── UPLOAD HANDLING ── */
-function handleFiles(files){
+async function handleFiles(files){
   if(!files||!files.length)return;
-  const names=[...files].map(f=>f.name).join(', ');
-  showToast(files.length===1?`"${files[0].name}" added to Vault`:`${files.length} files added to Vault`);
+  if(!getToken()){showToast('Sign in to upload files');return}
+  for(const file of files){
+    const name=file.name.replace(/\.[^.]+$/,'');
+    const ext=file.name.split('.').pop().toLowerCase();
+    const type=['csv','xls','xlsx'].includes(ext)?'spreadsheet':'document';
+    let content={};
+    if(type==='document'){
+      const text=await file.text().catch(()=>'');
+      content={blank:true,html:escHtml(text).replace(/\n/g,'<br>')};
+    }else{
+      content={rows:[]};
+    }
+    try{
+      const resp=await fetch('/files',{method:'POST',headers:authHeaders(),body:JSON.stringify({name,type,content,meta:{}})});
+      if(!resp.ok)throw new Error();
+    }catch(e){showToast('Error uploading '+file.name);continue}
+  }
+  showToast(files.length===1?`"${files[0].name}" uploaded`:`${files.length} files uploaded`);
+  loadFilesFromServer();
 }
 const vaultInput=document.getElementById('vault-file-input');
 if(vaultInput)vaultInput.addEventListener('change',function(){handleFiles(this.files);this.value=''});
@@ -859,7 +1155,7 @@ function observe(selector,onVisible,opts={}){
 observe('.sr-panel',el=>el.classList.add('sr-visible'),{threshold:0.06});
 observe('#tpl-header',el=>el.classList.add('sr-visible'),{threshold:0.25});
 observe('#vault-hdr',el=>el.classList.add('sr-visible'),{threshold:0.25});
-observe('#vault-empty',el=>el.classList.add('sr-visible'),{threshold:0.15});
+/* vault-empty is shown dynamically by loadFilesFromServer */
 
 /* Template cards — observe each individually for stagger */
 document.querySelectorAll('.tpl-card').forEach(card=>{
@@ -958,8 +1254,10 @@ function setLoggedIn(username){
   const dn=document.getElementById('dropdown-username');
   if(dn)dn.textContent=username;
   overlay.classList.remove('open');
+  if(typeof loadFilesFromServer==='function')loadFilesFromServer();
 }
 
+window._openAuthModal=function(tab){overlay.classList.add('open');switchTab(tab||'login')};
 function openModal(tab){overlay.classList.add('open');switchTab(tab||'login')}
 function closeModal(){
   overlay.classList.remove('open');
@@ -1034,10 +1332,13 @@ if(logoutBtn){
     if(loginBtn)loginBtn.style.display='';
     const dn=document.getElementById('dropdown-username');
     if(dn)dn.textContent='';
+    if(typeof loadFilesFromServer==='function')loadFilesFromServer();
   });
 }
 
 checkSession();
+/* Initial vault load — runs after checkSession resolves via setLoggedIn */
+if(typeof loadFilesFromServer==='function')loadFilesFromServer();
 })();
 </script>
 </body>
