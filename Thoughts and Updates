@@ -12,3 +12,7 @@ file upload needs to be fixed, add blank document template where it can be class
 Vault Hero element update
 
 Have user designated target, reach, and safety schools, display percentage chance for each on vault dashbopard
+
+fix main hero page card rotation animation and update the scrolling word to simply scroll up in time with the cards rather than scrolling up then back down
+
+ensure themes are working fully and all text is visible.
