@@ -4,3 +4,11 @@ create readME for github
 work on colorscheme and hero back ground, match background with entire site?
 add a button to the vault that will output all uploaded/created documents in their respective file types (xlx for logs and charts, pdf for resumes, documents, letters)
 file upload needs to be fixed, add blank document template where it can be classified personally
+
+4/21/26
+- Vault Hero Dashboard
+  - contains undergraduate classification and percentage completion of category objectives. (volunteer hours, clinical hours, publications, unique experiences )
+
+Vault Hero element update
+
+Have user designated target, reach, and safety schools, display percentage chance for each on vault dashbopard
