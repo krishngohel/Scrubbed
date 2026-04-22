@@ -16,3 +16,5 @@ Have user designated target, reach, and safety schools, display percentage chanc
 fix main hero page card rotation animation and update the scrolling word to simply scroll up in time with the cards rather than scrolling up then back down
 
 ensure themes are working fully and all text is visible.
+
+update the progress bars to take into account the content of the files not just the files and types
