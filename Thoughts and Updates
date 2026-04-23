@@ -18,3 +18,5 @@ fix main hero page card rotation animation and update the scrolling word to simp
 ensure themes are working fully and all text is visible.
 
 update the progress bars to take into account the content of the files not just the files and types
+
+make sure the scaling is dynamic and mobile friendly/ smaller screensizes.
