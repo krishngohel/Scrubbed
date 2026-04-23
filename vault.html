@@ -7,10 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<script src="theme.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --white:#ffffff;--off-white:#fafaf8;--warm-white:#f5f4f0;--misty:#eceae3;
+  --white:#ffffff;--off-white:#f4efdf;--warm-white:#ece5cb;--misty:#e0d8b8;--navbar-bg:rgba(236,229,203,0.92);
   --forest:#2d5a27;--forest-mid:#3d7a35;--forest-light:#5a9e50;--forest-pale:#a8c9a0;--forest-mist:#d4e8d0;
   --orange:#d4621a;--orange-warm:#e07535;--orange-light:#f0a060;--orange-pale:#f5cba0;
   --ink:#1e2e1c;--ink-light:#3d4e3b;--ink-faint:#7a8a78;--border:rgba(45,90,39,0.14);
@@ -21,7 +24,7 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--off-white)}::-webkit-scrollbar-thumb{background:var(--forest-pale);border-radius:2px}
 
 /* ══ NAVBAR ══ */
-#navbar{position:fixed;top:0;left:0;right:0;z-index:300;padding:0 clamp(28px,5vw,80px);height:66px;display:flex;align-items:center;justify-content:space-between;background:rgba(245,244,240,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:transform 0.44s cubic-bezier(0.16,1,0.3,1),opacity 0.44s ease}
+#navbar{position:fixed;top:0;left:0;right:0;z-index:300;padding:0 clamp(28px,5vw,80px);height:66px;display:flex;align-items:center;justify-content:space-between;background:var(--navbar-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:transform 0.44s cubic-bezier(0.16,1,0.3,1),opacity 0.44s ease}
 #navbar.hidden{transform:translateY(-100%);opacity:0;pointer-events:none}
 .nav-logo{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:500;color:var(--ink);letter-spacing:0.01em;text-decoration:none}
 .nav-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--forest),var(--forest-mid));display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(45,90,39,0.3)}
@@ -46,9 +49,9 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .wash-3{width:380px;height:380px;top:35%;left:42%;background:radial-gradient(circle,rgba(168,201,160,0.28) 0%,rgba(45,90,39,0.08) 50%,transparent 70%);animation-duration:26s;animation-delay:-13s;opacity:0.6}
 @keyframes wash-drift{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(18px,-24px) scale(1.04)}50%{transform:translate(-13px,17px) scale(0.96)}75%{transform:translate(21px,11px) scale(1.02)}}
 
-.vault-hero-inner{max-width:min(92vw,2000px);width:100%;display:grid;grid-template-columns:1fr clamp(320px,36%,560px);gap:clamp(72px,8vw,140px);align-items:center;position:relative;z-index:2}
+.vault-hero-inner{max-width:min(92vw,1360px);width:100%;display:grid;grid-template-columns:1fr clamp(300px,34%,480px);gap:clamp(48px,5vw,80px);align-items:center;position:relative;z-index:2}
 
-.vault-hero-text{animation:fadeUp 0.9s ease 0.1s both}
+.vault-hero-text{animation:fadeUp 0.9s ease 0.1s both;padding-left:clamp(20px,3.5vw,64px)}
 .vault-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(45,90,39,0.08);border:1px solid rgba(45,90,39,0.2);border-radius:100px;padding:5px 14px 5px 10px;margin-bottom:28px}
 .eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--forest);animation:pulse-dot 2.5s ease-in-out infinite}
 .eyebrow-text{font-size:12px;font-weight:400;color:var(--forest);letter-spacing:0.04em}
@@ -90,6 +93,63 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .section-heading em{font-style:italic;color:var(--forest)}
 .section-sub{font-size:16px;font-weight:300;color:var(--ink-faint);line-height:1.65;max-width:640px}
 
+/* ══ CREATE NEW POPUP ══ */
+.cn-overlay{position:fixed;inset:0;z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(12,20,11,0.52);backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity 0.25s}
+.cn-overlay.open{opacity:1;pointer-events:auto}
+.cn-popup{background:#fff;border-radius:18px;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 64px rgba(0,0,0,0.22);transform:translateY(20px) scale(0.97);transition:transform 0.3s cubic-bezier(0.16,1,0.3,1)}
+.cn-overlay.open .cn-popup{transform:none}
+.cn-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--misty);flex-shrink:0}
+.cn-title{font-family:var(--font-display);font-size:19px;font-weight:300;color:var(--ink);letter-spacing:-0.01em}
+.cn-close{background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;color:var(--ink-faint);display:flex;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s}
+.cn-close:hover{background:var(--misty);color:var(--ink)}
+.cn-tabs{display:flex;padding:0 22px;border-bottom:1px solid var(--misty);flex-shrink:0}
+.cn-tab{background:none;border:none;cursor:pointer;font-size:12px;font-family:var(--font-body);font-weight:400;color:var(--ink-faint);padding:9px 14px 11px;border-bottom:2px solid transparent;transition:all 0.18s;letter-spacing:0.01em}
+.cn-tab.active{color:var(--forest);border-bottom-color:var(--forest);font-weight:500}
+.cn-list{overflow-y:auto;padding:8px 12px 14px;display:flex;flex-direction:column;gap:3px}
+.cn-item{display:flex;align-items:center;gap:12px;padding:10px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:all 0.18s}
+.cn-item:hover{background:var(--off-white);border-color:var(--misty)}
+.cn-item-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cn-item-body{flex:1;min-width:0}
+.cn-item-name{font-size:13.5px;font-weight:400;color:var(--ink);margin-bottom:2px}
+.cn-item-desc{font-size:11px;font-weight:300;color:var(--ink-faint);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cn-item-badge{font-size:9px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;padding:2px 7px;flex-shrink:0}
+/* ══ HERO RIGHT STACK ══ */
+.hero-right-stack{display:flex;flex-direction:column;gap:14px;animation:fadeUp 0.9s ease 0.28s both}
+.hrc{background:rgba(255,255,255,0.93);border:1px solid rgba(45,90,39,0.12);border-radius:18px;overflow:hidden;backdrop-filter:blur(20px);box-shadow:0 4px 8px rgba(30,46,28,0.04),0 14px 36px rgba(30,46,28,0.10)}
+.hrc-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px 11px;border-bottom:1px solid var(--misty)}
+.hrc-title{font-size:11.5px;font-weight:500;color:var(--ink);letter-spacing:0.02em}
+.hrc-action{font-size:11.5px;color:var(--forest);background:rgba(45,90,39,0.09);border:none;border-radius:7px;padding:5px 11px;cursor:pointer;font-family:var(--font-body);font-weight:400;transition:all 0.18s;display:inline-flex;align-items:center;gap:5px}
+.hrc-action:hover{background:rgba(45,90,39,0.16)}
+.hrc-empty{padding:20px 16px;text-align:center;color:var(--ink-faint);font-size:11.5px;font-weight:300;line-height:1.6}
+/* Progress card */
+.prog-top{display:flex;align-items:center;gap:22px;padding:20px 20px 14px}
+.prog-ring-wrap{position:relative;width:112px;height:112px;flex-shrink:0}
+.prog-ring-svg{width:112px;height:112px;transform:rotate(-90deg)}
+.prog-ring-track{fill:none;stroke:var(--misty);stroke-width:8}
+.prog-ring-fill{fill:none;stroke:var(--forest);stroke-width:8;stroke-linecap:round;stroke-dashoffset:207.3;transition:stroke-dashoffset 2.4s cubic-bezier(0.22,1,0.36,1) 0.3s}
+.prog-ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.prog-ring-pct{font-family:var(--font-display);font-size:28px;font-weight:300;color:var(--ink);line-height:1}
+.prog-ring-sub{font-size:9px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);letter-spacing:0.06em;text-transform:uppercase}
+.prog-info-title{font-size:14.5px;font-weight:400;color:var(--ink);margin-bottom:5px}
+.prog-info-sub{font-size:12px;font-weight:300;color:var(--ink-faint);line-height:1.55}
+.prog-badge-pill{font-size:10px;font-family:var(--font-mono);font-weight:300;color:var(--forest);background:rgba(45,90,39,0.08);border:1px solid rgba(45,90,39,0.16);border-radius:100px;padding:3px 10px;margin-top:8px;display:inline-block;letter-spacing:0.04em}
+.prog-bars{padding:2px 20px 18px;display:flex;flex-direction:column;gap:11px}
+.prog-bar-item{display:grid;grid-template-columns:20px 1fr 36px;align-items:center;gap:10px}
+.prog-bar-icon{display:flex;align-items:center;justify-content:center}
+.prog-bar-icon svg{width:15px;height:15px}
+.prog-bar-track{height:7px;border-radius:4px;background:var(--misty);overflow:hidden}
+.prog-bar-fill{height:100%;border-radius:4px;width:0%;transition:width 2.4s cubic-bezier(0.22,1,0.36,1) calc(var(--bi,0) * 110ms + 350ms)}
+.prog-bar-pct{font-size:11px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);text-align:right}
+.prog-bar-label{font-size:12px;font-weight:300;color:var(--ink-faint);margin-bottom:4px;line-height:1}
+/* Recent files card */
+.rf-list{padding:3px 0}
+.rf-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;transition:background 0.14s}
+.rf-item:hover{background:rgba(45,90,39,0.04)}
+.rf-icon{width:27px;height:27px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rf-name{flex:1;min-width:0;font-size:12px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-meta{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.rf-type{font-size:8px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;padding:2px 5px}
+.rf-time{font-size:10px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint)}
 /* ══ TEMPLATES SECTION ══ */
 #templates{padding:clamp(80px,8vw,130px) clamp(28px,5vw,80px);background:var(--warm-white);border-top:1px solid var(--misty)}
 .templates-inner{max-width:1700px;margin:0 auto}
@@ -116,7 +176,7 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .tpl-meta-tag{font-size:10.5px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);letter-spacing:0.04em;display:flex;align-items:center;gap:5px}
 
 /* ══ MY VAULT SECTION ══ */
-#my-vault{padding:clamp(70px,7vw,110px) clamp(28px,5vw,80px);background:var(--off-white);border-top:1px solid var(--misty)}
+#my-vault{padding:clamp(70px,7vw,110px) clamp(28px,5vw,80px);background:var(--warm-white);border-top:1px solid var(--misty)}
 .my-vault-inner{max-width:1700px;margin:0 auto}
 .vault-header-row{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px}
 .vault-empty-state{text-align:center;padding:80px 48px;background:#fff;border:1px solid var(--misty);border-radius:20px;box-shadow:0 2px 12px rgba(30,46,28,0.04)}
@@ -152,13 +212,13 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .sheet-table{width:100%;border-collapse:collapse;font-size:13px}
 .sheet-table thead th{background:var(--off-white);font-size:10px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.09em;padding:9px 13px;border-bottom:2px solid var(--misty);border-right:1px solid var(--misty);text-align:left;white-space:nowrap;position:sticky;top:0;z-index:2;user-select:none}
 .sheet-table thead th.row-num-head{width:42px;text-align:center}
-.sheet-table tbody tr{border-bottom:1px solid rgba(236,234,227,0.8)}
+.sheet-table tbody tr{border-bottom:1px solid var(--misty)}
 .sheet-table tbody tr:hover{background:rgba(45,90,39,0.025)}
-.sheet-table tbody td{padding:0;border-right:1px solid rgba(236,234,227,0.6)}
+.sheet-table tbody td{padding:0;border-right:1px solid var(--misty)}
 .sheet-table tbody td.row-num{text-align:center;font-size:9.5px;font-family:var(--font-mono);color:var(--ink-faint);background:var(--off-white);width:42px;padding:11px 0;border-right:2px solid var(--misty);user-select:none}
 .sheet-cell{display:block;padding:9px 13px;outline:none;min-height:36px;font-family:var(--font-body);font-weight:300;color:var(--ink);font-size:13px;transition:background 0.15s;white-space:nowrap;overflow:hidden}
 .sheet-cell:focus{background:rgba(45,90,39,0.06);white-space:normal}
-.sheet-cell:empty::before{content:attr(data-ph);color:rgba(122,138,120,0.5);pointer-events:none;font-style:italic}
+.sheet-cell:empty::before{content:attr(data-ph);color:var(--ink-faint);pointer-events:none;font-style:italic}
 .sheet-foot{padding:12px 26px;border-top:1px solid var(--misty);display:flex;align-items:center;justify-content:space-between;background:var(--off-white);flex-shrink:0}
 .add-row-btn{font-size:12.5px;font-family:var(--font-body);font-weight:400;color:var(--forest);background:transparent;border:1px solid rgba(45,90,39,0.28);border-radius:7px;padding:7px 16px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:5px}
 .add-row-btn:hover{background:rgba(45,90,39,0.06);border-color:var(--forest)}
@@ -175,14 +235,14 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .doc-section-label::after{content:'';flex:1;height:1px;background:var(--misty)}
 .doc-section-content{font-size:14.5px;font-family:var(--font-body);font-weight:300;color:var(--ink);line-height:1.76;outline:none;border:1px solid transparent;border-radius:7px;padding:10px 13px;min-height:64px;transition:border-color 0.2s,background 0.2s}
 .doc-section-content:focus{border-color:rgba(45,90,39,0.28);background:rgba(45,90,39,0.018)}
-.doc-section-content:empty::before{content:attr(data-ph);color:rgba(122,138,120,0.45);pointer-events:none;font-style:italic}
+.doc-section-content:empty::before{content:attr(data-ph);color:var(--ink-faint);pointer-events:none;font-style:italic}
 .doc-foot{padding:12px 26px;border-top:1px solid var(--misty);display:flex;align-items:center;justify-content:space-between;background:var(--off-white);flex-shrink:0}
 .doc-wc{font-size:11px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);letter-spacing:0.04em}
 .blank-doc-btn{font-size:12.5px;font-family:var(--font-body);font-weight:400;color:var(--orange);background:transparent;border:1px solid rgba(212,98,26,0.28);border-radius:7px;padding:7px 16px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:5px}
 .blank-doc-btn:hover{background:rgba(212,98,26,0.06);border-color:var(--orange)}
 .doc-blank-area{font-size:14.5px;font-family:var(--font-body);font-weight:300;color:var(--ink);line-height:1.76;outline:none;min-height:420px;border:1px solid transparent;border-radius:7px;padding:10px 13px;transition:border-color 0.2s,background 0.2s;display:block;width:100%;box-sizing:border-box}
 .doc-blank-area:focus{border-color:rgba(212,98,26,0.28);background:rgba(212,98,26,0.018)}
-.doc-blank-area:empty::before{content:attr(data-ph);color:rgba(122,138,120,0.45);pointer-events:none;font-style:italic;display:block}
+.doc-blank-area:empty::before{content:attr(data-ph);color:var(--ink-faint);pointer-events:none;font-style:italic;display:block}
 
 /* ══ TOAST ══ */
 .vault-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(56px);background:var(--ink);color:#fff;padding:11px 26px;border-radius:100px;font-size:12px;font-family:var(--font-mono);font-weight:300;letter-spacing:0.06em;opacity:0;transition:all 0.38s cubic-bezier(0.16,1,0.3,1);z-index:600;white-space:nowrap;pointer-events:none}
@@ -265,6 +325,34 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
 .user-dropdown-logout{color:var(--ink-faint)}
 .user-dropdown-logout:hover{background:rgba(192,57,43,0.07);color:#c0392b}
 
+/* ══ THEME PICKER ══ */
+body.theme-transition *,body.theme-transition *::before,body.theme-transition *::after{
+  transition:background-color 0.55s cubic-bezier(0.4,0,0.2,1),
+             color 0.55s cubic-bezier(0.4,0,0.2,1),
+             border-color 0.55s cubic-bezier(0.4,0,0.2,1),
+             box-shadow 0.55s cubic-bezier(0.4,0,0.2,1),
+             fill 0.55s cubic-bezier(0.4,0,0.2,1) !important;
+}
+#user-dropdown{min-width:256px}
+.theme-section{padding:8px 8px 2px}
+.theme-section-hd{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 7px}
+.theme-section-lbl{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:500;color:var(--ink-faint);letter-spacing:0.08em;text-transform:uppercase}
+.theme-reset-btn{font-size:11px;font-family:var(--font-body);color:#fff;background:#b91c1c;border:none;border-radius:6px;padding:4px 11px;cursor:pointer;font-weight:500;letter-spacing:0.01em;transition:background 0.18s;white-space:nowrap;flex-shrink:0}
+.theme-reset-btn:hover{background:#dc2626}
+.theme-presets{display:flex;gap:7px;flex-wrap:wrap;padding:0 4px 8px}
+.theme-preset{width:22px;height:22px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;padding:0;position:relative;transition:transform 0.2s,border-color 0.2s;flex-shrink:0;outline:none}
+.theme-preset:hover{transform:scale(1.25)}
+.theme-preset.active{border-color:var(--ink);transform:scale(1.18)}
+.theme-preset[title]::after{content:attr(title);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--warm-white);font-size:10px;white-space:nowrap;padding:2px 7px;border-radius:5px;opacity:0;pointer-events:none;transition:opacity 0.15s;font-family:var(--font-body)}
+.theme-preset:hover::after{opacity:1}
+.theme-custom-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 4px 8px}
+.theme-color-row{display:flex;flex-direction:column;gap:3px}
+.tc-label{font-size:10px;color:var(--ink-faint);font-family:var(--font-body);letter-spacing:0.03em}
+.tc-input{width:100%;height:26px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px 3px;background:var(--off-white);transition:border-color 0.18s}
+.tc-input:hover{border-color:var(--forest)}
+.tc-input::-webkit-color-swatch-wrapper{padding:1px}
+.tc-input::-webkit-color-swatch{border:none;border-radius:4px}
+
 /* ══ VAULT FILE GRID ══ */
 .vault-files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;margin-bottom:32px}
 .vf-card{background:#fff;border:1px solid var(--misty);border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(30,46,28,0.04);transition:box-shadow 0.22s,transform 0.22s}
@@ -282,8 +370,18 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
 .vf-btn-edit:hover{background:rgba(45,90,39,0.07);border-color:var(--forest)}
 .vf-btn-delete{color:var(--ink-faint);border-color:rgba(30,46,28,0.16)}
 .vf-btn-delete:hover{color:#c0392b;border-color:rgba(192,57,43,0.3);background:rgba(192,57,43,0.05)}
-.vf-btn-danger{color:#c0392b!important;border-color:rgba(192,57,43,0.55)!important;background:rgba(192,57,43,0.08)!important;animation:pulse-danger 0.9s ease-in-out infinite alternate}
-@keyframes pulse-danger{from{background:rgba(192,57,43,0.08)}to{background:rgba(192,57,43,0.16)}}
+.vf-btn-addrow{color:var(--forest);border-color:rgba(45,90,39,0.28)}
+.vf-btn-addrow:hover{background:rgba(45,90,39,0.07);border-color:var(--forest)}
+.vf-card-expand-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--misty);background:transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-faint);transition:border-color 0.18s,background 0.18s,color 0.18s;flex-shrink:0;padding:0}
+.vf-card-expand-btn:hover{background:var(--off-white);border-color:rgba(45,90,39,0.22);color:var(--ink)}
+.vf-card-expand-btn svg{transition:transform 0.28s cubic-bezier(0.16,1,0.3,1)}
+.vf-card-expand-btn.open svg{transform:rotate(180deg)}
+.vf-card-details{overflow:hidden;max-height:0;transition:max-height 0.32s cubic-bezier(0.16,1,0.3,1)}
+.vf-card-details.open{max-height:160px}
+.vf-card-details-pad{border-top:1px solid var(--misty);margin-top:12px;padding-top:10px;display:flex;flex-direction:column;gap:5px}
+.vf-detail-row{display:flex;gap:8px;font-size:10.5px;font-family:var(--font-mono);font-weight:300;line-height:1.4}
+.vf-detail-key{color:var(--ink-faint);min-width:52px;flex-shrink:0;white-space:nowrap}
+.vf-detail-val{color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vault-login-wall{text-align:center;padding:80px 48px;background:#fff;border:1px solid var(--misty);border-radius:20px;box-shadow:0 2px 12px rgba(30,46,28,0.04)}
 .vlw-icon{width:52px;height:52px;border-radius:13px;background:rgba(45,90,39,0.08);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
 .vlw-title{font-family:var(--font-display);font-size:clamp(22px,2.2vw,30px);font-weight:300;color:var(--ink);margin-bottom:10px}
@@ -329,6 +427,23 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             My Vault
           </a>
+          <!-- Theme Picker -->
+          <div class="theme-section">
+            <div class="theme-section-hd">
+              <span class="theme-section-lbl">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                Appearance
+              </span>
+              <button class="theme-reset-btn" id="theme-reset">Reset</button>
+            </div>
+            <div class="theme-presets" id="theme-presets"></div>
+            <div class="theme-custom-grid">
+              <div class="theme-color-row"><label class="tc-label">Background</label><input type="color" class="tc-input" id="tc-bg"/></div>
+              <div class="theme-color-row"><label class="tc-label">Text</label><input type="color" class="tc-input" id="tc-font"/></div>
+              <div class="theme-color-row"><label class="tc-label">Primary</label><input type="color" class="tc-input" id="tc-primary"/></div>
+              <div class="theme-color-row"><label class="tc-label">Accent</label><input type="color" class="tc-input" id="tc-accent"/></div>
+            </div>
+          </div>
           <hr class="user-dropdown-divider"/>
           <button class="user-dropdown-item user-dropdown-logout" id="logout-btn">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -341,7 +456,7 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Upload
     </label>
-    <input type="file" id="vault-file-input" style="display:none" multiple accept="*/*"/>
+    <input type="file" id="vault-file-input" style="display:none" multiple accept=".xlsx,.xls,.docx,.pdf"/>
     <a href="index.html#get-started" class="btn-nav">Get early access</a>
   </div>
 </nav>
@@ -367,50 +482,54 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
       <p class="vault-tagline">Turn your experiences into credentials.</p>
       <p class="vault-sub">Every clinical hour, every recommender, every activity — stored in one structured profile that never forgets what you've done. The Vault is what Scrubbed draws from to build every outline, so nothing gets left behind when it matters most.</p>
       <div class="vault-ctas">
-        <a href="#templates" class="btn-hp">Browse templates</a>
-        <label for="vault-file-input" class="btn-ho" style="cursor:pointer">Upload a file →</label>
+        <button class="btn-hp" onclick="openCreateNew()">Create new</button>
+        <label for="vault-file-input" class="btn-ho" style="cursor:pointer" title="Accepts .xlsx, .xls, .docx, .pdf">Upload a file →</label>
       </div>
+      <p style="font-size:11px;font-weight:300;color:var(--ink-faint);margin-top:10px;letter-spacing:0.02em">Upload accepts .xlsx, .xls, .docx, .pdf</p>
     </div>
 
-    <!-- RIGHT: Preview card -->
-    <div class="vault-preview-col">
-      <div class="vpc-wrap">
-        <div class="vpc-topbar">
-          <div class="vpc-topbar-left">
-            <div class="vpc-logo-mark">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="3" width="18" height="18" rx="3" stroke="white" stroke-width="2"/>
-                <path d="M3 9h18M9 21V9" stroke="white" stroke-width="2"/>
-              </svg>
+    <!-- RIGHT: Two stacked cards -->
+    <div class="hero-right-stack">
+      <!-- TOP: Progress card -->
+      <div class="hrc" id="hrc-progress">
+        <div class="hrc-header">
+          <span class="hrc-title">Application Progress</span>
+          <span class="prog-badge-pill" id="prog-badge" style="margin-top:0;font-size:9px">Sign in to track</span>
+        </div>
+        <div class="prog-top">
+          <div class="prog-ring-wrap">
+            <svg class="prog-ring-svg" viewBox="0 0 82 82">
+              <circle class="prog-ring-track" cx="41" cy="41" r="33"/>
+              <circle class="prog-ring-fill" id="prog-ring-fill" cx="41" cy="41" r="33" stroke-dasharray="207.3" stroke-dashoffset="207.3"/>
+            </svg>
+            <div class="prog-ring-label">
+              <span class="prog-ring-pct" id="prog-ring-pct">0%</span>
+              <span class="prog-ring-sub">Done</span>
             </div>
-            <span class="vpc-name">Premed Vault</span>
           </div>
-          <span class="vpc-badge">5 FILES</span>
+          <div>
+            <div class="prog-info-title">Build your profile</div>
+            <div class="prog-info-sub">Add files in each category to see your completion score rise.</div>
+          </div>
         </div>
-        <div class="vpc-tabs">
-          <button class="vpc-tab active">All</button>
-          <button class="vpc-tab">Documents</button>
-          <button class="vpc-tab">Hour Logs</button>
+        <div class="prog-bars" id="prog-bars">
+          <!-- populated by JS -->
         </div>
-        <div class="vpc-list" id="vpc-list"><!-- populated by JS --></div>
-        <button class="vpc-add" onclick="document.getElementById('templates').scrollIntoView({behavior:'smooth'})">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add new from template or upload
-        </button>
+      </div>
+      <!-- BOTTOM: Recent files card -->
+      <div class="hrc" id="hrc-recent">
+        <div class="hrc-header">
+          <span class="hrc-title">Recent Files</span>
+          <button class="hrc-action" onclick="openCreateNew()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Create new
+          </button>
+        </div>
+        <div id="rf-body">
+          <div class="hrc-empty">Sign in to see your recent files</div>
+        </div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- TEMPLATE LIBRARY -->
-<section id="templates" class="sr-panel">
-  <div class="templates-inner">
-    <div class="templates-header sr-templates-header" id="tpl-header">
-      <div class="section-label" style="--hi:0">TEMPLATES</div>
-      <h2 class="section-heading" style="--hi:1">Build your record, <em>your way</em></h2>
-      <p class="section-sub" style="--hi:2">Choose a template to start a new file — or upload any existing document and Scrubbed will convert it into the standard format automatically.</p>
-    </div>
-    <div class="template-grid" id="template-grid"><!-- populated by JS --></div>
   </div>
 </section>
 
@@ -449,7 +568,7 @@ footer{background:var(--forest);border-top:1px solid rgba(255,255,255,0.08);padd
       <h3 class="ves-title">Your vault is empty</h3>
       <p class="ves-sub">Choose a template above or upload any file to start building your application record. Scrubbed will format everything automatically.</p>
       <div class="ves-actions">
-        <a href="#templates" class="btn-hp">Browse templates</a>
+        <button class="btn-hp" onclick="openCreateNew()">Create new file</button>
         <label for="vault-file-input" class="btn-ho" style="cursor:pointer">Upload a file</label>
       </div>
     </div>
@@ -532,7 +651,7 @@ const TEMPLATES = [
     desc:'Track patient contact hours by date, facility, and supervising physician.',
     accent:'#3d7a35',
     meta:[{label:'Institution / Program',ph:'e.g. St. Mary\'s Hospital'},{label:'Date Range',ph:'e.g. Jan 2024 – Present'}],
-    cols:['Date','Institution / Department','Supervising Physician','Role / Activity','Hours','Cumulative','Notes'],
+    cols:['Date','Institution / Department','Supervising Physician','Role / Activity','Hours','Notes'],
     rows:10,
   },
   {
@@ -540,7 +659,7 @@ const TEMPLATES = [
     desc:'Log non-clinical community service and outreach work across organizations.',
     accent:'#5a9e50',
     meta:[{label:'Primary Organization',ph:'e.g. Red Cross'},{label:'Date Range',ph:'e.g. Sep 2023 – Present'}],
-    cols:['Date','Organization','Role','Supervisor','Hours','Cumulative','Notes'],
+    cols:['Date','Organization','Role','Supervisor','Hours','Notes'],
     rows:10,
   },
   {
@@ -548,7 +667,7 @@ const TEMPLATES = [
     desc:'Document shadowing sessions with specialty, setting, and key observations.',
     accent:'#2d5a27',
     meta:[{label:'Primary Physician',ph:'e.g. Dr. Sarah Chen, MD'},{label:'Date Range',ph:'e.g. Mar 2024 – Jun 2024'}],
-    cols:['Date','Physician','Specialty','Setting','Procedures Observed','Hours','Cumulative'],
+    cols:['Date','Physician','Specialty','Setting','Procedures Observed','Hours'],
     rows:10,
   },
   {
@@ -556,7 +675,7 @@ const TEMPLATES = [
     desc:'Track lab hours, projects, and contributions across research positions.',
     accent:'#3d7a35',
     meta:[{label:'PI / Lab',ph:'e.g. Dr. Williams Lab, Stanford'},{label:'Project',ph:'e.g. CRISPR editing in T-cells'}],
-    cols:['Date','PI / Lab','Project','Tasks & Contributions','Hours','Cumulative','Notes'],
+    cols:['Date','PI / Lab','Project','Tasks & Contributions','Hours','Notes'],
     rows:10,
   },
   {
@@ -617,15 +736,6 @@ const TEMPLATES = [
   },
 ];
 
-/* ── DEMO FILES for vault preview ── */
-const DEMO_FILES = [
-  {name:'Clinical Hour Log',type:'SPREADSHEET',detail:'247 hrs logged',accent:'#3d7a35',date:'Today'},
-  {name:'Rec. Letter — Dr. Chen',type:'DOCUMENT',detail:'4 sections',accent:'#d4621a',date:'2 days ago'},
-  {name:'Volunteer Hour Log',type:'SPREADSHEET',detail:'84 hrs logged',accent:'#5a9e50',date:'5 days ago'},
-  {name:'Personal Statement',type:'DOCUMENT',detail:'Draft v3',accent:'#e07535',date:'1 week ago'},
-  {name:'Shadowing Log',type:'SPREADSHEET',detail:'120 hrs logged',accent:'#3d7a35',date:'2 weeks ago'},
-];
-
 /* ── NATURE CANVAS ── */
 (function(){
   const cv=document.getElementById('nature-canvas');
@@ -651,66 +761,6 @@ window.addEventListener('scroll',()=>{
   lastY=y;
 },{passive:true});
 
-/* ── VAULT PREVIEW ── */
-(function(){
-  const list=document.getElementById('vpc-list');
-  DEMO_FILES.forEach(f=>{
-    const isSheet=f.type==='SPREADSHEET';
-    const bgAlpha=isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)';
-    const textColor=isSheet?'var(--forest)':'var(--orange)';
-    const div=document.createElement('div');
-    div.className='vpc-item';
-    div.dataset.demo='demo';
-    div.innerHTML=`
-      <div class="vpc-item-icon" style="background:${f.accent}22">
-        ${isSheet
-          ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${f.accent}" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`
-          : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${f.accent}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`
-        }
-      </div>
-      <div class="vpc-item-info">
-        <div class="vpc-item-name">${f.name}</div>
-        <div class="vpc-item-sub">${f.detail} &nbsp;·&nbsp; ${f.date}</div>
-      </div>
-      <span class="vpc-item-type" style="background:${f.accent}18;color:${f.accent}">${f.type}</span>`;
-    list.appendChild(div);
-  });
-})();
-
-/* ── RENDER TEMPLATES ── */
-(function(){
-  const grid=document.getElementById('template-grid');
-  TEMPLATES.forEach((t,i)=>{
-    const isSheet=t.type==='spreadsheet';
-    const badgeBg=isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)';
-    const badgeColor=isSheet?'var(--forest)':'var(--orange)';
-    const badgeText=isSheet?'SPREADSHEET':'DOCUMENT';
-    const iconSvg=isSheet
-      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>`
-      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${t.accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
-    const card=document.createElement('div');
-    card.className='tpl-card';
-    card.style.cssText=`--ti:${i}`;
-    card.innerHTML=`
-      <div class="tpl-accent-bar" style="background:${t.accent}"></div>
-      <div class="tpl-body">
-        <div class="tpl-top">
-          <div class="tpl-icon" style="background:${t.accent}15">${iconSvg}</div>
-          <span class="tpl-type-badge" style="background:${badgeBg};color:${badgeColor}">${badgeText}</span>
-        </div>
-        <div class="tpl-name">${t.name}</div>
-        <div class="tpl-desc">${t.desc}</div>
-        <div class="tpl-foot">
-          <button class="tpl-create-btn" style="background:${t.accent}" onclick="openModal('${t.id}')">Create</button>
-          <span class="tpl-meta-tag">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            ${isSheet ? t.cols.length+' columns' : t.sections.length+' sections'}
-          </span>
-        </div>
-      </div>`;
-    grid.appendChild(card);
-  });
-})();
 
 /* ── MODAL ── */
 let currentTemplate=null;
@@ -798,6 +848,158 @@ async function saveModal(){
   }
 }
 
+/* ── PROGRESS TRACKING ── */
+const PROGRESS_CATS=[
+  {id:'clinical',   label:'Clinical',    templateIds:['clinical-hours'],       weight:20, color:'#3d7a35'},
+  {id:'research',   label:'Research',    templateIds:['research-log'],          weight:15, color:'#5a9e50'},
+  {id:'volunteer',  label:'Volunteer',   templateIds:['volunteer-hours'],       weight:10, color:'#7ab870'},
+  {id:'shadowing',  label:'Shadowing',   templateIds:['shadowing-log'],         weight:10, color:'#2d5a27'},
+  {id:'employment', label:'Employment',  templateIds:['employment-record'],     weight:10, color:'#5a9e50'},
+  {id:'rec-letters',label:'Rec. Letters',templateIds:['recommendation-letter'],weight:15, color:'#d4621a'},
+  {id:'personal',   label:'Personal Stmt',templateIds:['personal-statement'],  weight:10, color:'#e07535'},
+  {id:'activities', label:'Activities',  templateIds:['activity-description'],  weight:5,  color:'#f0a060'},
+  {id:'secondaries',label:'Secondaries', templateIds:['secondary-essay'],       weight:5,  color:'#f0a060'},
+];
+
+const CAT_ICONS={
+  clinical:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  research:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  volunteer:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  shadowing:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  employment:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>',
+  'rec-letters':'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+  personal:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>',
+  activities:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
+  secondaries:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+};
+
+function calcCatPct(cat,files){
+  const hits=files.filter(f=>cat.templateIds.includes(f.template_id));
+  if(!hits.length)return 0;
+  const f=hits[0];const c=f.content||{};
+  if(f.type==='spreadsheet'){
+    const rows=c.rows||[];
+    const filled=rows.filter(r=>r.some(v=>v&&String(v).trim())).length;
+    return filled>=5?100:filled>=1?60:30;
+  }else{
+    if(c.blank&&c.html&&c.html.replace(/<[^>]*>/g,'').trim().length>50)return 100;
+    const secs=c.sections||[];
+    const filled=secs.filter(s=>s.content&&s.content.replace(/<[^>]*>/g,'').trim().length>20).length;
+    return filled>=3?100:filled>=1?60:30;
+  }
+}
+
+function renderProgress(files){
+  const f2=files||[];
+  let totalW=0,earnedW=0;
+  PROGRESS_CATS.forEach(cat=>{const p=calcCatPct(cat,f2);totalW+=cat.weight;earnedW+=(p/100)*cat.weight});
+  const totalPct=Math.round((earnedW/totalW)*100);
+  const filledCats=PROGRESS_CATS.filter(cat=>calcCatPct(cat,f2)>0).length;
+
+  /* SVG ring: r=33, circ=2π*33≈207.3 */
+  const circ=2*Math.PI*33;
+  const offset=circ*(1-totalPct/100);
+  const ringFill=document.getElementById('prog-ring-fill');
+  const ringPct=document.getElementById('prog-ring-pct');
+  const badge=document.getElementById('prog-badge');
+  if(ringPct)ringPct.textContent=totalPct+'%';
+  if(badge)badge.textContent=filledCats+' / '+PROGRESS_CATS.length+' categories';
+
+  const barsEl=document.getElementById('prog-bars');
+  if(!barsEl)return;
+  const catPcts=PROGRESS_CATS.map(cat=>calcCatPct(cat,f2));
+  /* Render bars at 0% width so transition fires on next paint */
+  barsEl.innerHTML=PROGRESS_CATS.map((cat,i)=>{
+    const p=catPcts[i];
+    const col=p>0?cat.color:'#d0cec8';
+    const icon=CAT_ICONS[cat.id]||'';
+    return`<div class="prog-bar-item">
+      <div class="prog-bar-icon" style="color:${col}">${icon}</div>
+      <div>
+        <div class="prog-bar-label" style="color:${p>0?'var(--ink)':'var(--ink-faint)'}">${cat.label}</div>
+        <div class="prog-bar-track"><div class="prog-bar-fill" data-pct="${p}" style="width:0%;background:${col}"></div></div>
+      </div>
+      <div class="prog-bar-pct">${p}%</div>
+    </div>`;
+  }).join('');
+  /* Double RAF: first tick commits 0% paint, second fires transitions */
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(ringFill)ringFill.style.strokeDashoffset=offset;
+    barsEl.querySelectorAll('.prog-bar-fill').forEach((el,i)=>{
+      el.style.setProperty('--bi',i);
+      el.style.width=el.dataset.pct+'%';
+    });
+  }));
+}
+
+function renderRecentFiles(files){
+  const body=document.getElementById('rf-body');
+  if(!body)return;
+  if(!files||!files.length){
+    body.innerHTML='<div class="hrc-empty">No files yet — create or upload to start</div>';
+    return;
+  }
+  const recent=files.slice(0,3);
+  body.innerHTML='<div class="rf-list">'+recent.map(f=>{
+    const isSheet=f.type==='spreadsheet';
+    const isPdf=f.content&&f.content.pdf;
+    const accent=isSheet?'#3d7a35':isPdf?'#c0392b':'#d4621a';
+    const icon=isPdf
+      ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`
+      :isSheet
+        ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`
+        :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+    const typeLabel=isPdf?'PDF':isSheet?'SHEET':'DOC';
+    return`<div class="rf-item" onclick="openFileForEdit(${f.id})">
+      <div class="rf-icon" style="background:${accent}18">${icon}</div>
+      <span class="rf-name">${escHtml(f.name)}</span>
+      <div class="rf-meta">
+        <span class="rf-type" style="background:${accent}18;color:${accent}">${typeLabel}</span>
+        <span class="rf-time">${timeAgo(f.updated_at)}</span>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+/* ── CREATE NEW POPUP ── */
+function openCreateNew(){
+  if(!getToken()){window._openAuthModal&&window._openAuthModal('login');return}
+  document.getElementById('cn-overlay').classList.add('open');
+  renderCnList('all');
+}
+function closeCreateNew(){document.getElementById('cn-overlay').classList.remove('open')}
+
+function renderCnList(filter){
+  document.querySelectorAll('.cn-tab').forEach(t=>t.classList.toggle('active',t.dataset.cntype===filter));
+  const list=document.getElementById('cn-list');
+  const filtered=filter==='all'?TEMPLATES:TEMPLATES.filter(t=>t.type===filter);
+  list.innerHTML=filtered.map(t=>{
+    const isSheet=t.type==='spreadsheet';
+    const accent=t.accent||(isSheet?'var(--forest)':'var(--orange)');
+    const iconSvg=isSheet
+      ?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`
+      :`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+    return`<div class="cn-item" onclick="pickTemplate('${t.id}')">
+      <div class="cn-item-icon" style="background:${accent}18">${iconSvg}</div>
+      <div class="cn-item-body">
+        <div class="cn-item-name">${t.name}</div>
+        <div class="cn-item-desc">${t.desc}</div>
+      </div>
+      <span class="cn-item-badge" style="background:${accent}18;color:${accent}">${isSheet?'LOG':'DOC'}</span>
+    </div>`;
+  }).join('');
+}
+
+function pickTemplate(id){closeCreateNew();openModal(id)}
+
+document.getElementById('cn-tabs').addEventListener('click',e=>{
+  const tab=e.target.closest('.cn-tab');
+  if(tab)renderCnList(tab.dataset.cntype);
+});
+document.getElementById('cn-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('cn-overlay'))closeCreateNew();
+});
+
 /* ── VAULT FILE LOADING ── */
 function timeAgo(dateStr){
   const diff=Date.now()-new Date(dateStr).getTime();
@@ -819,6 +1021,11 @@ async function loadFilesFromServer(){
     if(loginWall)loginWall.style.display='';
     if(grid)grid.style.display='none';
     if(empty)empty.style.display='none';
+    renderProgress([]);renderRecentFiles([]);
+    const rfBody=document.getElementById('rf-body');
+    if(rfBody)rfBody.innerHTML='<div class="hrc-empty">Sign in to see your recent files</div>';
+    const badge=document.getElementById('prog-badge');
+    if(badge)badge.textContent='Sign in to track';
     return;
   }
   try{
@@ -833,7 +1040,8 @@ async function loadFilesFromServer(){
       if(empty)empty.style.display='none';
       if(grid){grid.style.display='';renderVaultFiles(files,grid)}
     }
-    renderVpcFiles(files);
+    renderRecentFiles(files);
+    renderProgress(files);
   }catch(e){
     if(loginWall)loginWall.style.display='';
     if(grid)grid.style.display='none';
@@ -845,58 +1053,60 @@ function renderVaultFiles(files,grid){
   grid.innerHTML='';
   files.forEach(f=>{
     const isSheet=f.type==='spreadsheet';
-    const accent=isSheet?'var(--forest)':'var(--orange)';
+    const isPdf=f.content&&f.content.pdf;
+    const accent=isSheet?'var(--forest)':isPdf?'#c0392b':'var(--orange)';
+    const typeLabel=isPdf?'PDF':isSheet?'Spreadsheet':'Document';
+    const iconSvg=isSheet
+      ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>'
+      :isPdf
+        ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+        :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    /* Build expand-panel detail rows */
+    const metaRows=f.meta?Object.entries(f.meta).filter(([k,v])=>v&&String(v).trim()).slice(0,2).map(([k,v])=>`<div class="vf-detail-row"><span class="vf-detail-key">${escHtml(k)}</span><span class="vf-detail-val">${escHtml(String(v))}</span></div>`).join(''):'';
+    const rowsWithData=isSheet&&f.content&&f.content.rows?f.content.rows.filter(r=>r.some(v=>v&&String(v).trim())).length:null;
+    const rowInfoRow=rowsWithData!==null?`<div class="vf-detail-row"><span class="vf-detail-key">Rows</span><span class="vf-detail-val">${rowsWithData} filled</span></div>`:'';
+    const typeRow=`<div class="vf-detail-row"><span class="vf-detail-key">Type</span><span class="vf-detail-val">${typeLabel}</span></div>`;
+    const detailsContent=typeRow+metaRows+rowInfoRow;
+
+    const addRowHtml=isSheet&&!isPdf?`<button class="vf-btn vf-btn-addrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>`:'';
+
     const card=document.createElement('div');
     card.className='vf-card';
     card.innerHTML=`
       <div class="vf-card-accent" style="background:${accent}"></div>
       <div class="vf-card-body">
         <div class="vf-card-top">
-          <div class="vf-card-icon" style="color:${accent}">
-            ${isSheet?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'}
+          <div class="vf-card-icon" style="color:${accent}">${iconSvg}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="vf-card-type" style="background:${accent}18;color:${accent}">${typeLabel}</span>
+            <button class="vf-card-expand-btn" aria-label="Show details">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
           </div>
-          <span class="vf-card-type">${isSheet?'Spreadsheet':'Document'}</span>
         </div>
         <div class="vf-card-name">${escHtml(f.name)}</div>
         <div class="vf-card-updated">Updated ${timeAgo(f.updated_at)}</div>
+        <div class="vf-card-details"><div class="vf-card-details-pad">${detailsContent}</div></div>
         <div class="vf-card-actions">
-          <button class="vf-btn vf-btn-edit" onclick="openFileForEdit(${f.id})">Edit</button>
-          <button class="vf-btn vf-btn-delete" data-id="${f.id}" onclick="deleteFile(${f.id},this)">Delete</button>
+          ${addRowHtml}
+          <button class="vf-btn vf-btn-edit">${isPdf?'View':'Edit'}</button>
+          <button class="vf-btn vf-btn-delete">Delete</button>
         </div>
       </div>`;
+    const editBtn=card.querySelector('.vf-btn-edit');
+    const delBtn=card.querySelector('.vf-btn-delete');
+    const addRowBtn=card.querySelector('.vf-btn-addrow');
+    const expandBtn=card.querySelector('.vf-card-expand-btn');
+    const detailsEl=card.querySelector('.vf-card-details');
+    if(editBtn)editBtn.addEventListener('click',()=>window.openFileForEdit(f.id));
+    if(delBtn)delBtn.addEventListener('click',()=>vaultDeleteBtn(f.id,delBtn));
+    if(addRowBtn)addRowBtn.addEventListener('click',async()=>{await window.openFileForEdit(f.id);window.addSheetRow&&window.addSheetRow()});
+    if(expandBtn&&detailsEl)expandBtn.addEventListener('click',()=>{expandBtn.classList.toggle('open');detailsEl.classList.toggle('open')});
     grid.appendChild(card);
   });
 }
 
 function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-
-function renderVpcFiles(files){
-  const list=document.getElementById('vpc-list');
-  if(!list)return;
-  list.querySelectorAll('[data-demo]').forEach(el=>el.remove());
-  files.forEach(f=>{
-    const isSheet=f.type==='spreadsheet';
-    const accent=isSheet?'var(--forest)':'var(--orange)';
-    const accentHex=isSheet?'#2d5a27':'#d4621a';
-    const div=document.createElement('div');
-    div.className='vpc-item';
-    div.dataset.demo='user';
-    div.style.cursor='pointer';
-    div.innerHTML=`
-      <div class="vpc-item-icon" style="background:${accentHex}22">
-        ${isSheet
-          ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accentHex}" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`
-          :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accentHex}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`}
-      </div>
-      <div class="vpc-item-info">
-        <div class="vpc-item-name">${escHtml(f.name)}</div>
-        <div class="vpc-item-sub">${isSheet?'Spreadsheet':'Document'} &nbsp;·&nbsp; ${timeAgo(f.updated_at)}</div>
-      </div>
-      <span class="vpc-item-type" style="background:${accentHex}18;color:${accentHex}">${isSheet?'SHEET':'DOC'}</span>`;
-    div.addEventListener('click',()=>openFileForEdit(f.id));
-    list.appendChild(div);
-  });
-}
 
 window.openFileForEdit=async function openFileForEdit(fileId){
   if(!getToken())return;
@@ -906,15 +1116,31 @@ window.openFileForEdit=async function openFileForEdit(fileId){
     const files=await resp.json();
     const f=files.find(x=>x.id===fileId);
     if(!f)return;
+    /* Build synthetic template for uploaded files (no template_id) */
     const t=TEMPLATES.find(x=>x.id===f.template_id)||{
-      id:f.template_id,name:f.name,type:f.type,
-      meta:[],cols:['A','B','C','D'],rows:5,sections:[]
+      id:null,name:f.name,type:f.type,meta:[],
+      cols:(f.content&&f.content.cols)||['A','B','C','D','E'],
+      rows:Math.max((f.content&&f.content.rows||[]).length,5),
+      sections:[]
     };
     currentTemplate=t;
     currentFileId=f.id;
     const isSheet=t.type==='spreadsheet';
     document.getElementById('modal-title').textContent=f.name;
     const badge=document.getElementById('modal-badge');
+    /* PDF files get a special viewer, not the sheet/doc editor */
+    if(f.content&&f.content.pdf){
+      badge.textContent='PDF';
+      badge.style.background='rgba(212,98,26,0.1)';
+      badge.style.color='var(--orange)';
+      document.getElementById('modal-body').innerHTML=`
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0;background:#525659">
+          <iframe src="${f.content.dataUrl}" style="flex:1;width:100%;border:none;min-height:500px" title="${escHtml(f.name)}"></iframe>
+        </div>`;
+      document.getElementById('modal-overlay').classList.add('open');
+      document.body.style.overflow='hidden';
+      return;
+    }
     badge.textContent=isSheet?'SPREADSHEET':'DOCUMENT';
     badge.style.background=isSheet?'rgba(45,90,39,0.1)':'rgba(212,98,26,0.1)';
     badge.style.color=isSheet?'var(--forest)':'var(--orange)';
@@ -930,15 +1156,13 @@ function loadSheetContent(f){
   const rows=f.content&&f.content.rows?f.content.rows:[];
   const tbody=document.getElementById('sheet-body');
   if(!tbody)return;
+  /* Add extra rows if uploaded file has more than the template default */
+  while(tbody.querySelectorAll('tr').length<rows.length)addSheetRow();
   rows.forEach((row,ri)=>{
-    let tr=tbody.querySelectorAll('tr')[ri];
-    if(!tr){
-      addSheetRow();
-      tr=tbody.querySelectorAll('tr')[ri];
-    }
+    const tr=tbody.querySelectorAll('tr')[ri];
     if(!tr)return;
     const cells=tr.querySelectorAll('.sheet-cell');
-    row.forEach((val,ci)=>{if(cells[ci])cells[ci].innerText=val});
+    row.forEach((val,ci)=>{if(cells[ci])cells[ci].innerText=val||''});
   });
   const metaInputs=[...document.querySelectorAll('.smt-input')];
   if(f.meta&&currentTemplate&&currentTemplate.meta){
@@ -967,27 +1191,38 @@ function loadDocContent(f){
   }
 }
 
-window.deleteFile=async function(id,btn){
-  if(btn.dataset.confirming){
-    clearTimeout(btn._confirmTimer);
+/* ── DELETE HANDLER (called directly via addEventListener on each card) ── */
+function vaultDeleteBtn(fileId,btn){
+  if(btn._delConfirming){
+    clearTimeout(btn._delTimer);
     btn.disabled=true;
-    try{
-      const resp=await fetch('/files/'+id,{method:'DELETE',headers:authHeaders()});
-      if(!resp.ok)throw new Error();
-      showToast('File deleted');
-      loadFilesFromServer();
-    }catch(e){showToast('Delete failed');btn.disabled=false;btn.dataset.confirming='';btn.textContent='Delete';btn.classList.remove('vf-btn-danger')}
+    btn.innerHTML='Deleting…';
+    fetch('/files/'+fileId,{method:'DELETE',headers:{'Authorization':'Bearer '+getToken()}})
+      .then(function(r){
+        if(!r.ok)throw new Error('HTTP '+r.status);
+        showToast('File deleted');
+        loadFilesFromServer();
+      })
+      .catch(function(err){
+        showToast('Delete failed: '+err.message);
+        btn.disabled=false;
+        btn.innerHTML='Delete';
+        btn.style.cssText='';
+        btn._delConfirming=false;
+      });
     return;
   }
-  btn.dataset.confirming='1';
-  btn.textContent='Are you sure?';
-  btn.classList.add('vf-btn-danger');
-  btn._confirmTimer=setTimeout(()=>{
-    btn.dataset.confirming='';
-    btn.textContent='Delete';
-    btn.classList.remove('vf-btn-danger');
+  btn._delConfirming=true;
+  btn.innerHTML='Confirm?';
+  btn.style.color='#c0392b';
+  btn.style.borderColor='rgba(192,57,43,0.45)';
+  btn.style.background='rgba(192,57,43,0.07)';
+  btn._delTimer=setTimeout(function(){
+    btn._delConfirming=false;
+    btn.innerHTML='Delete';
+    btn.style.cssText='';
   },4000);
-};
+}
 
 /* Sheet builder */
 function buildSheet(t){
@@ -1021,7 +1256,7 @@ function buildSheet(t){
 }
 
 function getColPh(col,idx){
-  const phs={'Date':'MM/DD/YYYY','Hours':'0.0','Cumulative':'0.0','Notes':'Optional notes...'};
+  const phs={'Date':'MM/DD/YYYY','Hours':'0.0','Notes':'Optional notes...'};
   return phs[col]||'—';
 }
 
@@ -1108,33 +1343,62 @@ window.makeDocBlank=function(){
 };
 
 /* ── UPLOAD HANDLING ── */
+/* Accepted types: .xlsx, .xls (Excel), .docx (Word), .pdf */
 async function handleFiles(files){
   if(!files||!files.length)return;
   if(!getToken()){showToast('Sign in to upload files');return}
+  const ALLOWED=['xlsx','xls','docx','pdf'];
+  let uploaded=0;
   for(const file of files){
     const name=file.name.replace(/\.[^.]+$/,'');
     const ext=file.name.split('.').pop().toLowerCase();
-    const type=['csv','xls','xlsx'].includes(ext)?'spreadsheet':'document';
-    let content={};
-    if(type==='document'){
-      const text=await file.text().catch(()=>'');
-      content={blank:true,html:escHtml(text).replace(/\n/g,'<br>')};
-    }else{
-      content={rows:[]};
-    }
+    if(!ALLOWED.includes(ext)){showToast(`${ext.toUpperCase()} not supported — use .xlsx, .docx, or .pdf`);continue}
+    if(file.size>20*1024*1024){showToast(`${file.name} is too large (max 20 MB)`);continue}
+    let type,content;
     try{
+      if(ext==='xlsx'||ext==='xls'){
+        if(typeof XLSX==='undefined'){showToast('Spreadsheet library not loaded — check your connection');continue}
+        type='spreadsheet';
+        const buf=await file.arrayBuffer();
+        const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        const cols=(data[0]||[]).map(String);
+        const rows=data.slice(1).map(r=>cols.map((_,ci)=>String(r[ci]||'')));
+        content={cols,rows};
+      }else if(ext==='docx'){
+        if(typeof mammoth==='undefined'){showToast('DOCX library not loaded — check your connection');continue}
+        type='document';
+        const buf=await file.arrayBuffer();
+        const result=await mammoth.convertToHtml({arrayBuffer:buf});
+        content={blank:true,html:result.value||''};
+      }else if(ext==='pdf'){
+        type='document';
+        const buf=await file.arrayBuffer();
+        /* encode binary to base64 in chunks to avoid call-stack overflow */
+        const bytes=new Uint8Array(buf);
+        const chunk=1024;
+        let b64='';
+        for(let i=0;i<bytes.length;i+=chunk){
+          b64+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
+        }
+        content={pdf:true,dataUrl:'data:application/pdf;base64,'+btoa(b64),fileName:file.name};
+      }
       const resp=await fetch('/files',{method:'POST',headers:authHeaders(),body:JSON.stringify({name,type,content,meta:{}})});
       if(!resp.ok)throw new Error();
-    }catch(e){showToast('Error uploading '+file.name);continue}
+      uploaded++;
+    }catch(e){showToast('Error uploading '+file.name)}
   }
-  showToast(files.length===1?`"${files[0].name}" uploaded`:`${files.length} files uploaded`);
-  loadFilesFromServer();
+  if(uploaded>0){
+    showToast(uploaded===1?`"${files[0].name}" added to Vault`:`${uploaded} files added to Vault`);
+    loadFilesFromServer();
+  }
 }
 const vaultInput=document.getElementById('vault-file-input');
 if(vaultInput)vaultInput.addEventListener('change',function(){handleFiles(this.files);this.value=''});
 
 /* ── TOAST ── */
-let toastTimer=null;
+var toastTimer=null;
 function showToast(msg){
   const el=document.getElementById('vault-toast');
   el.textContent=msg;
@@ -1153,15 +1417,27 @@ function observe(selector,onVisible,opts={}){
 }
 
 observe('.sr-panel',el=>el.classList.add('sr-visible'),{threshold:0.06});
-observe('#tpl-header',el=>el.classList.add('sr-visible'),{threshold:0.25});
 observe('#vault-hdr',el=>el.classList.add('sr-visible'),{threshold:0.25});
-/* vault-empty is shown dynamically by loadFilesFromServer */
-
-/* Template cards — observe each individually for stagger */
-document.querySelectorAll('.tpl-card').forEach(card=>{
-  observe(card,el=>el.classList.add('sr-visible'),{threshold:0.1});
-});
+/* vault-empty shown dynamically by loadFilesFromServer */
 </script>
+
+<!-- ══ CREATE NEW POPUP ══ -->
+<div class="cn-overlay" id="cn-overlay">
+  <div class="cn-popup">
+    <div class="cn-head">
+      <span class="cn-title">Create new file</span>
+      <button class="cn-close" onclick="closeCreateNew()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="cn-tabs" id="cn-tabs">
+      <button class="cn-tab active" data-cntype="all">All</button>
+      <button class="cn-tab" data-cntype="spreadsheet">Hour Logs</button>
+      <button class="cn-tab" data-cntype="document">Documents</button>
+    </div>
+    <div class="cn-list" id="cn-list"><!-- populated by JS --></div>
+  </div>
+</div>
 
 <!-- ══ AUTH MODAL ══ -->
 <div id="auth-overlay">
@@ -1339,6 +1615,54 @@ if(logoutBtn){
 checkSession();
 /* Initial vault load — runs after checkSession resolves via setLoggedIn */
 if(typeof loadFilesFromServer==='function')loadFilesFromServer();
+})();
+</script>
+<script>
+// Theme picker initialisation
+(function(){
+  const presetsEl=document.getElementById('theme-presets');
+  if(presetsEl&&window.THEME_PRESETS){
+    window.THEME_PRESETS.forEach((p,i)=>{
+      const btn=document.createElement('button');
+      btn.className='theme-preset';
+      btn.title=p.name;
+      btn.style.background=`linear-gradient(135deg,${p.primary} 50%,${p.accent} 50%)`;
+      btn.dataset.idx=i;
+      btn.addEventListener('click',()=>{window.applyTheme(p);});
+      presetsEl.appendChild(btn);
+    });
+  }
+
+  window.syncThemePicker=function(colors){
+    const ids=['tc-bg','tc-font','tc-primary','tc-accent'];
+    const keys=['bg','font','primary','accent'];
+    ids.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=colors[keys[i]];});
+    document.querySelectorAll('.theme-preset').forEach((btn,i)=>{
+      const p=window.THEME_PRESETS[i];
+      btn.classList.toggle('active',p&&p.bg===colors.bg&&p.font===colors.font&&p.primary===colors.primary&&p.accent===colors.accent);
+    });
+  };
+
+  function readCustom(){
+    return {
+      bg:   document.getElementById('tc-bg')?.value    || window.THEME_DEFAULT.bg,
+      font: document.getElementById('tc-font')?.value  || window.THEME_DEFAULT.font,
+      primary:document.getElementById('tc-primary')?.value || window.THEME_DEFAULT.primary,
+      accent: document.getElementById('tc-accent')?.value  || window.THEME_DEFAULT.accent,
+    };
+  }
+  ['tc-bg','tc-font','tc-primary','tc-accent'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('input',()=>window.applyTheme(readCustom()));
+  });
+
+  const resetBtn=document.getElementById('theme-reset');
+  if(resetBtn)resetBtn.addEventListener('click',()=>window.applyTheme(window.THEME_DEFAULT));
+
+  try{
+    const saved=localStorage.getItem('scrubbed_theme');
+    if(window.syncThemePicker)window.syncThemePicker(saved?JSON.parse(saved):window.THEME_DEFAULT);
+  }catch(e){}
 })();
 </script>
 </body>
