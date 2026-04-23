@@ -1,0 +1,4 @@
+node_modules/
+scrubbed.db
+*.db
+.env
