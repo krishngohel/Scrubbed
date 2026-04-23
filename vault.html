@@ -248,6 +248,30 @@ body{font-family:var(--font-body);background:var(--warm-white);color:var(--ink);
 .vault-toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(56px);background:var(--ink);color:#fff;padding:11px 26px;border-radius:100px;font-size:12px;font-family:var(--font-mono);font-weight:300;letter-spacing:0.06em;opacity:0;transition:all 0.38s cubic-bezier(0.16,1,0.3,1);z-index:600;white-space:nowrap;pointer-events:none}
 .vault-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ══ QUICK ENTRY POPUP ══ */
+.qe-overlay{position:fixed;inset:0;z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(12,20,11,0.52);backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity 0.25s}
+.qe-overlay.open{opacity:1;pointer-events:auto}
+.qe-popup{background:#fff;border-radius:18px;width:100%;max-width:560px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 64px rgba(0,0,0,0.22);transform:translateY(20px) scale(0.97);transition:transform 0.3s cubic-bezier(0.16,1,0.3,1)}
+.qe-overlay.open .qe-popup{transform:none}
+.qe-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--misty)}
+.qe-title{font-family:var(--font-display);font-size:19px;font-weight:300;color:var(--ink);letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qe-close{background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;color:var(--ink-faint);display:flex;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s;flex-shrink:0}
+.qe-close:hover{background:var(--misty);color:var(--ink)}
+.qe-body{padding:22px 22px 18px}
+.qe-field{display:flex;flex-direction:column;gap:5px}
+.qe-label{font-size:9.5px;font-family:var(--font-mono);font-weight:300;color:var(--ink-faint);letter-spacing:0.09em;text-transform:uppercase}
+.qe-input{font-size:13.5px;font-family:var(--font-body);font-weight:300;color:var(--ink);border:1.5px solid var(--misty);border-radius:9px;padding:9px 13px;background:var(--off-white);outline:none;transition:border-color 0.2s,background 0.2s;width:100%}
+.qe-input:focus{border-color:var(--forest);background:#fff}
+.qe-input::placeholder{color:var(--ink-faint)}
+.qe-textarea{font-size:13.5px;font-family:var(--font-body);font-weight:300;color:var(--ink);border:1.5px solid var(--misty);border-radius:9px;padding:9px 13px;background:var(--off-white);outline:none;transition:border-color 0.2s,background 0.2s;width:100%;resize:none;flex:1;line-height:1.55}
+.qe-textarea:focus{border-color:var(--forest);background:#fff}
+.qe-textarea::placeholder{color:var(--ink-faint)}
+.qe-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--misty);background:var(--off-white)}
+.qe-submit{background:var(--forest);color:#fff;border:none;border-radius:8px;padding:9px 24px;font-size:13px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all 0.22s}
+.qe-submit:hover{background:var(--forest-mid)}
+.qe-cancel{background:transparent;border:1.5px solid var(--misty);border-radius:8px;padding:8px 18px;font-size:13px;font-family:var(--font-body);color:var(--ink-faint);cursor:pointer;transition:all 0.2s}
+.qe-cancel:hover{border-color:rgba(30,46,28,0.3);color:var(--ink)}
+
 /* ══ SCROLL REVEAL ══ */
 .sr-fade-up{opacity:0;transform:translateY(30px);transition:opacity 0.72s cubic-bezier(0.16,1,0.3,1),transform 0.72s cubic-bezier(0.16,1,0.3,1)}
 .sr-fade-up.sr-visible{opacity:1;transform:translateY(0)}
@@ -877,15 +901,27 @@ function calcCatPct(cat,files){
   const hits=files.filter(f=>cat.templateIds.includes(f.template_id));
   if(!hits.length)return 0;
   const f=hits[0];const c=f.content||{};
+  if(c.pdf)return 100;
   if(f.type==='spreadsheet'){
     const rows=c.rows||[];
     const filled=rows.filter(r=>r.some(v=>v&&String(v).trim())).length;
-    return filled>=5?100:filled>=1?60:30;
+    if(filled===0)return 0;
+    return Math.min(Math.round((filled/5)*100),100);
   }else{
-    if(c.blank&&c.html&&c.html.replace(/<[^>]*>/g,'').trim().length>50)return 100;
+    if(c.blank){
+      const text=(c.html||'').replace(/<[^>]*>/g,'').trim();
+      if(!text.length)return 0;
+      return Math.min(Math.round((text.length/500)*100),100);
+    }
     const secs=c.sections||[];
-    const filled=secs.filter(s=>s.content&&s.content.replace(/<[^>]*>/g,'').trim().length>20).length;
-    return filled>=3?100:filled>=1?60:30;
+    if(!secs.length)return 0;
+    const scores=secs.map(s=>{
+      const text=(s.content||'').replace(/<[^>]*>/g,'').trim();
+      if(text.length<20)return 0;
+      return Math.min(text.length/200,1);
+    });
+    const avg=scores.reduce((a,b)=>a+b,0)/scores.length;
+    return avg===0?0:Math.round(avg*100);
   }
 }
 
@@ -992,12 +1028,15 @@ function renderCnList(filter){
 
 function pickTemplate(id){closeCreateNew();openModal(id)}
 
-document.getElementById('cn-tabs').addEventListener('click',e=>{
-  const tab=e.target.closest('.cn-tab');
+var _vf=[];/* vault files cache — var so it's hoisted and always initialized */
+
+/* Attach after DOM is ready via delegation so null elements never crash the script */
+document.addEventListener('click',function(e){
+  const tab=e.target.closest('#cn-tabs .cn-tab');
   if(tab)renderCnList(tab.dataset.cntype);
 });
-document.getElementById('cn-overlay').addEventListener('click',e=>{
-  if(e.target===document.getElementById('cn-overlay'))closeCreateNew();
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.id==='cn-overlay')closeCreateNew();
 });
 
 /* ── VAULT FILE LOADING ── */
@@ -1032,6 +1071,7 @@ async function loadFilesFromServer(){
     const resp=await fetch('/files',{headers:authHeaders()});
     if(!resp.ok)throw new Error();
     const files=await resp.json();
+    _vf=files;
     if(loginWall)loginWall.style.display='none';
     if(files.length===0){
       if(grid)grid.style.display='none';
@@ -1068,7 +1108,7 @@ function renderVaultFiles(files,grid){
     const typeRow=`<div class="vf-detail-row"><span class="vf-detail-key">Type</span><span class="vf-detail-val">${typeLabel}</span></div>`;
     const detailsContent=typeRow+metaRows+rowInfoRow;
 
-    const addRowHtml=isSheet&&!isPdf?`<button class="vf-btn vf-btn-addrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>`:'';
+    const addRowHtml=isSheet&&!isPdf?`<button class="vf-btn vf-btn-addrow" onclick="openQuickEntry(${f.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>`:'';
 
     const card=document.createElement('div');
     card.className='vf-card';
@@ -1089,18 +1129,12 @@ function renderVaultFiles(files,grid){
         <div class="vf-card-details"><div class="vf-card-details-pad">${detailsContent}</div></div>
         <div class="vf-card-actions">
           ${addRowHtml}
-          <button class="vf-btn vf-btn-edit">${isPdf?'View':'Edit'}</button>
-          <button class="vf-btn vf-btn-delete">Delete</button>
+          <button class="vf-btn vf-btn-edit" onclick="window.openFileForEdit(${f.id})">${isPdf?'View':'Edit'}</button>
+          <button class="vf-btn vf-btn-delete" onclick="vaultDeleteBtn(${f.id},this)">Delete</button>
         </div>
       </div>`;
-    const editBtn=card.querySelector('.vf-btn-edit');
-    const delBtn=card.querySelector('.vf-btn-delete');
-    const addRowBtn=card.querySelector('.vf-btn-addrow');
     const expandBtn=card.querySelector('.vf-card-expand-btn');
     const detailsEl=card.querySelector('.vf-card-details');
-    if(editBtn)editBtn.addEventListener('click',()=>window.openFileForEdit(f.id));
-    if(delBtn)delBtn.addEventListener('click',()=>vaultDeleteBtn(f.id,delBtn));
-    if(addRowBtn)addRowBtn.addEventListener('click',async()=>{await window.openFileForEdit(f.id);window.addSheetRow&&window.addSheetRow()});
     if(expandBtn&&detailsEl)expandBtn.addEventListener('click',()=>{expandBtn.classList.toggle('open');detailsEl.classList.toggle('open')});
     grid.appendChild(card);
   });
@@ -1419,6 +1453,105 @@ function observe(selector,onVisible,opts={}){
 observe('.sr-panel',el=>el.classList.add('sr-visible'),{threshold:0.06});
 observe('#vault-hdr',el=>el.classList.add('sr-visible'),{threshold:0.25});
 /* vault-empty shown dynamically by loadFilesFromServer */
+
+/* ── QUICK ENTRY POPUP ── */
+const QUICK_ENTRY_MAP={
+  'clinical-hours':   {orgLabel:'Institution / Dept',orgIdx:1,roleLabel:'Role / Activity',roleIdx:3,supLabel:'Supervising Physician',supIdx:2,dateIdx:0,hoursIdx:4,notesIdx:5},
+  'volunteer-hours':  {orgLabel:'Organization',orgIdx:1,roleLabel:'Role',roleIdx:2,supLabel:'Supervisor',supIdx:3,dateIdx:0,hoursIdx:4,notesIdx:5},
+  'shadowing-log':    {orgLabel:'Setting',orgIdx:3,roleLabel:'Specialty',roleIdx:2,supLabel:'Physician',supIdx:1,dateIdx:0,hoursIdx:5,notesIdx:4},
+  'research-log':     {orgLabel:'PI / Lab',orgIdx:1,roleLabel:'Project',roleIdx:2,supLabel:null,supIdx:-1,dateIdx:0,hoursIdx:4,notesIdx:5},
+  'employment-record':{orgLabel:'Employer',orgIdx:1,roleLabel:'Position',roleIdx:2,supLabel:null,supIdx:-1,dateIdx:0,hoursIdx:5,notesIdx:6},
+};
+let _qeFileId=null,_qeMap=null,_qeFile=null;
+
+function openQuickEntry(fileId){
+  if(!getToken()){window._openAuthModal&&window._openAuthModal('login');return}
+  const f=_vf.find(x=>x.id===fileId);
+  if(!f){showToast('Reload the page and try again');return}
+  const map=QUICK_ENTRY_MAP[f.template_id];
+  if(!map){window.openFileForEdit(fileId);return}
+  _qeFileId=fileId;_qeMap=map;_qeFile=f;
+  const rows=(f.content&&f.content.rows)||[];
+  let lastSup='';
+  if(map.supIdx>=0){for(let i=rows.length-1;i>=0;i--){const v=String(rows[i]&&rows[i][map.supIdx]||'').trim();if(v){lastSup=v;break}}}
+  const n=new Date();
+  const today=`${String(n.getMonth()+1).padStart(2,'0')}/${String(n.getDate()).padStart(2,'0')}/${n.getFullYear()}`;
+  const hasSup=map.supLabel!==null;
+  const qeTitle=document.getElementById('qe-title');
+  const qeBody=document.getElementById('qe-body');
+  const qeOverlay=document.getElementById('qe-overlay');
+  if(!qeTitle||!qeBody||!qeOverlay){showToast('Popup not ready — try refreshing');return}
+  qeTitle.textContent='Add Entry';
+  const cols=hasSup?'1fr 1fr 1.15fr':'1fr 1fr';
+  qeBody.innerHTML=`
+    <div style="display:grid;grid-template-columns:${cols};gap:10px 14px;align-items:start">
+      <div class="qe-field">
+        <label class="qe-label">${escHtml(map.orgLabel)}</label>
+        <input class="qe-input" id="qe-org" type="text" placeholder="e.g. St. Mary's"/>
+      </div>
+      <div class="qe-field">
+        <label class="qe-label">${escHtml(map.roleLabel)}</label>
+        <input class="qe-input" id="qe-role" type="text" placeholder="Your role"/>
+      </div>
+      ${hasSup?`<div class="qe-field" style="grid-row:1/3;display:flex;flex-direction:column">
+        <label class="qe-label">${escHtml(map.supLabel)}</label>
+        <input class="qe-input" id="qe-sup" type="text" value="${escHtml(lastSup)}" placeholder="Name" style="margin-bottom:10px"/>
+        <label class="qe-label">Notes</label>
+        <textarea class="qe-textarea" id="qe-notes" placeholder="Optional notes…" style="flex:1;min-height:72px"></textarea>
+      </div>`:''}
+      <div class="qe-field">
+        <label class="qe-label">Date</label>
+        <input class="qe-input" id="qe-date" type="text" value="${today}" placeholder="MM/DD/YYYY"/>
+      </div>
+      <div class="qe-field">
+        <label class="qe-label">Hours</label>
+        <input class="qe-input" id="qe-hours" type="number" min="0" step="0.5" placeholder="0.0"/>
+      </div>
+      ${!hasSup?`<div class="qe-field" style="grid-column:1/-1;margin-top:2px">
+        <label class="qe-label">Notes</label>
+        <textarea class="qe-textarea" id="qe-notes" placeholder="Optional notes…" style="min-height:72px"></textarea>
+      </div>`:''}
+    </div>`;
+  qeOverlay.classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>{const o=document.getElementById('qe-org');if(o)o.focus()},60);
+}
+
+function closeQuickEntry(){
+  const el=document.getElementById('qe-overlay');
+  if(el)el.classList.remove('open');
+  document.body.style.overflow='';
+  _qeFileId=null;_qeMap=null;_qeFile=null;
+}
+
+async function submitQuickEntry(){
+  if(!_qeFileId||!_qeMap||!_qeFile)return;
+  const g=id=>{const el=document.getElementById(id);return el?(el.value||'').trim():''};
+  const org=g('qe-org'),role=g('qe-role'),sup=g('qe-sup'),date=g('qe-date'),hours=g('qe-hours'),notes=g('qe-notes');
+  if(!org&&!hours){showToast('Fill in at least one field');return}
+  const m=_qeMap;
+  const t=TEMPLATES.find(x=>x.id===_qeFile.template_id);
+  const colCount=t?t.cols.length:7;
+  const nr=Array(colCount).fill('');
+  if(m.dateIdx>=0)nr[m.dateIdx]=date;
+  if(m.orgIdx>=0)nr[m.orgIdx]=org;
+  if(m.roleIdx>=0)nr[m.roleIdx]=role;
+  if(m.supIdx>=0)nr[m.supIdx]=sup;
+  if(m.hoursIdx>=0)nr[m.hoursIdx]=hours;
+  if(m.notesIdx>=0)nr[m.notesIdx]=notes;
+  const rows=[...((_qeFile.content&&_qeFile.content.rows)||[])];
+  rows.push(nr);
+  try{
+    const r=await fetch('/files/'+_qeFileId,{method:'PUT',headers:authHeaders(),body:JSON.stringify({name:_qeFile.name,content:{..._qeFile.content,rows},meta:_qeFile.meta||{}})});
+    if(!r.ok)throw new Error();
+    closeQuickEntry();
+    showToast('Entry added');
+    loadFilesFromServer();
+  }catch(e){showToast('Error saving entry')}
+}
+
+/* Delegate click-outside-to-close so it works regardless of script/HTML parse order */
+document.addEventListener('click',function(e){if(e.target&&e.target.id==='qe-overlay')closeQuickEntry()});
 </script>
 
 <!-- ══ CREATE NEW POPUP ══ -->
@@ -1436,6 +1569,23 @@ observe('#vault-hdr',el=>el.classList.add('sr-visible'),{threshold:0.25});
       <button class="cn-tab" data-cntype="document">Documents</button>
     </div>
     <div class="cn-list" id="cn-list"><!-- populated by JS --></div>
+  </div>
+</div>
+
+<!-- ══ QUICK ENTRY POPUP ══ -->
+<div class="qe-overlay" id="qe-overlay">
+  <div class="qe-popup">
+    <div class="qe-head">
+      <span class="qe-title" id="qe-title">Add Entry</span>
+      <button class="qe-close" onclick="closeQuickEntry()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="qe-body" id="qe-body"><!-- populated by JS --></div>
+    <div class="qe-foot">
+      <button class="qe-cancel" onclick="closeQuickEntry()">Cancel</button>
+      <button class="qe-submit" onclick="submitQuickEntry()">Add Entry</button>
+    </div>
   </div>
 </div>
 
