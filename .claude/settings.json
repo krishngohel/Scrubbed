@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(taskkill /F /IM node.exe)",
+      "PowerShell(Stop-Process -Force)"
     ]
   }
 }
