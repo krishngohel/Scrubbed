@@ -277,7 +277,7 @@ textarea:focus{border-color:var(--clay)}
 #audio-btn:hover .audio-label{opacity:1}
 
 /* ── USER DROPDOWN ── */
-.user-menu-wrapper{position:relative}
+.user-menu-wrapper{position:relative;display:flex;align-items:center}
 .user-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--cream);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 32px rgba(31,27,22,0.12);min-width:240px;overflow:hidden;z-index:400}
 .user-dropdown.open{display:block;animation:au-up 0.18s cubic-bezier(0.16,1,0.3,1)}
 .user-dropdown-header{padding:12px 14px 10px;border-bottom:1px solid var(--rule)}
@@ -330,19 +330,56 @@ const IC = {
   vault: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
 };
 
-function Nav({ onEnter, onSignIn }) {
+function Nav({ onEnter, onSignIn, user, onLogout }) {
+  const [dropOpen, setDropOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function handler(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setDropOpen(false);
+    }
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
+
   return (
     <nav className="nav">
       <div className="nav-inner">
         <span className="wordmark">Scrubbed.</span>
         <div className="nav-links">
           <a className="nav-link">How it works</a>
-          <a className="nav-link">Schools</a>
           <a className="nav-link">Pricing</a>
+          <a className="nav-link" href="/vault.html">The Vault</a>
         </div>
         <div className="nav-right">
-          <a className="nav-link" onClick={onSignIn} style={{cursor:'pointer'}}>Sign in</a>
-          <button className="btn-primary btn-sm" onClick={onEnter}>Get started {IC.arrow}</button>
+          {user ? (
+            <>
+              <span className="nav-user">{user.username}</span>
+              <div className="user-menu-wrapper" ref={wrapRef}>
+                <div className="nav-avatar" onClick={() => setDropOpen(o => !o)}>
+                  {user.username[0].toUpperCase()}
+                </div>
+                <div className={cx('user-dropdown', dropOpen && 'open')}>
+                  <div className="user-dropdown-header">
+                    <div className="user-dropdown-greeting">Signed in as</div>
+                    <div className="user-dropdown-username">{user.username}</div>
+                  </div>
+                  <div className="user-dropdown-list">
+                    <a href="/vault.html" className="user-dropdown-item">{IC.vault} My Vault</a>
+                    <hr className="user-dropdown-divider"/>
+                    <button className="user-dropdown-item user-dropdown-logout" onClick={onLogout}>
+                      {IC.logout} Log out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <a className="nav-link" onClick={onSignIn} style={{cursor:'pointer'}}>Sign in</a>
+              <button className="btn-primary btn-sm" onClick={onEnter}>Get started {IC.arrow}</button>
+            </>
+          )}
         </div>
       </div>
     </nav>
@@ -477,11 +514,11 @@ function OutlineCard() {
   );
 }
 
-function Marketing({ onEnter }) {
+function Marketing({ onEnter, user, onLogout }) {
   const openSignIn = () => window._openAuthModal && window._openAuthModal('login');
   return (
     <div className="marketing">
-      <Nav onEnter={onEnter} onSignIn={openSignIn}/>
+      <Nav onEnter={onEnter} onSignIn={openSignIn} user={user} onLogout={onLogout}/>
       <section className="hero">
         <div className="hero-inner">
           <div className="hero-eyebrow">For pre-med applicants</div>
@@ -822,42 +859,25 @@ function SecView() {
 }
 
 function App() {
-  const [view, setView] = useState('marketing');
-  const [act, setAct] = useState(null);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    window.__scrubbedLogin = (username) => { setUser({ username }); setView('record'); };
-    window.__scrubbedLogout = () => { setUser(null); setView('marketing'); };
+    window.__scrubbedLogin = (username) => { setUser({ username }); };
+    window.__scrubbedLogout = () => { setUser(null); };
     if (window._checkSession) window._checkSession();
   }, []);
 
   const handleEnter = () => {
-    if (user) setView('record');
+    if (user) window.location.href = '/vault.html';
     else if (window._openAuthModal) window._openAuthModal('signup');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('scrubbed_token');
     setUser(null);
-    setView('marketing');
   };
 
-  if (!user) return <Marketing onEnter={handleEnter}/>;
-
-  return (
-    <div className="app-shell">
-      <AppNav
-        view={view}
-        setView={(v)=>{ setView(v); setAct(null); }}
-        user={user}
-        onLogout={handleLogout}
-      />
-      {view === 'record' && !act && <RecordView onSelect={(a)=>{ setAct(a); setView('activity'); }}/>}
-      {view === 'activity' && act && <ActivityView act={act} onBack={()=>{ setAct(null); setView('record'); }}/>}
-      {view === 'secondaries' && <SecView/>}
-    </div>
-  );
+  return <Marketing onEnter={handleEnter} user={user} onLogout={handleLogout}/>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
