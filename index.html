@@ -10,7 +10,7 @@
 <script src="theme.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px}
+html{font-size:16px;scroll-behavior:smooth}
 body{background:#F6F1E8;color:#1F1B16;font-family:"Inter Tight",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 button{font:inherit;cursor:pointer;border:none;background:none}
 a{color:inherit;text-decoration:none;cursor:pointer}
@@ -242,6 +242,7 @@ textarea:focus{border-color:var(--clay)}
 .ws-beat-d{font-size:12px;color:var(--graphite);line-height:1.5}
 .ws-textarea{min-height:200px}
 .marketing{background:var(--paper)}
+.scroll-target{scroll-margin-top:72px}
 
 /* ── AUTH MODAL ── */
 #auth-overlay{display:none;position:fixed;inset:0;background:rgba(31,27,22,0.44);backdrop-filter:blur(8px);z-index:800;align-items:center;justify-content:center;padding:20px}
@@ -347,8 +348,8 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
       <div className="nav-inner">
         <span className="wordmark">Scrubbed.</span>
         <div className="nav-links">
-          <a className="nav-link">How it works</a>
-          <a className="nav-link">Pricing</a>
+          <a className="nav-link" href="#how-it-works">How it works</a>
+          <a className="nav-link" href="#pricing">Pricing</a>
           <a className="nav-link" href="/vault.html">The Vault</a>
         </div>
         <div className="nav-right">
@@ -526,7 +527,7 @@ function Marketing({ onEnter, user, onLogout }) {
           <p className="hero-lead">Enter your activities, hours, letters, and essays once. Scrubbed gives every piece of your application a home — and builds school-specific outlines from your real record, not from guesses.</p>
           <div className="hero-ctas">
             <button className="btn-primary btn-lg" onClick={onEnter}>Start your record {IC.arrow}</button>
-            <button className="btn-ghost btn-lg">See how it works</button>
+            <a className="btn-ghost btn-lg" href="#how-it-works">See how it works</a>
           </div>
           <div className="hero-contrast">
             <div className="hc-row"><span className="hc-from">ChatGPT</span><span className="hc-v">guesses at your story.</span></div>
@@ -537,7 +538,7 @@ function Marketing({ onEnter, user, onLogout }) {
       </section>
       <section className="hero-mockup-wrap"><HeroMockup/></section>
 
-      <section className="how">
+      <section id="how-it-works" className="how scroll-target">
         <div className="how-inner">
           <div className="how-head">
             <div className="section-eyebrow">How it works</div>
@@ -575,7 +576,7 @@ function Marketing({ onEnter, user, onLogout }) {
         </div>
       </section>
 
-      <section className="pricing">
+      <section id="pricing" className="pricing scroll-target">
         <div className="pricing-inner">
           <div className="section-eyebrow">Simple pricing</div>
           <h2 className="section-h2">Start free. Upgrade when you're ready.</h2>
@@ -611,7 +612,7 @@ function Marketing({ onEnter, user, onLogout }) {
         <div className="footer-inner">
           <span className="wordmark">Scrubbed.</span>
           <div className="footer-links">
-            <a>How it works</a><a href="vault.html">The Vault</a><a>Pricing</a><a>Privacy</a><a>Terms</a>
+            <a href="#how-it-works">How it works</a><a href="/vault.html">The Vault</a><a href="#pricing">Pricing</a><a>Privacy</a><a>Terms</a>
           </div>
           <div className="footer-legal">© 2026 Scrubbed</div>
         </div>
