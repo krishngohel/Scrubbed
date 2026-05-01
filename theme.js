@@ -31,10 +31,10 @@
   function mix(a,b,t){const ra=hexToRgb(a),rb=hexToRgb(b);return rgbToHex(ra.r+(rb.r-ra.r)*t,ra.g+(rb.g-ra.g)*t,ra.b+(rb.b-ra.b)*t);}
   function toRgba(hex,a){const {r,g,b}=hexToRgb(hex);return `rgba(${r},${g},${b},${a})`;}
 
-  const DEFAULT={bg:'#ece5cb',font:'#1e2e1c',primary:'#2d5a27',accent:'#d4621a'};
+  const DEFAULT={bg:'#F6F1E8',font:'#1F1B16',primary:'#B5563A',accent:'#5A6E4A'};
 
   window.THEME_PRESETS=[
-    {name:'Forest',   bg:'#ece5cb',font:'#1e2e1c',primary:'#2d5a27',accent:'#d4621a'},
+    {name:'Forest',   bg:'#F6F1E8',font:'#1F1B16',primary:'#B5563A',accent:'#5A6E4A'},
     {name:'Midnight', bg:'#0d1117',font:'#cdd9e5',primary:'#388bfd',accent:'#f0883e'},
     {name:'Dusk',     bg:'#1c1814',font:'#f0ead6',primary:'#c9a96e',accent:'#e07575'},
     {name:'Arctic',   bg:'#eef4fa',font:'#1a2535',primary:'#2563a8',accent:'#d4621a'},
@@ -236,6 +236,7 @@ footer{border-color:${secDiv} !important;}
     root.style.setProperty('--white',         dark?adjustL(bg,20):'#ffffff');
     root.style.setProperty('--off-white',      dark?adjustL(bg,11):adjustL(bg,3));
     root.style.setProperty('--warm-white',     bg);
+    root.style.setProperty('--paper',          bg);
     root.style.setProperty('--misty',          dark?adjustL(bg,-5):adjustL(bg,-4));
     root.style.setProperty('--ink',            font);
     root.style.setProperty('--ink-light',      mix(font,bg,0.2));
@@ -253,10 +254,9 @@ footer{border-color:${secDiv} !important;}
     root.style.setProperty('--card-bg',        cardBg);
 
     // Navbar background (set CSS var immediately so it's paint-safe before DOMContentLoaded)
-    const {r:nbr,g:nbg,b:nbb}=hexToRgb(bg);
-    root.style.setProperty('--navbar-bg',`rgba(${nbr},${nbg},${nbb},0.92)`);
+    root.style.setProperty('--navbar-bg', bg);
     const nb=document.getElementById('navbar');
-    if(nb){nb.style.background=`rgba(${nbr},${nbg},${nbb},0.92)`;}
+    if(nb){nb.style.background=bg;}
 
     // Inject element-level overrides for hardcoded rgba values
     injectOverrides(colors, cardBg);
