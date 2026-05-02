@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scrubbed — Early Access</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+html{font-size:16px}
+body{
+  background:#F6F1E8;
+  color:#1F1B16;
+  font-family:"Inter Tight",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+button{font:inherit;cursor:pointer;border:none;background:none}
+a{color:inherit;text-decoration:none}
+input{font:inherit;color:inherit}
+em{font-family:"Newsreader",Georgia,serif;font-style:italic}
+:root{
+  --paper:#F6F1E8;--cream:#FBF7EE;--ink:#1F1B16;--graphite:#5C544A;--stone:#A89C8A;--rule:#E5DDCD;
+  --clay:#B5563A;--clay-d:#9F4C33;--clay-p:#8A412C;--clay-s:#EBD6CB;
+  --moss:#5A6E4A;--moss-s:#DDE3CE;--rust:#8B3A2E;--rust-s:#EFD3CC;
+  --ease:cubic-bezier(0.32,0.72,0.24,1);
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────── */
+.landing-main{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:56px 24px 40px;
+}
+.hero{
+  max-width:580px;
+  width:100%;
+  text-align:center;
+}
+
+/* ── WORDMARK ─────────────────────────────────────────────── */
+.wordmark{
+  font-weight:700;
+  font-size:clamp(2.6rem,6vw,4.2rem);
+  letter-spacing:-0.035em;
+  color:var(--ink);
+  line-height:1;
+  display:block;
+  margin-bottom:28px;
+}
+
+/* ── DIVIDER ─────────────────────────────────────────────── */
+.hero-rule{
+  width:36px;
+  height:1px;
+  background:var(--rule);
+  margin:0 auto 24px;
+}
+
+/* ── EYEBROW ─────────────────────────────────────────────── */
+.hero-eyebrow{
+  font-size:0.7rem;
+  font-weight:600;
+  letter-spacing:0.11em;
+  text-transform:uppercase;
+  color:var(--stone);
+  margin-bottom:18px;
+}
+
+/* ── HEADLINE ─────────────────────────────────────────────── */
+.hero-h1{
+  font-size:clamp(1.85rem,4.8vw,2.9rem);
+  font-weight:600;
+  line-height:1.16;
+  letter-spacing:-0.03em;
+  color:var(--ink);
+  margin-bottom:18px;
+}
+.hero-h1 em{
+  color:var(--clay);
+  font-size:1.06em;
+}
+
+/* ── FEATURE PILLS ─────────────────────────────────────────── */
+.features{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-bottom:22px;
+}
+.feature-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  background:var(--cream);
+  border:1px solid var(--rule);
+  border-radius:999px;
+  padding:5px 14px;
+  font-size:0.78rem;
+  font-weight:500;
+  color:var(--graphite);
+}
+.feature-pill .pip{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--clay);
+  flex-shrink:0;
+}
+
+/* ── BLURB ─────────────────────────────────────────────── */
+.hero-p{
+  font-size:1rem;
+  line-height:1.68;
+  color:var(--graphite);
+  margin-bottom:36px;
+  max-width:500px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* ── CTA ─────────────────────────────────────────────── */
+.btn-cta{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:var(--clay);
+  color:var(--cream);
+  border-radius:10px;
+  font-weight:600;
+  font-size:1rem;
+  padding:14px 34px;
+  transition:background 160ms var(--ease),transform 120ms var(--ease);
+  margin-bottom:13px;
+}
+.btn-cta:hover{background:var(--clay-d);transform:translateY(-1px)}
+.btn-cta:active{transform:translateY(0)}
+.hero-sub{
+  font-size:0.75rem;
+  color:var(--stone);
+  letter-spacing:0.01em;
+}
+
+/* ── FOOTER ─────────────────────────────────────────────── */
+.landing-footer{
+  padding:18px 24px;
+  text-align:center;
+  border-top:1px solid var(--rule);
+}
+.landing-footer p{
+  font-size:0.7rem;
+  color:var(--stone);
+  letter-spacing:0.03em;
+}
+
+/* ── OVERLAY ─────────────────────────────────────────────── */
+.overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(31,27,22,0.52);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  z-index:200;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+.overlay.open{display:flex}
+
+/* ── MODAL ─────────────────────────────────────────────── */
+.modal{
+  background:var(--cream);
+  border:1px solid var(--rule);
+  border-radius:14px;
+  width:100%;
+  max-width:400px;
+  padding:32px;
+  box-shadow:0 28px 70px rgba(31,27,22,0.16);
+  position:relative;
+}
+.modal-close-btn{
+  position:absolute;
+  top:14px;right:14px;
+  width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--stone);
+  font-size:1rem;
+  border-radius:6px;
+  transition:background 120ms,color 120ms;
+}
+.modal-close-btn:hover{background:var(--rule);color:var(--ink)}
+
+.modal-wordmark{
+  font-weight:700;
+  letter-spacing:-0.025em;
+  font-size:1.1rem;
+  color:var(--ink);
+  margin-bottom:16px;
+}
+.modal-tabs{
+  display:flex;
+  gap:3px;
+  background:rgba(31,27,22,0.06);
+  border-radius:8px;
+  padding:3px;
+  margin-bottom:20px;
+}
+.modal-tab{
+  flex:1;
+  background:none;
+  border:none;
+  padding:8px 12px;
+  font-size:0.83rem;
+  font-family:inherit;
+  color:var(--graphite);
+  cursor:pointer;
+  border-radius:6px;
+  transition:all 0.15s;
+  font-weight:400;
+}
+.modal-tab.active{
+  background:var(--cream);
+  color:var(--ink);
+  font-weight:500;
+  box-shadow:0 1px 2px rgba(31,27,22,0.08);
+}
+.modal-panel{display:none}
+.modal-panel.active{display:block}
+
+/* ── FORM FIELDS ─────────────────────────────────────────── */
+.field{margin-bottom:14px}
+.field label{
+  display:block;
+  font-size:0.75rem;
+  font-weight:600;
+  color:var(--graphite);
+  margin-bottom:5px;
+  letter-spacing:0.015em;
+}
+.field input{
+  width:100%;
+  border:1.5px solid var(--rule);
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:0.9rem;
+  background:var(--paper);
+  outline:none;
+  transition:border-color 140ms;
+}
+.field input:focus{border-color:var(--clay)}
+.field input.err{border-color:var(--clay);background:var(--rust-s)}
+
+/* ── PASSWORD REQUIREMENTS ─────────────────────────────── */
+.pw-reqs{
+  list-style:none;
+  margin:8px 0 4px;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.pw-reqs li{
+  font-size:0.71rem;
+  color:var(--stone);
+  display:flex;
+  align-items:center;
+  gap:6px;
+  transition:color 120ms;
+}
+.pw-reqs li::before{content:'○';font-size:0.58rem}
+.pw-reqs li.met{color:var(--moss)}
+.pw-reqs li.met::before{content:'●';color:var(--moss)}
+
+/* ── ERROR BANNER ───────────────────────────────────────── */
+.modal-error{
+  display:none;
+  font-size:0.77rem;
+  color:var(--clay-p);
+  background:var(--clay-s);
+  border-radius:6px;
+  padding:8px 12px;
+  margin-bottom:12px;
+  line-height:1.5;
+}
+.modal-error.show{display:block}
+
+/* ── SUBMIT BUTTON ──────────────────────────────────────── */
+.btn-submit{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  background:var(--clay);
+  color:var(--cream);
+  border-radius:8px;
+  font-weight:600;
+  font-size:0.9rem;
+  padding:12px;
+  margin-top:8px;
+  transition:background 160ms var(--ease);
+}
+.btn-submit:hover:not(:disabled){background:var(--clay-d)}
+.btn-submit:disabled{opacity:0.5;cursor:not-allowed}
+
+.modal-signin{
+  text-align:center;
+  margin-top:16px;
+  font-size:0.77rem;
+  color:var(--graphite);
+}
+.modal-signin a{
+  color:var(--clay);
+  font-weight:500;
+  text-underline-offset:2px;
+  text-decoration:underline;
+  text-decoration-color:var(--clay-s);
+}
+
+/* ── SUCCESS STATE ──────────────────────────────────────── */
+.modal-success{display:none;text-align:center;padding:4px 0}
+.modal-success.show{display:block}
+.form-body.hidden{display:none}
+
+.success-circle{
+  width:50px;height:50px;
+  background:var(--moss-s);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;
+  font-size:1.5rem;
+  color:var(--moss);
+}
+.success-title{
+  font-size:1.25rem;
+  font-weight:600;
+  letter-spacing:-0.02em;
+  color:var(--ink);
+  margin-bottom:8px;
+}
+.success-body{
+  font-size:0.83rem;
+  color:var(--graphite);
+  line-height:1.6;
+  margin-bottom:22px;
+}
+.btn-go{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  background:var(--clay);
+  color:var(--cream);
+  border-radius:8px;
+  font-weight:600;
+  font-size:0.88rem;
+  padding:11px 24px;
+  transition:background 160ms;
+}
+.btn-go:hover{background:var(--clay-d)}
+</style>
+</head>
+<body>
+
+<main class="landing-main">
+  <div class="hero">
+    <span class="wordmark">Scrubbed.</span>
+    <div class="hero-rule"></div>
+    <div class="hero-eyebrow">Early Access &middot; 2026</div>
+    <h1 class="hero-h1">Four years of doing.<br><em>One place</em> that holds all of it.</h1>
+    <div class="features">
+      <span class="feature-pill"><span class="pip"></span>The Vault</span>
+      <span class="feature-pill"><span class="pip"></span>Secondary AI</span>
+    </div>
+    <p class="hero-p">The Vault keeps every clinical hour, research project, letter, and experience organized and searchable. When secondaries open, Scrubbed reads your record and builds school-specific outlines&thinsp;&mdash;&thinsp;from what you&rsquo;ve actually done, not guesses.</p>
+    <button class="btn-cta" id="cta-btn">Get early access &rarr;</button>
+    <div class="hero-sub">Takes two minutes &middot; No credit card required</div>
+  </div>
+</main>
+
+<footer class="landing-footer">
+  <p>&copy; 2026 Scrubbed &middot; Built for the applicant who did the work.</p>
+</footer>
+
+<!-- ── SIGNUP MODAL ───────────────────────────────────────── -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <button class="modal-close-btn" id="close-btn" aria-label="Close">&#x2715;</button>
+
+    <div class="modal-wordmark">Scrubbed.</div>
+
+    <div class="modal-tabs" id="modal-tabs">
+      <button class="modal-tab active" data-panel="signup">Create account</button>
+      <button class="modal-tab" data-panel="login">Sign in</button>
+    </div>
+
+    <div class="modal-error" id="modal-error" role="alert"></div>
+
+    <!-- ── SIGN UP PANEL ── -->
+    <div class="modal-panel active" id="panel-signup">
+      <div class="form-body" id="form-body">
+        <form id="signup-form" novalidate>
+          <div class="field">
+            <label for="email-input">Email address</label>
+            <input type="email" id="email-input" name="email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label for="pw-input">Password</label>
+            <input type="password" id="pw-input" name="password" placeholder="Create a password" autocomplete="new-password" required>
+            <ul class="pw-reqs" id="pw-reqs" aria-live="polite">
+              <li data-rule="length">At least 8 characters</li>
+              <li data-rule="upper">One uppercase letter (A&ndash;Z)</li>
+              <li data-rule="lower">One lowercase letter (a&ndash;z)</li>
+              <li data-rule="num">One number (0&ndash;9)</li>
+              <li data-rule="special">One special character (!@#$&hellip;)</li>
+            </ul>
+          </div>
+          <div class="field">
+            <label for="confirm-input">Confirm password</label>
+            <input type="password" id="confirm-input" name="confirm" placeholder="Confirm your password" autocomplete="new-password" required>
+          </div>
+          <button type="submit" class="btn-submit" id="submit-btn">
+            <span id="submit-label">Create account</span>
+          </button>
+        </form>
+      </div>
+
+      <div class="modal-success" id="modal-success">
+        <div class="success-circle">&#10003;</div>
+        <div class="success-title">You&rsquo;re in.</div>
+        <div class="success-body">
+          Check your inbox &mdash; we sent you a welcome note with everything you need to know about Scrubbed.
+        </div>
+        <a class="btn-go" href="/index.html">Open Scrubbed &rarr;</a>
+      </div>
+    </div>
+
+    <!-- ── SIGN IN PANEL ── -->
+    <div class="modal-panel" id="panel-login">
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="login-email">Email address</label>
+          <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="login-pw">Password</label>
+          <input type="password" id="login-pw" name="password" placeholder="Your password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-submit" id="login-btn">
+          <span id="login-label">Sign in</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const overlay      = document.getElementById('overlay');
+  const ctaBtn       = document.getElementById('cta-btn');
+  const closeBtn     = document.getElementById('close-btn');
+  const errorEl      = document.getElementById('modal-error');
+  const tabs         = document.querySelectorAll('.modal-tab');
+  const panels       = document.querySelectorAll('.modal-panel');
+
+  /* ── open / close ── */
+  function openModal(panel) {
+    switchTab(panel || 'signup');
+    overlay.classList.add('open');
+    clearError();
+    setTimeout(function () {
+      var first = overlay.querySelector('.modal-panel.active input');
+      if (first) first.focus();
+    }, 60);
+  }
+  function closeModal() { overlay.classList.remove('open'); }
+
+  ctaBtn.addEventListener('click', function () { openModal('signup'); });
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+  });
+
+  /* ── tabs ── */
+  function switchTab(name) {
+    tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.panel === name); });
+    panels.forEach(function (p) { p.classList.toggle('active', p.id === 'panel-' + name); });
+    clearError();
+  }
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () { switchTab(t.dataset.panel); });
+  });
+
+  /* ── helpers ── */
+  function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()); }
+  function showError(msg) { errorEl.textContent = msg; errorEl.classList.add('show'); }
+  function clearError() { errorEl.classList.remove('show'); }
+
+  /* ── sign up ── */
+  var rules = [
+    { key: 'length',  fn: function (p) { return p.length >= 8; } },
+    { key: 'upper',   fn: function (p) { return /[A-Z]/.test(p); } },
+    { key: 'lower',   fn: function (p) { return /[a-z]/.test(p); } },
+    { key: 'num',     fn: function (p) { return /[0-9]/.test(p); } },
+    { key: 'special', fn: function (p) { return /[^A-Za-z0-9]/.test(p); } },
+  ];
+
+  var pwInput    = document.getElementById('pw-input');
+  var emailInput = document.getElementById('email-input');
+  var pwReqsList = document.getElementById('pw-reqs');
+  var confirmInput = document.getElementById('confirm-input');
+  var submitBtn  = document.getElementById('submit-btn');
+  var submitLabel = document.getElementById('submit-label');
+  var formBody   = document.getElementById('form-body');
+  var successEl  = document.getElementById('modal-success');
+
+  function updateReqs(pw) {
+    rules.forEach(function (r) {
+      var li = pwReqsList.querySelector('[data-rule="' + r.key + '"]');
+      if (li) li.classList.toggle('met', r.fn(pw));
+    });
+  }
+  function allRulesMet(pw) { return rules.every(function (r) { return r.fn(pw); }); }
+
+  pwInput.addEventListener('input', function () { updateReqs(pwInput.value); });
+  emailInput.addEventListener('input', function () { emailInput.classList.remove('err'); });
+
+  document.getElementById('signup-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    clearError();
+    var email = emailInput.value.trim();
+    var pw = pwInput.value;
+    var confirm = confirmInput.value;
+
+    if (!isEmail(email)) { emailInput.classList.add('err'); showError('Please enter a valid email address.'); emailInput.focus(); return; }
+    if (!allRulesMet(pw)) { showError('Please meet all password requirements.'); pwInput.focus(); return; }
+    if (pw !== confirm) { confirmInput.classList.add('err'); showError('Passwords do not match.'); confirmInput.focus(); return; }
+
+    submitBtn.disabled = true;
+    submitLabel.textContent = 'Creating account…';
+
+    try {
+      var res = await fetch('/auth/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:email,password:pw}) });
+      var data = await res.json();
+      if (!res.ok) { showError(data.error || 'Something went wrong. Please try again.'); submitBtn.disabled=false; submitLabel.textContent='Create account'; return; }
+
+      try {
+        var lr = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:email,password:pw}) });
+        var ld = await lr.json();
+        if (lr.ok) localStorage.setItem('scrubbed_token', ld.token);
+      } catch (_) {}
+
+      formBody.classList.add('hidden');
+      successEl.classList.add('show');
+    } catch (_) {
+      showError('Network error. Check your connection and try again.');
+      submitBtn.disabled = false;
+      submitLabel.textContent = 'Create account';
+    }
+  });
+
+  /* ── sign in ── */
+  var loginBtn   = document.getElementById('login-btn');
+  var loginLabel = document.getElementById('login-label');
+
+  document.getElementById('login-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    clearError();
+    var email = document.getElementById('login-email').value.trim();
+    var pw    = document.getElementById('login-pw').value;
+
+    if (!isEmail(email)) { showError('Please enter a valid email address.'); return; }
+    if (!pw) { showError('Please enter your password.'); return; }
+
+    loginBtn.disabled = true;
+    loginLabel.textContent = 'Signing in…';
+
+    try {
+      var res = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:email,password:pw}) });
+      var data = await res.json();
+      if (!res.ok) { showError(data.error || 'Invalid email or password.'); loginBtn.disabled=false; loginLabel.textContent='Sign in'; return; }
+      localStorage.setItem('scrubbed_token', data.token);
+      window.location.href = '/index.html';
+    } catch (_) {
+      showError('Network error. Check your connection and try again.');
+      loginBtn.disabled = false;
+      loginLabel.textContent = 'Sign in';
+    }
+  });
+}());
+</script>
+</body>
+</html>
