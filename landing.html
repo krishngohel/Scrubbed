@@ -484,7 +484,9 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
 
   ctaBtn.addEventListener('click', function () { openModal('signup'); });
   closeBtn.addEventListener('click', closeModal);
-  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+  var mousedownTarget = null;
+  overlay.addEventListener('mousedown', function (e) { mousedownTarget = e.target; });
+  overlay.addEventListener('click', function (e) { if (e.target === overlay && mousedownTarget === overlay) closeModal(); });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
   });
