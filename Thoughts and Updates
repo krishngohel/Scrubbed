@@ -20,3 +20,13 @@ ensure themes are working fully and all text is visible.
 update the progress bars to take into account the content of the files not just the files and types
 
 make sure the scaling is dynamic and mobile friendly/ smaller screensizes.
+
+
+5/1/26
+- Vault Theme Affects Homepage
+- Fix email functionality
+- Finalize and upgrade displayed pricings
+- Upgrade text messages
+- Login functionality
+- Figure out data storage
+- Data redundancy
