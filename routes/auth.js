@@ -2,10 +2,15 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { sendWelcomeEmail } = require('../mailer');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'scrubbed-dev-secret-change-in-production';
 const SALT_ROUNDS = 10;
+
+function isValidEmail(str) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(str.trim());
+}
 
 const passwordChecks = [
   { test: p => p.length >= 8,            msg: 'Password must be at least 8 characters.' },
@@ -19,10 +24,10 @@ router.post('/signup', async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password are required.' });
+    return res.status(400).json({ error: 'Email and password are required.' });
   }
-  if (username.trim().length < 3) {
-    return res.status(400).json({ error: 'Username must be at least 3 characters.' });
+  if (!isValidEmail(username)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
   }
 
   for (const check of passwordChecks) {
@@ -33,11 +38,12 @@ router.post('/signup', async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
-    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username.trim(), hash);
+    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(username.trim().toLowerCase(), hash);
+    sendWelcomeEmail(username.trim().toLowerCase()); // fire-and-forget
     res.status(201).json({ message: 'Account created successfully.' });
   } catch (err) {
     if (err.message.includes('UNIQUE constraint failed')) {
-      return res.status(409).json({ error: 'That username is already taken.' });
+      return res.status(409).json({ error: 'An account with that email already exists.' });
     }
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Server error. Please try again.' });
@@ -52,7 +58,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username.trim());
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username.trim().toLowerCase());
     if (!user) {
       return res.status(401).json({ error: 'Invalid username or password.' });
     }
