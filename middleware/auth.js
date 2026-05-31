@@ -1,7 +1,6 @@
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'scrubbed-dev-secret-change-in-production';
+const supabase = require('../supabase');
 
-module.exports = function authMiddleware(req, res, next) {
+module.exports = async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authentication required.' });
@@ -9,10 +8,14 @@ module.exports = function authMiddleware(req, res, next) {
 
   const token = authHeader.slice(7);
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = { id: decoded.id, username: decoded.username };
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+    req.user = { id: user.id, username: user.email };
     next();
-  } catch {
+  } catch (err) {
+    console.error('Auth error:', err.message);
     return res.status(401).json({ error: 'Invalid or expired token.' });
   }
 };

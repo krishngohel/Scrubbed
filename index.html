@@ -7,8 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="theme.js"></script>
-<script>if(!localStorage.getItem('scrubbed_token'))location.replace('/');</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
@@ -153,7 +151,7 @@ strong{font-weight:600}
 .pricing{padding:96px 32px}
 .pricing-inner{max-width:1200px;margin:0 auto}
 .pricing-inner .section-h2{margin:12px 0 48px}
-.pricing-cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:760px}
+.pricing-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1200px}
 .price-card{background:var(--cream);border:1px solid var(--rule);border-radius:14px;padding:32px;display:flex;flex-direction:column;gap:16px}
 .price-card--featured{border-color:var(--clay);box-shadow:0 4px 16px rgba(181,86,58,0.1)}
 .price-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--graphite)}
@@ -352,6 +350,7 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
           <a className="nav-link" href="#how-it-works">How it works</a>
           <a className="nav-link" href="#pricing">Pricing</a>
           <a className="nav-link" href="/vault.html">The Vault</a>
+          <a className="nav-link" href="/secondaries">Secondary AI</a>
         </div>
         <div className="nav-right">
           {user ? (
@@ -585,25 +584,50 @@ function Marketing({ onEnter, user, onLogout }) {
             <div className="price-card">
               <div className="price-name">Free</div>
               <div className="price-amt">$0</div>
-              <div className="price-sub">Build your record. No schools yet.</div>
+              <div className="price-sub">The full Vault, free forever.</div>
               <ul className="price-list">
-                <li>{IC.check} Unlimited activities</li>
-                <li>{IC.check} Full record profile</li>
-                <li>{IC.check} 1 school outline (preview)</li>
+                <li>{IC.check} All 9 record templates</li>
+                <li>{IC.check} Unlimited files &amp; entries</li>
+                <li>{IC.check} XLSX &amp; PDF export</li>
+                <li>{IC.check} No AI features</li>
               </ul>
               <button className="btn-secondary btn-md" onClick={onEnter}>Start free</button>
             </div>
-            <div className="price-card price-card--featured">
-              <div className="price-name">Full cycle</div>
-              <div className="price-amt">$49</div>
-              <div className="price-sub">One application cycle. All schools.</div>
+            <div className="price-card">
+              <div className="price-name">Pro Monthly</div>
+              <div className="price-amt">$25<span style={{fontSize:'20px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'6px',display:'inline-block'}}>/mo</span></div>
+              <div className="price-sub">Cancel anytime.</div>
               <ul className="price-list">
-                <li>{IC.check} Unlimited school outlines</li>
-                <li>{IC.check} All secondary prompts tracked</li>
-                <li>{IC.check} Word-count monitor per school</li>
-                <li>{IC.check} Draft workspace per prompt</li>
+                <li>{IC.check} Everything in Free</li>
+                <li>{IC.check} Unlimited Secondary AI outlines</li>
+                <li>{IC.check} School-specific prompt mapping</li>
+                <li>{IC.check} Built from your real Vault data</li>
               </ul>
-              <button className="btn-primary btn-md" onClick={onEnter}>Get started {IC.arrow}</button>
+              <button className="btn-primary btn-md" onClick={onEnter}>Start Pro {IC.arrow}</button>
+            </div>
+            <div className="price-card">
+              <div className="price-name">Cycle Pass</div>
+              <div className="price-amt">$49<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}> once</span></div>
+              <div className="price-sub">6 months of Pro · no auto-renew</div>
+              <ul className="price-list">
+                <li>{IC.check} Everything in Free</li>
+                <li>{IC.check} Unlimited Secondary AI outlines</li>
+                <li>{IC.check} School-specific prompt mapping</li>
+                <li>{IC.check} Built from your real Vault data</li>
+              </ul>
+              <button className="btn-primary btn-md" onClick={onEnter}>Get the cycle {IC.arrow}</button>
+            </div>
+            <div className="price-card price-card--featured">
+              <div className="price-name">Pro Annual</div>
+              <div className="price-amt">$199<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}>/yr</span></div>
+              <div className="price-sub">~$16.60/mo · save 34% vs monthly</div>
+              <ul className="price-list">
+                <li>{IC.check} Everything in Free</li>
+                <li>{IC.check} Unlimited Secondary AI outlines</li>
+                <li>{IC.check} School-specific prompt mapping</li>
+                <li>{IC.check} Built from your real Vault data</li>
+              </ul>
+              <button className="btn-primary btn-md" onClick={onEnter}>Get a year {IC.arrow}</button>
             </div>
           </div>
         </div>
@@ -869,6 +893,16 @@ function App() {
     if (window._checkSession) window._checkSession();
   }, []);
 
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    // React renders after the browser's native hash scroll attempt, so scroll manually
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const el = document.querySelector(hash);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }));
+  }, []);
+
   const handleEnter = () => {
     if (user) window.location.href = '/vault.html';
     else if (window._openAuthModal) window._openAuthModal('signup');
@@ -948,6 +982,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   function setLoggedIn(username) {
     overlay.classList.remove('open');
     if (window.__scrubbedLogin) window.__scrubbedLogin(username);
+    window.location.href = '/vault.html';
   }
 
   function openModal(tab) { overlay.classList.add('open'); switchTab(tab || 'login'); }

@@ -438,7 +438,7 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
         <div class="success-body">
           Check your inbox &mdash; we sent you a welcome note with everything you need to know about Scrubbed.
         </div>
-        <a class="btn-go" href="/index.html">Open Scrubbed &rarr;</a>
+        <a class="btn-go" href="/">Open Scrubbed &rarr;</a>
       </div>
     </div>
 
@@ -590,7 +590,7 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
       var data = await res.json();
       if (!res.ok) { showError(data.error || 'Invalid email or password.'); loginBtn.disabled=false; loginLabel.textContent='Sign in'; return; }
       localStorage.setItem('scrubbed_token', data.token);
-      window.location.href = '/index.html';
+      window.location.href = '/vault.html';
     } catch (_) {
       showError('Network error. Check your connection and try again.');
       loginBtn.disabled = false;

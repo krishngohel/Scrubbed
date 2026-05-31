@@ -429,7 +429,8 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     <div class="nav-links">
       <a class="nav-link" href="index.html#how-it-works">How it works</a>
       <a class="nav-link" href="index.html#pricing">Pricing</a>
-      <a class="nav-link is-active" href="vault.html">The Vault</a>
+      <a class="nav-link is-active" href="/vault.html">The Vault</a>
+      <a class="nav-link" href="/secondaries">Secondary AI</a>
     </div>
     <div class="nav-right">
       <div class="user-menu-wrapper">
@@ -1070,7 +1071,7 @@ function renderVaultFiles(files,grid){
     const typeRow=`<div class="vf-detail-row"><span class="vf-detail-key">Type</span><span class="vf-detail-val">${typeLabel}</span></div>`;
     const detailsContent=typeRow+metaRows+rowInfoRow;
 
-    const addRowHtml=isSheet&&!isPdf?`<button class="vf-btn vf-btn-addrow" onclick="openQuickEntry(${f.id})"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>`:'';
+    const addRowHtml=isSheet&&!isPdf?`<button class="vf-btn vf-btn-addrow" onclick="openQuickEntry('${f.id}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>`:'';
 
     const card=document.createElement('div');
     card.className='vf-card';
@@ -1091,8 +1092,8 @@ function renderVaultFiles(files,grid){
         <div class="vf-card-details"><div class="vf-card-details-pad">${detailsContent}</div></div>
         <div class="vf-card-actions">
           ${addRowHtml}
-          <button class="vf-btn vf-btn-edit" onclick="window.openFileForEdit(${f.id})">${isPdf?'View':'Edit'}</button>
-          <button class="vf-btn vf-btn-delete" onclick="vaultDeleteBtn(${f.id},this)">Delete</button>
+          <button class="vf-btn vf-btn-edit" onclick="window.openFileForEdit('${f.id}')">${isPdf?'View':'Edit'}</button>
+          <button class="vf-btn vf-btn-delete" onclick="vaultDeleteBtn('${f.id}',this)">Delete</button>
         </div>
       </div>`;
     const expandBtn=card.querySelector('.vf-card-expand-btn');
@@ -1600,6 +1601,7 @@ document.addEventListener('click',function(e){if(e.target&&e.target.id==='qe-ove
 /* ══ AUTH ══ */
 (function(){
 const TOKEN_KEY='scrubbed_token';
+const REFRESH_KEY='scrubbed_refresh';
 const loginBtn=document.getElementById('login-btn');
 const navUserBtn=document.getElementById('nav-user-btn');
 const overlay=document.getElementById('auth-overlay');
@@ -1626,14 +1628,38 @@ function updateReqs(pw){
 }
 function allMet(pw){return Object.values(checks).every(fn=>fn(pw))}
 
+async function tryRefresh(){
+  const rt=localStorage.getItem(REFRESH_KEY);
+  if(!rt)return null;
+  try{
+    const res=await fetch('/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:rt})});
+    if(!res.ok){localStorage.removeItem(REFRESH_KEY);return null;}
+    const data=await res.json();
+    localStorage.setItem(TOKEN_KEY,data.token);
+    if(data.refresh_token)localStorage.setItem(REFRESH_KEY,data.refresh_token);
+    return data.user;
+  }catch{return null;}
+}
+
 async function checkSession(){
   const token=localStorage.getItem(TOKEN_KEY);
-  if(!token)return;
+  if(!token){
+    const refreshed=await tryRefresh();
+    if(refreshed)setLoggedIn(refreshed.username);
+    return;
+  }
   try{
     const res=await fetch('/me',{headers:{Authorization:`Bearer ${token}`}});
     if(res.ok){const u=await res.json();setLoggedIn(u.username)}
-    else{localStorage.removeItem(TOKEN_KEY)}
-  }catch{localStorage.removeItem(TOKEN_KEY)}
+    else{
+      localStorage.removeItem(TOKEN_KEY);
+      const refreshed=await tryRefresh();
+      if(refreshed)setLoggedIn(refreshed.username);
+    }
+  }catch{
+    const refreshed=await tryRefresh();
+    if(refreshed)setLoggedIn(refreshed.username);
+  }
 }
 
 function setLoggedIn(username){
@@ -1642,6 +1668,8 @@ function setLoggedIn(username){
   const dn=document.getElementById('dropdown-username');
   if(dn)dn.textContent=username;
   overlay.classList.remove('open');
+  const from=new URLSearchParams(location.search).get('from');
+  if(from==='secondaries'){window.location.href='/secondaries';return;}
   if(typeof loadFilesFromServer==='function')loadFilesFromServer();
 }
 
@@ -1673,7 +1701,7 @@ loginForm.addEventListener('submit',async e=>{
   try{
     const res=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
     const data=await res.json();
-    if(res.ok){localStorage.setItem(TOKEN_KEY,data.token);setLoggedIn(data.user.username)}
+    if(res.ok){localStorage.setItem(TOKEN_KEY,data.token);if(data.refresh_token)localStorage.setItem(REFRESH_KEY,data.refresh_token);setLoggedIn(data.user.username)}
     else{loginError.textContent=data.error||'Login failed.'}
   }catch{loginError.textContent='Unable to connect. Is the server running?'}
   finally{btn.disabled=false}
@@ -1694,7 +1722,7 @@ signupForm.addEventListener('submit',async e=>{
     if(res.ok){
       const lr=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
       const ld=await lr.json();
-      if(lr.ok){localStorage.setItem(TOKEN_KEY,ld.token);setLoggedIn(ld.user.username)}
+      if(lr.ok){localStorage.setItem(TOKEN_KEY,ld.token);if(ld.refresh_token)localStorage.setItem(REFRESH_KEY,ld.refresh_token);setLoggedIn(ld.user.username)}
       else{signupError.textContent='Account created! Please log in.';switchTab('login')}
     }else{signupError.textContent=data.error||'Signup failed.'}
   }catch{signupError.textContent='Unable to connect. Is the server running?'}
@@ -1714,7 +1742,7 @@ document.addEventListener('click',e=>{
 });
 if(logoutBtn){
   logoutBtn.addEventListener('click',()=>{
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(REFRESH_KEY);
     if(dropdown)dropdown.classList.remove('open');
     if(navUserBtn)navUserBtn.classList.remove('visible');
     if(loginBtn)loginBtn.style.display='';

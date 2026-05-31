@@ -253,10 +253,26 @@ footer{border-color:${secDiv} !important;}
     root.style.setProperty('--border',         toRgba(primary,0.14));
     root.style.setProperty('--card-bg',        cardBg);
 
-    // Navbar background (set CSS var immediately so it's paint-safe before DOMContentLoaded)
-    root.style.setProperty('--navbar-bg', bg);
+    // Aliases used by vault.html and secondaries.html
+    root.style.setProperty('--cream',    cardBg);
+    root.style.setProperty('--rule',     dark ? adjustL(bg,9) : adjustL(bg,-8));
+    root.style.setProperty('--graphite', mix(font,bg,0.34));
+    root.style.setProperty('--stone',    mix(font,bg,0.56));
+    root.style.setProperty('--clay',     primary);
+    root.style.setProperty('--clay-d',   adjustL(primary,-8));
+    root.style.setProperty('--clay-p',   adjustL(primary,-14));
+    root.style.setProperty('--clay-s',   mix(primary,bg,0.74));
+    root.style.setProperty('--moss',     accent);
+    root.style.setProperty('--moss-s',   mix(accent,bg,0.78));
+    root.style.setProperty('--rust',     adjustL(primary,-10));
+    root.style.setProperty('--rust-s',   mix(primary,bg,0.84));
+
+    // Navbar background with opacity so backdrop-filter blur is visible
+    const {r:nbr,g:nbg,b:nbb}=hexToRgb(bg);
+    const navBg=`rgba(${nbr},${nbg},${nbb},0.92)`;
+    root.style.setProperty('--navbar-bg', navBg);
     const nb=document.getElementById('navbar');
-    if(nb){nb.style.background=bg;}
+    if(nb){nb.style.background=navBg;}
 
     // Inject element-level overrides for hardcoded rgba values
     injectOverrides(colors, cardBg);

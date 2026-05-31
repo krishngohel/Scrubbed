@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Secondary AI — Scrubbed by Meridia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body,"Inter Tight",system-ui,sans-serif);-webkit-font-smoothing:antialiased;min-height:100vh}
+button{font:inherit;cursor:pointer;border:none;background:none}
+a{color:inherit;text-decoration:none;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+em{font-family:var(--font-display,"Newsreader",Georgia,serif);font-style:italic}
+:root{
+  --paper:#F6F1E8;--cream:#FBF7EE;--ink:#1F1B16;--graphite:#5C544A;--stone:#A89C8A;--rule:#E5DDCD;
+  --clay:#B5563A;--clay-d:#9F4C33;--clay-p:#8A412C;--clay-s:#EBD6CB;
+  --moss:#5A6E4A;--moss-s:#DDE3CE;--rust:#8B3A2E;--rust-s:#EFD3CC;
+  --ease:cubic-bezier(0.32,0.72,0.24,1);
+  --font-display:'Newsreader',Georgia,serif;
+  --font-body:'Inter Tight',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+
+/* ── BUTTONS ── */
+.btn-primary{display:inline-flex;align-items:center;gap:7px;background:var(--clay);color:var(--cream);border-radius:8px;font-weight:600;white-space:nowrap;transition:background 160ms var(--ease)}
+.btn-primary:hover:not(:disabled){background:var(--clay-d)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-secondary{display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--ink);border:1px solid var(--rule);border-radius:8px;font-weight:500;white-space:nowrap;transition:background 160ms var(--ease)}
+.btn-secondary:hover{background:rgba(31,27,22,0.04)}
+.btn-ghost{display:inline-flex;align-items:center;gap:6px;background:transparent;color:var(--graphite);border-radius:8px;font-weight:500;transition:color 140ms var(--ease),background 140ms var(--ease)}
+.btn-ghost:hover{color:var(--ink);background:rgba(31,27,22,0.05)}
+.btn-lg{height:50px;padding:0 22px;font-size:15px}
+.btn-md{height:44px;padding:0 18px;font-size:14px}
+.btn-sm{height:36px;padding:0 14px;font-size:13px}
+.btn-xs{height:28px;padding:0 10px;font-size:12px}
+
+/* ── NAV ── */
+.nav{position:sticky;top:0;z-index:100;background:rgba(251,247,238,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;gap:28px}
+.wordmark{font-family:var(--font-display);font-style:italic;font-size:24px;font-weight:500;letter-spacing:-0.01em;color:var(--ink)}
+.nav-links{display:flex;gap:24px;flex:1}
+.nav-link{font-size:14px;color:var(--graphite);transition:color 140ms var(--ease);white-space:nowrap}
+.nav-link:hover,.nav-link.is-active{color:var(--ink)}
+.nav-right{display:flex;align-items:center;gap:12px;position:relative}
+.user-menu-wrapper{position:relative}
+#nav-user-btn{width:36px;height:36px;border-radius:50%;background:var(--clay);color:var(--cream);display:none;align-items:center;justify-content:center;transition:background 140ms var(--ease)}
+#nav-user-btn:hover{background:var(--clay-d)}
+#nav-user-btn svg{pointer-events:none}
+#user-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--cream);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 32px rgba(31,27,22,0.12);min-width:230px;overflow:hidden;z-index:200}
+#user-dropdown.open{display:block}
+.user-dropdown-header{padding:14px 16px 10px;border-bottom:1px solid var(--rule)}
+.user-dropdown-greeting{font-size:11px;color:var(--stone);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em}
+.user-dropdown-username{font-size:13.5px;font-weight:500;color:var(--ink);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-dropdown-list{padding:6px}
+.user-dropdown-item{display:flex;align-items:center;gap:8px;width:100%;padding:8px 11px;font-size:13.5px;color:var(--graphite);border-radius:7px;transition:background 120ms var(--ease),color 120ms var(--ease);text-decoration:none}
+.user-dropdown-item:hover{background:rgba(31,27,22,0.04);color:var(--ink)}
+.user-dropdown-divider{border:none;border-top:1px solid var(--rule);margin:4px 0}
+.user-dropdown-logout{color:var(--rust)}
+.user-dropdown-logout:hover{background:var(--rust-s);color:var(--rust)}
+.theme-section{padding:10px 11px 8px}
+.theme-section-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.theme-section-lbl{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:var(--graphite)}
+.theme-reset-btn{font-size:11px;color:var(--stone);background:none;border:none;cursor:pointer;padding:0}
+.theme-reset-btn:hover{color:var(--graphite)}
+.theme-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.theme-swatch{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform 140ms var(--ease),border-color 140ms var(--ease)}
+.theme-swatch:hover,.theme-swatch.active{transform:scale(1.15);border-color:var(--ink)}
+.theme-custom-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.theme-color-row{display:flex;align-items:center;gap:6px;padding:3px 0}
+.tc-label{font-size:11px;color:var(--stone);flex:1}
+.tc-input{width:24px;height:24px;border:none;border-radius:4px;cursor:pointer;padding:0;background:none}
+
+/* ── LAYOUT ── */
+.page-wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+
+/* ── HERO ── */
+.sec-hero{padding:64px 0 40px;border-bottom:1px solid var(--rule)}
+.section-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--graphite);font-family:var(--font-mono);margin-bottom:16px}
+.sec-hero-h{font-family:var(--font-display);font-size:48px;line-height:1.05;letter-spacing:-0.02em;color:var(--ink);margin-bottom:12px}
+.sec-hero-sub{font-size:16px;color:var(--graphite);max-width:560px;line-height:1.6}
+
+/* ── PRO GATE BANNER ── */
+#pro-gate-banner{background:var(--clay-s);border:1px solid rgba(181,86,58,0.2);border-radius:12px;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:28px 0 0}
+#pro-gate-banner.hidden{display:none}
+.pro-gate-text{font-size:14px;color:var(--clay-p);line-height:1.5}
+.pro-gate-text strong{font-weight:600;display:block;margin-bottom:2px;font-size:15px}
+
+/* ── SECTION HEADER ── */
+.section-hd-row{display:flex;align-items:center;justify-content:space-between;margin:48px 0 20px}
+.section-hd-row h2{font-family:var(--font-display);font-size:26px;letter-spacing:-0.01em;color:var(--ink)}
+.section-hd-row .section-meta{font-size:12px;color:var(--stone);font-family:var(--font-mono)}
+.prompts-notice{font-size:13px;color:var(--graphite);font-style:italic;margin:-8px 0 20px;padding:10px 14px;background:rgba(181,86,58,0.06);border-left:3px solid var(--clay);border-radius:0 6px 6px 0;line-height:1.5}
+
+/* ── SCHOOLS GRID ── */
+#schools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start}
+.school-card{background:var(--cream);border:1px solid var(--rule);border-radius:14px;overflow:hidden;transition:box-shadow 180ms var(--ease)}
+.school-card:hover{box-shadow:0 4px 16px rgba(31,27,22,0.07)}
+.school-card-head{padding:20px 22px 16px;cursor:pointer;user-select:none}
+.school-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.school-name{font-family:var(--font-display);font-size:18px;letter-spacing:-0.01em;color:var(--ink);line-height:1.2}
+.school-badge-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.school-location{font-size:11.5px;font-family:var(--font-mono);color:var(--stone);letter-spacing:0.04em}
+.school-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:var(--font-mono);font-weight:500;padding:3px 9px;border-radius:999px;letter-spacing:0.03em}
+.school-status.available{background:var(--moss-s);color:var(--moss)}
+.school-status.pending{background:var(--rule);color:var(--stone)}
+.school-status.loading{background:var(--rule);color:var(--stone)}
+.school-mission{font-size:13px;color:var(--graphite);line-height:1.5;margin-top:6px}
+.school-card.collapsed .school-mission{display:none}
+.school-card.collapsed .school-card-actions{padding-bottom:12px}
+.school-card-actions{display:flex;align-items:center;gap:8px;padding:0 22px 14px;margin-top:10px}
+.school-toggle-btn{font-size:12.5px;color:var(--clay);font-weight:500;display:flex;align-items:center;gap:4px;white-space:nowrap;transition:color 140ms var(--ease)}
+.school-toggle-btn:hover{color:var(--clay-d)}
+.school-toggle-btn svg{transition:transform 220ms var(--ease)}
+.school-toggle-btn.open svg{transform:rotate(180deg)}
+.school-refresh-btn{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:12px;color:var(--stone);padding:4px 8px;border-radius:6px;transition:color 140ms var(--ease),background 140ms var(--ease)}
+.school-refresh-btn:hover{color:var(--graphite);background:rgba(31,27,22,0.04)}
+.school-refresh-btn.spinning svg{animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PROMPT LIST ── */
+.school-prompts{display:none;border-top:1px solid var(--rule);padding:16px 22px 20px}
+.school-prompts.open{display:block}
+.school-prompts-empty{font-size:13px;color:var(--stone);font-style:italic;padding:8px 0}
+.prompt-item{padding:12px 0;border-bottom:1px dashed var(--rule)}
+.prompt-item:last-child{border-bottom:none;padding-bottom:0}
+.prompt-text{font-size:14px;color:var(--ink);line-height:1.55;margin-bottom:8px}
+.prompt-meta-row{display:flex;align-items:center;gap:12px}
+.prompt-wordlimit{font-size:11.5px;font-family:var(--font-mono);color:var(--stone)}
+.generate-btn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;background:var(--clay);color:var(--cream);border-radius:8px;font-size:12.5px;font-weight:600;transition:background 160ms var(--ease),opacity 160ms var(--ease)}
+.generate-btn:hover:not(:disabled){background:var(--clay-d)}
+.generate-btn:disabled{opacity:0.45;cursor:not-allowed}
+.generate-btn.generating{background:var(--clay-d)}
+
+/* ── OUTLINES GRID ── */
+#outlines-empty{text-align:center;padding:60px 24px;color:var(--stone)}
+#outlines-empty p{font-size:15px;margin-bottom:6px}
+#outlines-empty span{font-size:13px}
+#outlines-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.outline-tile{background:var(--cream);border:1px solid var(--rule);border-radius:12px;overflow:hidden;transition:box-shadow 180ms var(--ease);position:relative}
+.outline-tile:hover{box-shadow:0 4px 16px rgba(31,27,22,0.07)}
+.outline-tile-accent{height:3px;background:var(--clay)}
+.outline-tile-body{padding:16px 18px 14px}
+.outline-tile-school{font-size:11px;font-family:var(--font-mono);color:var(--stone);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px}
+.outline-tile-name{font-family:var(--font-display);font-size:16px;letter-spacing:-0.01em;color:var(--ink);line-height:1.3;margin-bottom:8px}
+.outline-tile-prompt{font-size:12.5px;color:var(--graphite);line-height:1.4;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.outline-tile-footer{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--rule)}
+.outline-tile-date{font-size:11px;font-family:var(--font-mono);color:var(--stone)}
+.outline-tile-actions{margin-left:auto;display:flex;gap:6px}
+.tile-btn{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:500;transition:background 140ms var(--ease),color 140ms var(--ease)}
+.tile-btn-view{background:var(--clay-s);color:var(--clay-p)}
+.tile-btn-view:hover{background:var(--clay);color:var(--cream)}
+.tile-btn-delete{color:var(--stone)}
+.tile-btn-delete:hover{background:var(--rust-s);color:var(--rust)}
+
+/* ── SCHOOL FILTER PILLS ── */
+.filter-pills{display:flex;gap:8px;flex-wrap:wrap}
+.filter-pill{height:30px;padding:0 14px;border-radius:999px;font-size:12.5px;font-weight:500;border:1px solid var(--rule);color:var(--graphite);background:transparent;transition:all 140ms var(--ease);cursor:pointer}
+.filter-pill:hover{border-color:var(--clay);color:var(--clay)}
+.filter-pill.active{background:var(--clay);border-color:var(--clay);color:var(--cream)}
+
+/* ── OUTLINE VIEWER MODAL ── */
+#outline-modal{display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:300;align-items:center;justify-content:center;padding:20px}
+#outline-modal.open{display:flex}
+.outline-modal-inner{background:var(--cream);border:1px solid var(--rule);border-radius:16px;width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(31,27,22,0.22)}
+.outline-modal-head{padding:22px 26px 18px;border-bottom:1px solid var(--rule);display:flex;align-items:flex-start;gap:12px}
+.outline-modal-school{font-size:11.5px;font-family:var(--font-mono);color:var(--stone);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px}
+.outline-modal-name{font-family:var(--font-display);font-size:22px;letter-spacing:-0.01em;color:var(--ink);flex:1}
+.outline-modal-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--stone);border-radius:6px;transition:background 140ms var(--ease),color 140ms var(--ease);flex-shrink:0;margin-top:-2px}
+.outline-modal-close:hover{background:rgba(31,27,22,0.06);color:var(--ink)}
+.outline-modal-body{padding:24px 26px;overflow-y:auto;flex:1;line-height:1.7;font-size:14.5px;color:var(--ink)}
+.outline-modal-body h3{font-family:var(--font-display);font-size:17px;font-weight:500;color:var(--clay);margin:18px 0 6px}
+.outline-modal-body h3:first-child{margin-top:0}
+.outline-modal-body ul{margin:4px 0 10px 18px}
+.outline-modal-body li{margin-bottom:4px}
+.outline-modal-body p{margin-bottom:8px}
+.outline-modal-foot{padding:14px 26px;border-top:1px solid var(--rule);display:flex;gap:10px;justify-content:flex-end}
+
+/* ── LOADING SKELETON ── */
+.skeleton{background:linear-gradient(90deg,var(--rule) 25%,var(--cream) 50%,var(--rule) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-card{height:120px;border-radius:14px}
+
+/* ── AUTH MODAL ── */
+#auth-overlay{display:none;position:fixed;inset:0;background:rgba(31,27,22,0.44);backdrop-filter:blur(8px);z-index:800;align-items:center;justify-content:center;padding:24px}
+#auth-overlay.open{display:flex;animation:au-fade 0.2s ease}
+@keyframes au-fade{from{opacity:0}to{opacity:1}}
+@keyframes au-up{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+#auth-modal{background:var(--cream);border-radius:14px;width:100%;max-width:400px;padding:32px 28px 28px;position:relative;box-shadow:0 24px 48px rgba(31,27,22,0.22);animation:au-up 0.25s cubic-bezier(0.16,1,0.3,1);border:1px solid var(--rule)}
+#auth-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--stone);line-height:1;padding:4px 8px;border-radius:8px;transition:all 0.15s}
+#auth-close:hover{color:var(--ink);background:rgba(31,27,22,0.06)}
+#auth-tabs{display:flex;gap:3px;margin-bottom:24px;background:rgba(31,27,22,0.06);border-radius:8px;padding:3px}
+.auth-tab{flex:1;background:none;border:none;padding:8px 12px;font-size:13.5px;font-family:var(--font-body);color:var(--graphite);cursor:pointer;border-radius:6px;transition:all 0.15s;font-weight:400}
+.auth-tab.active{background:var(--cream);color:var(--ink);font-weight:500;box-shadow:0 1px 2px rgba(31,27,22,0.08)}
+.auth-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.auth-field label{font-size:12px;font-weight:500;color:var(--graphite);letter-spacing:0.02em}
+.auth-field input{border:1.5px solid var(--rule);border-radius:8px;padding:10px 13px;font-size:14px;font-family:var(--font-body);color:var(--ink);background:var(--paper);outline:none;transition:border-color 0.15s}
+.auth-field input:focus{border-color:var(--clay);box-shadow:0 0 0 3px rgba(181,86,58,0.1)}
+.auth-field input::placeholder{color:var(--stone)}
+.auth-submit{width:100%;padding:11px;background:var(--clay);color:var(--cream);border:none;border-radius:8px;font-size:14px;font-weight:600;font-family:var(--font-body);cursor:pointer;margin-top:4px;transition:background 0.15s;letter-spacing:-0.01em}
+.auth-submit:hover{background:var(--clay-d)}
+.auth-submit:disabled{opacity:0.5;cursor:not-allowed}
+.auth-error{font-size:13px;color:var(--rust);min-height:16px;margin-bottom:8px;line-height:1.4}
+#pw-reqs{list-style:none;margin:0 0 12px;padding:10px 12px;background:rgba(31,27,22,0.04);border-radius:8px;display:flex;flex-direction:column;gap:5px;border:1px solid var(--rule)}
+#pw-reqs li{font-size:12.5px;color:var(--stone);display:flex;align-items:center;gap:7px;transition:color 0.2s}
+#pw-reqs li::before{content:'○';font-size:9px;flex-shrink:0;transition:all 0.2s}
+#pw-reqs li.met{color:var(--moss)}
+#pw-reqs li.met::before{content:'●';color:var(--moss)}
+
+/* ── FOOTER ── */
+footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
+.footer-inner{max-width:1200px;margin:0 auto;padding:0 32px;display:flex;align-items:center;gap:32px;flex-wrap:wrap}
+.footer-links{display:flex;gap:20px;flex:1}
+.footer-links a{font-size:13px;color:var(--stone);transition:color 140ms var(--ease)}
+.footer-links a:hover{color:var(--graphite)}
+.footer-legal{font-size:12px;color:var(--stone);font-family:var(--font-mono)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .nav-inner{padding:0 16px;gap:16px}
+  .nav-links{gap:14px}
+  .page-wrap{padding:0 16px}
+  .sec-hero-h{font-size:32px}
+  #schools-grid{grid-template-columns:1fr}
+  #outlines-grid{grid-template-columns:1fr}
+  #pro-gate-banner{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="navbar">
+  <div class="nav-inner">
+    <a href="/" class="wordmark">Scrubbed.</a>
+    <div class="nav-links">
+      <a class="nav-link" href="/#how-it-works">How it works</a>
+      <a class="nav-link" href="/#pricing">Pricing</a>
+      <a class="nav-link" href="/vault.html">The Vault</a>
+      <a class="nav-link is-active" href="/secondaries">Secondary AI</a>
+    </div>
+    <div class="nav-right">
+      <div class="user-menu-wrapper">
+        <button id="nav-user-btn" aria-label="Account">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.866 3.582-7 8-7s8 3.134 8 7"/></svg>
+        </button>
+        <div id="user-dropdown">
+          <div class="user-dropdown-header">
+            <div class="user-dropdown-greeting">Signed in as</div>
+            <div class="user-dropdown-username" id="dropdown-username"></div>
+          </div>
+          <div class="user-dropdown-list">
+            <a href="/vault.html" class="user-dropdown-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              My Vault
+            </a>
+            <div class="theme-section">
+              <div class="theme-section-hd">
+                <span class="theme-section-lbl">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                  Appearance
+                </span>
+                <button class="theme-reset-btn" id="theme-reset">Reset</button>
+              </div>
+              <div class="theme-presets" id="theme-presets"></div>
+              <div class="theme-custom-grid">
+                <div class="theme-color-row"><label class="tc-label">Background</label><input type="color" class="tc-input" id="tc-bg"/></div>
+                <div class="theme-color-row"><label class="tc-label">Text</label><input type="color" class="tc-input" id="tc-font"/></div>
+                <div class="theme-color-row"><label class="tc-label">Primary</label><input type="color" class="tc-input" id="tc-primary"/></div>
+                <div class="theme-color-row"><label class="tc-label">Accent</label><input type="color" class="tc-input" id="tc-accent"/></div>
+              </div>
+            </div>
+            <hr class="user-dropdown-divider"/>
+            <button class="user-dropdown-item user-dropdown-logout" id="logout-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Log out
+            </button>
+          </div>
+        </div>
+      </div>
+      <button class="btn-ghost btn-sm" id="login-btn">Sign in</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-wrap">
+  <section class="sec-hero">
+    <span class="section-eyebrow">Secondary AI · Texas Schools</span>
+    <h1 class="sec-hero-h">Your essay outlines,<br><em>built from your record.</em></h1>
+    <p class="sec-hero-sub">Select a school, pick a prompt — Scrubbed reads your Vault and writes a personalized outline grounded in what you've actually done.</p>
+  </section>
+
+  <!-- PRO GATE BANNER -->
+  <div id="pro-gate-banner" class="hidden">
+    <div class="pro-gate-text">
+      <strong>Secondary AI is a Pro feature.</strong>
+      Upgrade to generate school-specific essay outlines from your Vault data.
+    </div>
+    <a class="btn-primary btn-sm" href="/#pricing">View plans</a>
+  </div>
+
+  <!-- SCHOOLS SECTION -->
+  <div class="section-hd-row">
+    <h2>Texas Medical Schools</h2>
+    <span class="section-meta" id="schools-updated-label"></span>
+  </div>
+  <p class="prompts-notice">
+    Prompts are seeded from prior application cycles and may not reflect this year's questions.
+    Always verify current prompts directly on each school's admissions website before writing.
+  </p>
+
+  <div id="schools-grid">
+    <!-- skeleton placeholders while loading -->
+    <div class="skel-card skeleton"></div>
+    <div class="skel-card skeleton"></div>
+    <div class="skel-card skeleton"></div>
+    <div class="skel-card skeleton"></div>
+  </div>
+
+  <!-- OUTLINES SECTION -->
+  <div class="section-hd-row" style="margin-top:60px">
+    <h2>Your Outlines</h2>
+    <div class="filter-pills" id="filter-pills">
+      <button class="filter-pill active" data-school="all">All schools</button>
+    </div>
+  </div>
+
+  <div id="outlines-grid" style="display:none"></div>
+  <div id="outlines-empty">
+    <p>No outlines yet.</p>
+    <span>Select a school above and click <strong>Generate Outline</strong> to get started.</span>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <span class="wordmark">Scrubbed.</span>
+    <div class="footer-links">
+      <a href="/#how-it-works">How it works</a>
+      <a href="/vault.html">The Vault</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+    <div class="footer-legal">© 2026 Scrubbed</div>
+  </div>
+</footer>
+
+<!-- OUTLINE VIEWER MODAL -->
+<div id="outline-modal">
+  <div class="outline-modal-inner">
+    <div class="outline-modal-head">
+      <div style="flex:1">
+        <div class="outline-modal-school" id="modal-school-label"></div>
+        <div class="outline-modal-name" id="modal-outline-name"></div>
+      </div>
+      <button class="outline-modal-close" onclick="closeOutlineModal()" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="outline-modal-body" id="modal-outline-body"></div>
+    <div class="outline-modal-foot">
+      <button class="btn-secondary btn-sm" id="modal-copy-btn" onclick="copyOutline()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy to clipboard
+      </button>
+      <button class="btn-ghost btn-sm" onclick="closeOutlineModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="auth-overlay">
+  <div id="auth-modal">
+    <button id="auth-close" aria-label="Close">&#x2715;</button>
+    <div id="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Log in</button>
+      <button class="auth-tab" data-tab="signup">Create account</button>
+    </div>
+    <form id="login-form">
+      <div class="auth-field">
+        <label for="login-username">Email</label>
+        <input type="text" id="login-username" autocomplete="username" placeholder="your email"/>
+      </div>
+      <div class="auth-field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" autocomplete="current-password" placeholder="your password"/>
+      </div>
+      <p id="login-error" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Log in</button>
+    </form>
+    <form id="signup-form" style="display:none">
+      <div class="auth-field">
+        <label for="signup-username">Email</label>
+        <input type="text" id="signup-username" autocomplete="username" placeholder="your email"/>
+      </div>
+      <div class="auth-field">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" autocomplete="new-password" placeholder="create a password"/>
+      </div>
+      <ul id="pw-reqs">
+        <li data-req="length">At least 8 characters</li>
+        <li data-req="upper">One uppercase letter (A–Z)</li>
+        <li data-req="lower">One lowercase letter (a–z)</li>
+        <li data-req="digit">One number (0–9)</li>
+        <li data-req="special">One special character (!@#$…)</li>
+      </ul>
+      <div class="auth-field">
+        <label for="signup-confirm">Confirm password</label>
+        <input type="password" id="signup-confirm" autocomplete="new-password" placeholder="confirm your password"/>
+      </div>
+      <p id="signup-error" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Create account</button>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const TOKEN_KEY = 'scrubbed_token';
+  const REFRESH_KEY = 'scrubbed_refresh';
+  let _isPro = false;
+  let _schools = [];
+  let _outlines = [];
+  let _activeFilter = 'all';
+  let _currentOutlineText = '';
+
+  function token() { return localStorage.getItem(TOKEN_KEY); }
+  function authHeaders() { return { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' }; }
+
+  async function tryRefresh() {
+    const rt = localStorage.getItem(REFRESH_KEY);
+    if (!rt) return null;
+    try {
+      const res = await fetch('/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: rt }),
+      });
+      if (!res.ok) { localStorage.removeItem(REFRESH_KEY); return null; }
+      const data = await res.json();
+      localStorage.setItem(TOKEN_KEY, data.token);
+      if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+      return data.user;
+    } catch { return null; }
+  }
+
+  // ── AUTH MODAL ────────────────────────────────────────────────────────
+  const overlay = document.getElementById('auth-overlay');
+  const loginForm = document.getElementById('login-form');
+  const signupForm = document.getElementById('signup-form');
+  const loginError = document.getElementById('login-error');
+  const signupError = document.getElementById('signup-error');
+  const signupPw = document.getElementById('signup-password');
+  const authTabs = document.querySelectorAll('.auth-tab');
+
+  const pwChecks = {
+    length: p => p.length >= 8, upper: p => /[A-Z]/.test(p),
+    lower: p => /[a-z]/.test(p), digit: p => /[0-9]/.test(p),
+    special: p => /[^A-Za-z0-9]/.test(p),
+  };
+  function updateReqs(pw) {
+    document.querySelectorAll('#pw-reqs li').forEach(li => li.classList.toggle('met', pwChecks[li.dataset.req](pw)));
+  }
+  function allMet(pw) { return Object.values(pwChecks).every(fn => fn(pw)); }
+
+  function openModal(tab) {
+    overlay.classList.add('open');
+    switchAuthTab(tab || 'login');
+  }
+  function closeModal() {
+    overlay.classList.remove('open');
+    loginError.textContent = ''; signupError.textContent = '';
+    loginForm.reset(); signupForm.reset(); updateReqs('');
+  }
+  function switchAuthTab(tab) {
+    authTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    loginForm.style.display = tab === 'login' ? 'block' : 'none';
+    signupForm.style.display = tab === 'signup' ? 'block' : 'none';
+  }
+
+  document.getElementById('auth-close').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  authTabs.forEach(t => t.addEventListener('click', () => switchAuthTab(t.dataset.tab)));
+  if (signupPw) signupPw.addEventListener('input', () => updateReqs(signupPw.value));
+
+  loginForm.addEventListener('submit', async e => {
+    e.preventDefault(); loginError.textContent = '';
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!username || !password) { loginError.textContent = 'Please enter email and password.'; return; }
+    const btn = loginForm.querySelector('.auth-submit'); btn.disabled = true;
+    try {
+      const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem(TOKEN_KEY, data.token);
+        if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+        await onAuthSuccess(data.user.username);
+      } else { loginError.textContent = data.error || 'Login failed.'; }
+    } catch { loginError.textContent = 'Unable to connect. Is the server running?'; }
+    finally { btn.disabled = false; }
+  });
+
+  signupForm.addEventListener('submit', async e => {
+    e.preventDefault(); signupError.textContent = '';
+    const username = document.getElementById('signup-username').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const confirm = document.getElementById('signup-confirm').value;
+    if (!username || !password) { signupError.textContent = 'All fields are required.'; return; }
+    if (!allMet(password)) { signupError.textContent = 'Password does not meet all requirements.'; return; }
+    if (password !== confirm) { signupError.textContent = 'Passwords do not match.'; return; }
+    const btn = signupForm.querySelector('.auth-submit'); btn.disabled = true;
+    try {
+      const res = await fetch('/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+      const data = await res.json();
+      if (res.ok) {
+        const lr = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+        const ld = await lr.json();
+        if (lr.ok) {
+          localStorage.setItem(TOKEN_KEY, ld.token);
+          if (ld.refresh_token) localStorage.setItem(REFRESH_KEY, ld.refresh_token);
+          await onAuthSuccess(ld.user.username);
+        }
+        else { signupError.textContent = 'Account created! Please log in.'; switchAuthTab('login'); }
+      } else { signupError.textContent = data.error || 'Signup failed.'; }
+    } catch { signupError.textContent = 'Unable to connect. Is the server running?'; }
+    finally { btn.disabled = false; }
+  });
+
+  async function onAuthSuccess(username) {
+    closeModal();
+    setLoggedIn(username);
+    try {
+      const res = await fetch('/me', { headers: { Authorization: 'Bearer ' + token() } });
+      if (res.ok) { const u = await res.json(); _isPro = u.subscription_status === 'pro'; updateProGate(); }
+    } catch {}
+    await Promise.all([loadSchools(), loadOutlines()]);
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────────────
+  async function init() {
+    const t = token();
+
+    if (!t) {
+      const refreshed = await tryRefresh();
+      if (!refreshed) { openModal('login'); return; }
+      setLoggedIn(refreshed.username);
+      await loadMeAndProceed();
+      return;
+    }
+
+    try {
+      const res = await fetch('/me', { headers: { Authorization: 'Bearer ' + t } });
+      if (!res.ok) {
+        localStorage.removeItem(TOKEN_KEY);
+        const refreshed = await tryRefresh();
+        if (!refreshed) { openModal('login'); return; }
+        setLoggedIn(refreshed.username);
+        await loadMeAndProceed();
+        return;
+      }
+      const user = await res.json();
+      setLoggedIn(user.username);
+      _isPro = user.subscription_status === 'pro';
+      updateProGate();
+    } catch {
+      const refreshed = await tryRefresh();
+      if (!refreshed) { openModal('login'); return; }
+      setLoggedIn(refreshed.username);
+      await loadMeAndProceed();
+      return;
+    }
+
+    await Promise.all([loadSchools(), loadOutlines()]);
+  }
+
+  async function loadMeAndProceed() {
+    try {
+      const res = await fetch('/me', { headers: { Authorization: 'Bearer ' + token() } });
+      if (res.ok) { const u = await res.json(); _isPro = u.subscription_status === 'pro'; }
+    } catch {}
+    updateProGate();
+    await Promise.all([loadSchools(), loadOutlines()]);
+  }
+
+  // ── AUTH UI ───────────────────────────────────────────────────────────
+  function setLoggedIn(username) {
+    document.getElementById('login-btn').style.display = 'none';
+    const userBtn = document.getElementById('nav-user-btn');
+    userBtn.style.display = 'flex';
+    document.getElementById('dropdown-username').textContent = username;
+  }
+
+  document.getElementById('nav-user-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('user-dropdown').classList.toggle('open');
+  });
+  document.addEventListener('click', () => document.getElementById('user-dropdown').classList.remove('open'));
+
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    window.location.href = '/';
+  });
+
+  document.getElementById('login-btn').addEventListener('click', () => openModal('login'));
+
+  // ── THEME PICKER ──────────────────────────────────────────────────────
+  if (window.THEME_PRESETS) {
+    const presetsEl = document.getElementById('theme-presets');
+    window.THEME_PRESETS.forEach(p => {
+      const sw = document.createElement('button');
+      sw.className = 'theme-swatch';
+      sw.title = p.name;
+      sw.style.background = p.colors?.primary;
+      sw.addEventListener('click', () => {
+        window.applyTheme(p.colors, true);
+        document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+        sw.classList.add('active');
+      });
+      presetsEl.appendChild(sw);
+    });
+  }
+  document.getElementById('theme-reset')?.addEventListener('click', () => {
+    window.applyTheme(window.THEME_DEFAULT, true);
+  });
+  ['bg','font','primary','accent'].forEach(k => {
+    document.getElementById('tc-' + k)?.addEventListener('input', function () {
+      const cur = JSON.parse(localStorage.getItem('scrubbed_theme') || '{}');
+      cur[k] = this.value;
+      window.applyTheme(cur, false);
+    });
+  });
+
+  // ── PRO GATE ──────────────────────────────────────────────────────────
+  function updateProGate() {
+    const banner = document.getElementById('pro-gate-banner');
+    banner.classList.toggle('hidden', _isPro);
+    document.querySelectorAll('.generate-btn').forEach(btn => {
+      btn.disabled = !_isPro;
+      btn.title = _isPro ? '' : 'Upgrade to Pro to generate outlines';
+    });
+  }
+
+  window.startCheckout = async function (plan) {
+    try {
+      const res = await fetch('/stripe/create-checkout-session', {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ plan })
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch { alert('Could not start checkout. Please try again.'); }
+  };
+
+  // ── SCHOOLS ───────────────────────────────────────────────────────────
+  async function loadSchools() {
+    try {
+      const res = await fetch('/schools');
+      if (!res.ok) throw new Error();
+      _schools = await res.json();
+      renderSchools();
+    } catch {
+      document.getElementById('schools-grid').innerHTML = '<p style="color:var(--stone);font-size:14px;grid-column:1/-1">Could not load schools. Please refresh.</p>';
+    }
+  }
+
+  function renderSchools() {
+    const grid = document.getElementById('schools-grid');
+    grid.innerHTML = '';
+
+    _schools.forEach(school => {
+      const hasPrompts = Array.isArray(school.prompts) && school.prompts.length > 0;
+      const lastUpdated = school.prompts_updated_at
+        ? new Date(school.prompts_updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : null;
+
+      const card = document.createElement('div');
+      card.className = 'school-card collapsed';
+      card.dataset.slug = school.slug;
+
+      card.innerHTML = `
+        <div class="school-card-head" onclick="toggleSchool('${school.slug}')">
+          <div class="school-card-top">
+            <div class="school-name">${school.name}</div>
+          </div>
+          <div class="school-badge-row">
+            <span class="school-location">${school.location}</span>
+            <span class="school-status ${hasPrompts ? 'available' : 'pending'}">
+              ${hasPrompts
+                ? `<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg> ${school.prompts.length} prompt${school.prompts.length !== 1 ? 's' : ''}`
+                : `<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg> Pending`
+              }
+            </span>
+          </div>
+          <p class="school-mission">${school.mission_snippet}</p>
+        </div>
+        <div class="school-card-actions">
+          <button class="school-toggle-btn" id="toggle-${school.slug}"
+            data-label-open="Hide prompts"
+            data-label-closed="${hasPrompts ? 'View prompts' : 'Check prompts'}"
+            onclick="event.stopPropagation();toggleSchool('${school.slug}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <span class="toggle-label">${hasPrompts ? 'View prompts' : 'Check prompts'}</span>
+          </button>
+          <button class="school-refresh-btn" id="refresh-${school.slug}" onclick="event.stopPropagation();refreshPrompts('${school.slug}')" title="Refresh prompts from school website">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+          ${lastUpdated ? `<span style="font-size:11px;color:var(--stone);font-family:var(--font-mono)" title="Seeded from a prior cycle — verify with the school">Prior cycle · seeded ${lastUpdated}</span>` : ''}
+        </div>
+        <div class="school-prompts" id="prompts-${school.slug}">
+          ${renderPromptsHTML(school)}
+        </div>`;
+
+      grid.appendChild(card);
+    });
+    updateProGate();
+  }
+
+  function renderPromptsHTML(school) {
+    if (!Array.isArray(school.prompts) || school.prompts.length === 0) {
+      return `<p class="school-prompts-empty">No prompts posted yet. Click <strong>Refresh</strong> to check the school's website.</p>`;
+    }
+    return school.prompts.map(p => `
+      <div class="prompt-item">
+        <p class="prompt-text">${escapeHtml(p.prompt_text)}</p>
+        <div class="prompt-meta-row">
+          <span class="prompt-wordlimit">${p.limit_text || (p.word_limit ? p.word_limit + ' words' : 'No limit specified')}</span>
+          <button class="generate-btn" ${_isPro ? '' : 'disabled title="Upgrade to Pro to generate outlines"'}
+            onclick="generateOutline('${school.slug}', '${escapeHtml(p.prompt_id)}', this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Generate Outline
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  window.toggleSchool = function (slug) {
+    const panel = document.getElementById('prompts-' + slug);
+    const btn = document.getElementById('toggle-' + slug);
+    if (!panel) return;
+    const isOpen = panel.classList.contains('open');
+    panel.classList.toggle('open', !isOpen);
+    btn.classList.toggle('open', !isOpen);
+    const card = panel.closest('.school-card');
+    if (card) card.classList.toggle('collapsed', isOpen);
+    const label = btn.querySelector('.toggle-label');
+    if (label) label.textContent = isOpen ? btn.dataset.labelClosed : btn.dataset.labelOpen;
+  };
+
+  window.refreshPrompts = async function (slug) {
+    const btn = document.getElementById('refresh-' + slug);
+    btn.classList.add('spinning');
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/schools/${slug}/refresh-prompts`, { method: 'POST', headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Refresh failed');
+      const school = _schools.find(s => s.slug === slug);
+      if (school) {
+        school.prompts = data.prompts;
+        school.prompts_updated_at = data.prompts_updated_at;
+        const panel = document.getElementById('prompts-' + slug);
+        if (panel) panel.innerHTML = renderPromptsHTML(school);
+        updateProGate();
+        // update status badge
+        const card = document.querySelector(`[data-slug="${slug}"]`);
+        if (card) {
+          const statusBadge = card.querySelector('.school-status');
+          if (statusBadge && data.prompts.length > 0) {
+            statusBadge.className = 'school-status available';
+            statusBadge.innerHTML = `<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg> ${data.prompts.length} prompt${data.prompts.length !== 1 ? 's' : ''}`;
+          }
+        }
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      btn.classList.remove('spinning');
+      btn.disabled = false;
+    }
+  };
+
+  // ── GENERATE OUTLINE ─────────────────────────────────────────────────
+  window.generateOutline = async function (schoolSlug, promptId, btn) {
+    if (!_isPro) return;
+    btn.disabled = true;
+    btn.classList.add('generating');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Generating…`;
+
+    try {
+      const res = await fetch('/outlines/generate', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ school_slug: schoolSlug, prompt_id: promptId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Generation failed');
+      _outlines.unshift(data);
+      renderOutlines();
+      document.getElementById('outlines-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      addFilterPill(schoolSlug);
+    } catch (err) {
+      alert(err.message || 'Generation failed. Please try again.');
+    } finally {
+      btn.disabled = !_isPro;
+      btn.classList.remove('generating');
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generate Outline`;
+    }
+  };
+
+  // ── OUTLINES ─────────────────────────────────────────────────────────
+  async function loadOutlines() {
+    try {
+      const res = await fetch('/outlines', { headers: authHeaders() });
+      if (!res.ok) return;
+      _outlines = await res.json();
+      renderOutlines();
+      rebuildFilterPills();
+    } catch { /* silently skip */ }
+  }
+
+  function renderOutlines() {
+    const grid = document.getElementById('outlines-grid');
+    const empty = document.getElementById('outlines-empty');
+    const filtered = _activeFilter === 'all'
+      ? _outlines
+      : _outlines.filter(o => o.meta?.school_slug === _activeFilter);
+
+    if (_outlines.length === 0) {
+      grid.style.display = 'none';
+      empty.style.display = '';
+      return;
+    }
+    grid.style.display = '';
+    empty.style.display = 'none';
+
+    grid.innerHTML = filtered.map(o => {
+      const meta = o.meta || {};
+      const date = new Date(o.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const promptSnippet = meta.prompt_text ? meta.prompt_text.slice(0, 90) + (meta.prompt_text.length > 90 ? '…' : '') : '';
+      return `
+        <div class="outline-tile">
+          <div class="outline-tile-accent"></div>
+          <div class="outline-tile-body">
+            <div class="outline-tile-school">${escapeHtml(meta.school_name || '')}</div>
+            <div class="outline-tile-name">${escapeHtml(o.name)}</div>
+            ${promptSnippet ? `<div class="outline-tile-prompt">${escapeHtml(promptSnippet)}</div>` : ''}
+            <div class="outline-tile-footer">
+              <span class="outline-tile-date">${date}</span>
+              <div class="outline-tile-actions">
+                <button class="tile-btn tile-btn-view" onclick="viewOutline('${o.id}')">View</button>
+                <button class="tile-btn tile-btn-delete" onclick="deleteOutline('${o.id}', this)" aria-label="Delete">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    if (filtered.length === 0 && _outlines.length > 0) {
+      grid.innerHTML = `<p style="color:var(--stone);font-size:14px;grid-column:1/-1;padding:20px 0">No outlines for this school yet.</p>`;
+    }
+  }
+
+  window.deleteOutline = async function (id, btn) {
+    if (!confirm('Delete this outline?')) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch('/files/' + id, { method: 'DELETE', headers: authHeaders() });
+      if (!res.ok) throw new Error();
+      _outlines = _outlines.filter(o => o.id !== id);
+      renderOutlines();
+      rebuildFilterPills();
+    } catch {
+      alert('Delete failed. Please try again.');
+      btn.disabled = false;
+    }
+  };
+
+  // ── FILTER PILLS ─────────────────────────────────────────────────────
+  function rebuildFilterPills() {
+    const pills = document.getElementById('filter-pills');
+    const slugsSeen = new Set(_outlines.map(o => o.meta?.school_slug).filter(Boolean));
+    pills.innerHTML = `<button class="filter-pill ${_activeFilter === 'all' ? 'active' : ''}" data-school="all" onclick="setFilter('all')">All schools</button>`;
+    slugsSeen.forEach(slug => {
+      const school = _schools.find(s => s.slug === slug);
+      const label = school ? school.short_name : slug;
+      pills.insertAdjacentHTML('beforeend',
+        `<button class="filter-pill ${_activeFilter === slug ? 'active' : ''}" data-school="${slug}" onclick="setFilter('${slug}')">${escapeHtml(label)}</button>`
+      );
+    });
+  }
+
+  function addFilterPill(slug) {
+    const existing = document.querySelector(`[data-school="${slug}"]`);
+    if (existing) return;
+    const school = _schools.find(s => s.slug === slug);
+    const label = school ? school.short_name : slug;
+    document.getElementById('filter-pills').insertAdjacentHTML('beforeend',
+      `<button class="filter-pill" data-school="${slug}" onclick="setFilter('${slug}')">${escapeHtml(label)}</button>`
+    );
+  }
+
+  window.setFilter = function (slug) {
+    _activeFilter = slug;
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.school === slug));
+    renderOutlines();
+  };
+
+  // ── OUTLINE VIEWER ────────────────────────────────────────────────────
+  window.viewOutline = function (id) {
+    const outline = _outlines.find(o => o.id === id);
+    if (!outline) return;
+    const meta = outline.meta || {};
+    const text = outline.content?.outline || '';
+    _currentOutlineText = text;
+
+    document.getElementById('modal-school-label').textContent = meta.school_name || '';
+    document.getElementById('modal-outline-name').textContent = outline.name;
+    document.getElementById('modal-outline-body').innerHTML = formatOutlineText(text);
+    document.getElementById('outline-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeOutlineModal = function () {
+    document.getElementById('outline-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  document.getElementById('outline-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('outline-modal')) closeOutlineModal();
+  });
+
+  window.copyOutline = function () {
+    navigator.clipboard.writeText(_currentOutlineText).then(() => {
+      const btn = document.getElementById('modal-copy-btn');
+      const orig = btn.innerHTML;
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+      setTimeout(() => { btn.innerHTML = orig; }, 2000);
+    });
+  };
+
+  function formatOutlineText(text) {
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+      .replace(/^##\s+(.+)$/gm, '<h3>$1</h3>')
+      .replace(/^\*\*(.+?)\*\*$/gm, '<h3>$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>')
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/^(?!<[hup])/gm, '')
+      .trim();
+  }
+
+  // ── UTILS ─────────────────────────────────────────────────────────────
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // ── START ─────────────────────────────────────────────────────────────
+  init();
+
+  // Handle ?upgraded=1 redirect from Stripe
+  if (new URLSearchParams(location.search).get('upgraded') === '1') {
+    history.replaceState({}, '', '/secondaries');
+    const banner = document.getElementById('pro-gate-banner');
+    banner.innerHTML = `<div class="pro-gate-text" style="color:var(--moss)"><strong style="color:var(--moss)">Welcome to Pro!</strong>You now have full access to Secondary AI. Generate your first outline below.</div>`;
+    banner.style.background = 'var(--moss-s)';
+    banner.style.borderColor = 'rgba(90,110,74,0.2)';
+    banner.classList.remove('hidden');
+    setTimeout(() => banner.classList.add('hidden'), 6000);
+  }
+})();
+</script>
+</body>
+</html>
