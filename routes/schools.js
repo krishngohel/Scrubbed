@@ -118,6 +118,17 @@ router.get('/', async (req, res) => {
     return res.json(seeded || []);
   }
 
+  // Restore seed prompts for any school whose prompts were wiped to []
+  const emptySlugs = data.filter(s => !s.prompts || s.prompts.length === 0).map(s => s.slug);
+  if (emptySlugs.length > 0) {
+    const toRestore = SEED_SCHOOLS.filter(s => emptySlugs.includes(s.slug));
+    if (toRestore.length > 0) {
+      await supabase.from('schools').upsert(toRestore, { onConflict: 'slug' });
+    }
+    const { data: restored } = await supabase.from('schools').select(select).eq('is_active', true).order('name');
+    return res.json(restored || []);
+  }
+
   res.json(data);
 });
 
