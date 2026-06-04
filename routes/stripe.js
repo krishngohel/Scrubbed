@@ -137,14 +137,14 @@ router.post('/reactivate', authMiddleware, async (req, res) => {
 router.get('/status', authMiddleware, async (req, res) => {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_status, stripe_subscription_id, cancel_at')
+    .select('subscription_status, stripe_subscription_id, cancel_at, renews_at')
     .eq('id', req.user.id)
     .single();
 
   if (!profile) return res.status(404).json({ error: 'Profile not found.' });
 
   if (!profile.stripe_subscription_id || profile.subscription_status !== 'pro') {
-    return res.json({ status: profile.subscription_status || 'free', cancel_at: null });
+    return res.json({ status: profile.subscription_status || 'free', cancel_at: null, renews_at: null });
   }
 
   try {
@@ -152,14 +152,20 @@ router.get('/status', authMiddleware, async (req, res) => {
     const cancelAt = sub.cancel_at_period_end
       ? new Date(sub.current_period_end * 1000).toISOString()
       : null;
+    const renewsAt = new Date(sub.current_period_end * 1000).toISOString();
     return res.json({
       status: sub.status === 'active' ? 'pro' : 'canceled',
       cancel_at_period_end: sub.cancel_at_period_end,
       cancel_at: cancelAt,
-      current_period_end: sub.current_period_end,
+      renews_at: renewsAt,
     });
   } catch {
-    return res.json({ status: profile.subscription_status || 'free', cancel_at: null });
+    // Fall back to DB values if Stripe call fails
+    return res.json({
+      status: profile.subscription_status || 'free',
+      cancel_at: profile.cancel_at || null,
+      renews_at: profile.renews_at || null,
+    });
   }
 });
 
@@ -180,19 +186,25 @@ router.post('/webhook', async (req, res) => {
   const obj = event.data.object;
 
   if (event.type === 'checkout.session.completed') {
-    // Store both subscription status and the subscription ID for future management
+    const updates = {
+      subscription_status: 'pro',
+      stripe_subscription_id: obj.subscription || null,
+      cancel_at: null,
+    };
+    // Retrieve the subscription to get the exact period_end set at purchase time
+    if (obj.subscription) {
+      try {
+        const sub = await stripe.subscriptions.retrieve(obj.subscription);
+        updates.renews_at = new Date(sub.current_period_end * 1000).toISOString();
+      } catch {}
+    }
     await supabase
       .from('profiles')
-      .update({
-        subscription_status: 'pro',
-        stripe_subscription_id: obj.subscription || null,
-        cancel_at: null,
-      })
+      .update(updates)
       .eq('stripe_customer_id', obj.customer);
   }
 
   if (event.type === 'customer.subscription.updated') {
-    // Handles upgrades, downgrades, and cancel_at_period_end changes
     const status = obj.status === 'active' ? 'pro' : 'canceled';
     const cancelAt = obj.cancel_at_period_end
       ? new Date(obj.current_period_end * 1000).toISOString()
@@ -203,18 +215,20 @@ router.post('/webhook', async (req, res) => {
         subscription_status: status,
         stripe_subscription_id: obj.id,
         cancel_at: cancelAt,
+        // Always track the current period end so the UI can show "renews on"
+        renews_at: new Date(obj.current_period_end * 1000).toISOString(),
       })
       .eq('stripe_customer_id', obj.customer);
   }
 
   if (event.type === 'customer.subscription.deleted') {
-    // Subscription actually ended — revoke access
     await supabase
       .from('profiles')
       .update({
         subscription_status: 'canceled',
         stripe_subscription_id: null,
         cancel_at: null,
+        renews_at: null,
       })
       .eq('stripe_customer_id', obj.customer);
   }
