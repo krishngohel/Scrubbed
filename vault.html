@@ -10,6 +10,8 @@
 <script src="theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
@@ -561,10 +563,16 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         <div class="section-label" style="--hi:0">MY FILES</div>
         <h2 class="section-heading" style="--hi:1">Your <em>record</em></h2>
       </div>
-      <label for="vault-file-input" class="btn-hp" style="cursor:pointer;margin-bottom:6px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="margin-right:7px;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Upload file
-      </label>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">
+        <button class="btn-ho" onclick="exportVault()" style="height:44px;padding:0 18px;font-size:14px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:7px;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export All
+        </button>
+        <label for="vault-file-input" class="btn-hp" style="cursor:pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="margin-right:7px;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload file
+        </label>
+      </div>
     </div>
     <!-- Login wall (shown when not logged in) -->
     <div id="vault-login-wall" class="vault-login-wall">
@@ -1514,6 +1522,114 @@ async function submitQuickEntry(){
 
 /* Delegate click-outside-to-close so it works regardless of script/HTML parse order */
 document.addEventListener('click',function(e){if(e.target&&e.target.id==='qe-overlay')closeQuickEntry()});
+
+/* ── VAULT EXPORT ── */
+async function exportVault(){
+  if(!getToken()){showToast('Sign in to export');return}
+  if(!_vf||!_vf.length){showToast('No files to export');return}
+  if(typeof JSZip==='undefined'){showToast('Export library not loaded — check your connection');return}
+  if(typeof jspdf==='undefined'){showToast('PDF library not loaded — check your connection');return}
+
+  showToast('Building export…');
+
+  const zip=new JSZip();
+  const used={};
+  function uniqueName(base){
+    if(!used[base]){used[base]=1;return base}
+    return base+'_'+(++used[base]);
+  }
+
+  for(const f of _vf){
+    const safeName=(f.name||'file').replace(/[/\\:*?"<>|]/g,'_').slice(0,60);
+    const content=f.content||{};
+
+    if(content.pdf){
+      /* Already a PDF stored as base64 data URL */
+      const b64=content.dataUrl?content.dataUrl.split(',')[1]:'';
+      if(b64)zip.file(uniqueName(safeName)+'.pdf',b64,{base64:true});
+
+    }else if(f.type==='spreadsheet'||content.rows){
+      /* Spreadsheet → Excel */
+      const wb=XLSX.utils.book_new();
+      const t=TEMPLATES.find(t=>t.id===f.template_id);
+      const cols=content.cols||(t?t.cols:[]);
+      const rows=content.rows||[];
+      const wsData=cols.length?[cols,...rows]:rows;
+      const ws=XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb,ws,(f.name||'Sheet').slice(0,31));
+      const xlsBuf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+      zip.file(uniqueName(safeName)+'.xlsx',xlsBuf);
+
+    }else{
+      /* Document → PDF */
+      const {jsPDF}=jspdf;
+      const doc=new jsPDF({unit:'mm',format:'a4'});
+      const margin=16;
+      const maxW=doc.internal.pageSize.getWidth()-margin*2;
+      let y=20;
+
+      function addText(text,size,bold){
+        doc.setFontSize(size||10);
+        doc.setFont('helvetica',bold?'bold':'normal');
+        const lines=doc.splitTextToSize(String(text||''),maxW);
+        lines.forEach(line=>{
+          if(y>275){doc.addPage();y=20}
+          doc.text(line,margin,y);
+          y+=(size||10)*0.5;
+        });
+        y+=1;
+      }
+
+      addText(f.name,15,true);
+      y+=2;
+
+      /* Meta fields */
+      if(f.meta){
+        Object.entries(f.meta).forEach(([k,v])=>{
+          if(v&&typeof v==='string')addText(k+': '+v,9,false);
+        });
+        if(Object.keys(f.meta).length)y+=3;
+      }
+
+      if(content.outline){
+        /* Secondary AI outline — plain text */
+        addText(content.outline,10,false);
+      }else if(content.sections&&content.sections.length){
+        content.sections.forEach(sec=>{
+          addText(sec.label||'',12,true);
+          const text=(sec.content||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+          if(text)addText(text,10,false);
+          y+=4;
+        });
+      }else if(content.blank){
+        const text=(content.html||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+        addText(text,10,false);
+      }else{
+        Object.entries(content).forEach(([k,v])=>{
+          if(v&&typeof v==='string'&&v.trim())addText(k+': '+v,10,false);
+        });
+      }
+
+      zip.file(uniqueName(safeName)+'.pdf',doc.output('arraybuffer'));
+    }
+  }
+
+  try{
+    const blob=await zip.generateAsync({type:'blob'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='scrubbed-vault-export.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Export downloaded!');
+  }catch(err){
+    showToast('Export failed — try again');
+    console.error('Export error:',err);
+  }
+}
 </script>
 
 <!-- ══ CREATE NEW POPUP ══ -->
