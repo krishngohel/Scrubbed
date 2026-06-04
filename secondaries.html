@@ -699,7 +699,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       const sw = document.createElement('button');
       sw.className = 'theme-swatch';
       sw.title = p.name;
-      sw.style.background = p.colors?.primary;
+      sw.style.background = p.primary;
       sw.addEventListener('click', () => {
         window.applyTheme(p);
         document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
