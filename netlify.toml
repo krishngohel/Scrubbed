@@ -3,7 +3,7 @@
   publish = "."
 
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "EMAIL_HOST"
+  SECRETS_SCAN_OMIT_KEYS = "EMAIL_HOST,EMAIL_USER"
 
 [functions]
   node_bundler = "esbuild"
