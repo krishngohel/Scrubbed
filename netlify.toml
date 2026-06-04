@@ -15,9 +15,15 @@
   status = 301
 
 [[redirects]]
-  from = "/earlyaccess"
+  from = "/early-access"
   to = "/landing.html"
   status = 200
+
+# Backward compat for old link
+[[redirects]]
+  from = "/earlyaccess"
+  to = "/early-access"
+  status = 301
 
 [[redirects]]
   from = "/secondaries"

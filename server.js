@@ -16,10 +16,11 @@ app.use('/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
 app.get('/index.html', (req, res) => res.redirect(301, '/'));
-app.get('/landing.html', (req, res) => res.redirect(301, '/earlyaccess'));
+app.get('/landing.html', (req, res) => res.redirect(301, '/early-access'));
+app.get('/earlyaccess', (req, res) => res.redirect(301, '/early-access'));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/earlyaccess', (req, res) => res.sendFile(path.join(__dirname, 'landing.html')));
+app.get('/early-access', (req, res) => res.sendFile(path.join(__dirname, 'landing.html')));
 app.get('/secondaries', (req, res) => res.sendFile(path.join(__dirname, 'secondaries.html')));
 
 // Secret early-access link (share /earlyaccess/SECRET with invited users)

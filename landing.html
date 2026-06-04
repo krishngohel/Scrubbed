@@ -436,27 +436,37 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
         <div class="success-circle">&#10003;</div>
         <div class="success-title">You&rsquo;re in.</div>
         <div class="success-body">
-          Check your inbox &mdash; we sent you a welcome note with everything you need to know about Scrubbed.
+          We will be live soon. Thank you for your interest.
         </div>
-        <a class="btn-go" href="/">Open Scrubbed &rarr;</a>
+        <a class="btn-go" href="https://getscrubbed.netlify.app/">Visit Homepage &rarr;</a>
       </div>
     </div>
 
     <!-- ── SIGN IN PANEL ── -->
     <div class="modal-panel" id="panel-login">
-      <form id="login-form" novalidate>
-        <div class="field">
-          <label for="login-email">Email address</label>
-          <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="email" required>
+      <div id="login-form-body">
+        <form id="login-form" novalidate>
+          <div class="field">
+            <label for="login-email">Email address</label>
+            <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label for="login-pw">Password</label>
+            <input type="password" id="login-pw" name="password" placeholder="Your password" autocomplete="current-password" required>
+          </div>
+          <button type="submit" class="btn-submit" id="login-btn">
+            <span id="login-label">Sign in</span>
+          </button>
+        </form>
+      </div>
+      <div class="modal-success" id="login-success">
+        <div class="success-circle">&#10003;</div>
+        <div class="success-title">You&rsquo;re signed in.</div>
+        <div class="success-body">
+          We will be live soon. Thank you for your interest.
         </div>
-        <div class="field">
-          <label for="login-pw">Password</label>
-          <input type="password" id="login-pw" name="password" placeholder="Your password" autocomplete="current-password" required>
-        </div>
-        <button type="submit" class="btn-submit" id="login-btn">
-          <span id="login-label">Sign in</span>
-        </button>
-      </form>
+        <a class="btn-go" href="https://getscrubbed.netlify.app/">Visit Homepage &rarr;</a>
+      </div>
     </div>
   </div>
 </div>
@@ -590,7 +600,8 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
       var data = await res.json();
       if (!res.ok) { showError(data.error || 'Invalid email or password.'); loginBtn.disabled=false; loginLabel.textContent='Sign in'; return; }
       localStorage.setItem('scrubbed_token', data.token);
-      window.location.href = '/vault.html';
+      document.getElementById('login-form-body').classList.add('hidden');
+      document.getElementById('login-success').classList.add('show');
     } catch (_) {
       showError('Network error. Check your connection and try again.');
       loginBtn.disabled = false;

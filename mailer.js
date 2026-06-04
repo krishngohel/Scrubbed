@@ -75,7 +75,7 @@ function welcomeHtml(email) {
                   <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px">
                     <tr>
                       <td style="background:#B5563A;border-radius:8px">
-                        <a href="${APP_URL}/index.html" style="display:inline-block;padding:13px 28px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;font-weight:600;color:#FBF7EE;text-decoration:none;letter-spacing:0.01em;white-space:nowrap">Open Scrubbed &rarr;</a>
+                        <a href="https://getscrubbed.netlify.app/" style="display:inline-block;padding:13px 28px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;font-weight:600;color:#FBF7EE;text-decoration:none;letter-spacing:0.01em;white-space:nowrap">Visit Homepage &rarr;</a>
                       </td>
                     </tr>
                   </table>
