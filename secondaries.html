@@ -701,7 +701,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       sw.title = p.name;
       sw.style.background = p.colors?.primary;
       sw.addEventListener('click', () => {
-        window.applyTheme(p.colors, true);
+        window.applyTheme(p);
         document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
         sw.classList.add('active');
       });
