@@ -459,14 +459,6 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
           </button>
         </form>
       </div>
-      <div class="modal-success" id="login-success">
-        <div class="success-circle">&#10003;</div>
-        <div class="success-title">Welcome back.</div>
-        <div class="success-body">
-          We&rsquo;re putting the finishing touches on Scrubbed and you&rsquo;ll be among the first through the door. Keep an eye on your inbox &mdash; we&rsquo;ll see you soon.
-        </div>
-        <a class="btn-go" href="https://getscrubbed.netlify.app/">Visit Homepage &rarr;</a>
-      </div>
     </div>
   </div>
 </div>
@@ -600,8 +592,8 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
       var data = await res.json();
       if (!res.ok) { showError(data.error || 'Invalid email or password.'); loginBtn.disabled=false; loginLabel.textContent='Sign in'; return; }
       localStorage.setItem('scrubbed_token', data.token);
-      document.getElementById('login-form-body').classList.add('hidden');
-      document.getElementById('login-success').classList.add('show');
+      loginLabel.textContent = 'Welcome back.';
+      setTimeout(function () { window.location.href = '/vault.html'; }, 800);
     } catch (_) {
       showError('Network error. Check your connection and try again.');
       loginBtn.disabled = false;
