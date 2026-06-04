@@ -637,7 +637,7 @@ function Marketing({ onEnter, user, onLogout }) {
         <div className="footer-inner">
           <span className="wordmark">Scrubbed.</span>
           <div className="footer-links">
-            <a href="#how-it-works">How it works</a><a href="/vault.html">The Vault</a><a href="#pricing">Pricing</a><a>Privacy</a><a>Terms</a>
+            <a href="#how-it-works">How it works</a><a href="/vault.html">The Vault</a><a href="#pricing">Pricing</a><a href="/privacy.html">Privacy Policy</a>
           </div>
           <div className="footer-legal">© 2026 Scrubbed</div>
         </div>
@@ -940,6 +940,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
       <div class="auth-field"><label for="signup-confirm">Confirm password</label><input type="password" id="signup-confirm" autocomplete="new-password" placeholder="confirm your password"/></div>
       <p id="signup-error" class="auth-error"></p>
       <button type="submit" class="auth-submit">Create account</button>
+      <p style="font-size:11.5px;color:var(--stone);text-align:center;margin-top:12px;line-height:1.5">
+        By creating an account you agree to our <a href="/privacy.html" target="_blank" style="color:var(--clay);text-underline-offset:2px">Privacy Policy</a>.
+      </p>
     </form>
   </div>
 </div>
