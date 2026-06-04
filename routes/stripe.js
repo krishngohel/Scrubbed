@@ -45,6 +45,7 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
     mode: 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
+    metadata: { plan },
     success_url: `${process.env.APP_URL}/secondaries?upgraded=1`,
     cancel_url:  `${process.env.APP_URL}/secondaries`,
   });
@@ -186,16 +187,22 @@ router.post('/webhook', async (req, res) => {
   const obj = event.data.object;
 
   if (event.type === 'checkout.session.completed') {
+    const plan = obj.metadata?.plan || 'monthly';
     const updates = {
       subscription_status: 'pro',
+      plan_type: plan,
       stripe_subscription_id: obj.subscription || null,
       cancel_at: null,
     };
-    // Retrieve the subscription to get the exact period_end set at purchase time
     if (obj.subscription) {
       try {
         const sub = await stripe.subscriptions.retrieve(obj.subscription);
         updates.renews_at = new Date(sub.current_period_end * 1000).toISOString();
+        // Auto-cancel cycle pass at period end (no auto-renew)
+        if (plan === 'cycle' && !sub.cancel_at_period_end) {
+          await stripe.subscriptions.update(obj.subscription, { cancel_at_period_end: true });
+          updates.cancel_at = updates.renews_at;
+        }
       } catch {}
     }
     await supabase
@@ -209,14 +216,22 @@ router.post('/webhook', async (req, res) => {
     const cancelAt = obj.cancel_at_period_end
       ? new Date(obj.current_period_end * 1000).toISOString()
       : null;
+    // Detect plan type from price ID when plan changes via portal
+    const priceId = obj.items?.data?.[0]?.price?.id;
+    const planTypeUpdate = {};
+    if (priceId) {
+      if (priceId === process.env.STRIPE_PRO_ANNUAL_PRICE_ID) planTypeUpdate.plan_type = 'annual';
+      else if (priceId === process.env.STRIPE_CYCLE_PASS_PRICE_ID) planTypeUpdate.plan_type = 'cycle';
+      else if (priceId === process.env.STRIPE_PRO_PRICE_ID) planTypeUpdate.plan_type = 'monthly';
+    }
     await supabase
       .from('profiles')
       .update({
         subscription_status: status,
         stripe_subscription_id: obj.id,
         cancel_at: cancelAt,
-        // Always track the current period end so the UI can show "renews on"
         renews_at: new Date(obj.current_period_end * 1000).toISOString(),
+        ...planTypeUpdate,
       })
       .eq('stripe_customer_id', obj.customer);
   }

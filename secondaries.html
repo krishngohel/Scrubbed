@@ -160,7 +160,9 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 .outline-tile-prompt{font-size:12.5px;color:var(--graphite);line-height:1.4;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .outline-tile-footer{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--rule)}
 .outline-tile-date{font-size:11px;font-family:var(--font-mono);color:var(--stone)}
-.outline-tile-actions{margin-left:auto;display:flex;gap:6px}
+.outline-tile-actions{margin-left:auto;display:flex;align-items:center;gap:6px}
+.outline-regen-badge{font-size:10.5px;font-family:var(--font-mono);color:var(--stone);padding:2px 6px;background:var(--rule);border-radius:999px;white-space:nowrap}
+.outline-regen-badge.is-limit{color:var(--rust);background:var(--rust-s)}
 .tile-btn{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:500;transition:background 140ms var(--ease),color 140ms var(--ease)}
 .tile-btn-view{background:var(--clay-s);color:var(--clay-p)}
 .tile-btn-view:hover{background:var(--clay);color:var(--cream)}
@@ -410,6 +412,10 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     </div>
     <div class="outline-modal-body" id="modal-outline-body"></div>
     <div class="outline-modal-foot">
+      <button class="btn-primary btn-sm" id="modal-regen-btn" onclick="regenerateOutline()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Regenerate
+      </button>
       <button class="btn-secondary btn-sm" id="modal-copy-btn" onclick="copyOutline()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         Copy to clipboard
@@ -511,6 +517,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   const TOKEN_KEY = 'scrubbed_token';
   const REFRESH_KEY = 'scrubbed_refresh';
   let _isPro = false;
+  let _planType = null;
   let _schools = [];
   let _customSchools = [];
   let _editingCustomSlug = null;
@@ -518,6 +525,12 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   let _outlines = [];
   let _activeFilter = 'all';
   let _currentOutlineText = '';
+  let _currentOutlineId = null;
+
+  const PLAN_REGEN_LIMITS   = { monthly: 3, annual: 5,  cycle: 2 };
+  const PLAN_MONTHLY_LIMITS = { monthly: 30, annual: 80, cycle: 15 };
+  function getRegenLimit()   { return PLAN_REGEN_LIMITS[_planType]   || 3; }
+  function getMonthlyLimit() { return PLAN_MONTHLY_LIMITS[_planType] || 30; }
 
   function loadCustomSchools() {
     try { _customSchools = JSON.parse(localStorage.getItem('scrubbed_custom_schools') || '[]'); }
@@ -635,7 +648,12 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     setLoggedIn(username);
     try {
       const res = await fetch('/me', { headers: { Authorization: 'Bearer ' + token() } });
-      if (res.ok) { const u = await res.json(); _isPro = u.subscription_status === 'pro'; updateProGate(); }
+      if (res.ok) {
+        const u = await res.json();
+        _isPro = u.subscription_status === 'pro';
+        _planType = u.plan_type || null;
+        updateProGate();
+      }
     } catch {}
     loadPlanStatus();
     await Promise.all([loadSchools(), loadOutlines()]);
@@ -667,6 +685,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       const user = await res.json();
       setLoggedIn(user.username);
       _isPro = user.subscription_status === 'pro';
+      _planType = user.plan_type || null;
       updateProGate();
       loadPlanStatus();
     } catch {
@@ -683,7 +702,11 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   async function loadMeAndProceed() {
     try {
       const res = await fetch('/me', { headers: { Authorization: 'Bearer ' + token() } });
-      if (res.ok) { const u = await res.json(); _isPro = u.subscription_status === 'pro'; }
+      if (res.ok) {
+        const u = await res.json();
+        _isPro = u.subscription_status === 'pro';
+        _planType = u.plan_type || null;
+      }
     } catch {}
     updateProGate();
     await Promise.all([loadSchools(), loadOutlines()]);
@@ -1036,6 +1059,10 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         body: JSON.stringify(body),
       });
       const data = await res.json();
+      if (res.status === 429) {
+        alert(data.error || 'Limit reached. Please try again next month or upgrade your plan.');
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       _outlines.unshift(data);
       renderOutlines();
@@ -1080,6 +1107,12 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       const meta = o.meta || {};
       const date = new Date(o.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const promptSnippet = meta.prompt_text ? meta.prompt_text.slice(0, 90) + (meta.prompt_text.length > 90 ? '…' : '') : '';
+      const regenCount = meta.regen_count ?? 0;
+      const regenLimit = meta.regen_limit ?? getRegenLimit();
+      const atLimit = regenCount >= regenLimit;
+      const regenLabel = atLimit
+        ? `<span class="outline-regen-badge is-limit" title="Regeneration limit reached">${regenCount}/${regenLimit} regens</span>`
+        : (regenCount > 0 ? `<span class="outline-regen-badge" title="${regenLimit - regenCount} regeneration${regenLimit - regenCount !== 1 ? 's' : ''} remaining">${regenCount}/${regenLimit} regens</span>` : '');
       return `
         <div class="outline-tile">
           <div class="outline-tile-accent"></div>
@@ -1090,6 +1123,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
             <div class="outline-tile-footer">
               <span class="outline-tile-date">${date}</span>
               <div class="outline-tile-actions">
+                ${regenLabel}
                 <button class="tile-btn tile-btn-view" onclick="viewOutline('${o.id}')">View</button>
                 <button class="tile-btn tile-btn-delete" onclick="deleteOutline('${o.id}', this)" aria-label="Delete">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -1154,13 +1188,30 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   window.viewOutline = function (id) {
     const outline = _outlines.find(o => o.id === id);
     if (!outline) return;
+    _currentOutlineId = id;
     const meta = outline.meta || {};
     const text = outline.content?.outline || '';
     _currentOutlineText = text;
 
+    const regenCount = meta.regen_count ?? 0;
+    const regenLimit = meta.regen_limit ?? getRegenLimit();
+    const atLimit = regenCount >= regenLimit;
+
     document.getElementById('modal-school-label').textContent = meta.school_name || '';
     document.getElementById('modal-outline-name').textContent = outline.name;
     document.getElementById('modal-outline-body').innerHTML = formatOutlineText(text);
+
+    const regenBtn = document.getElementById('modal-regen-btn');
+    if (regenBtn) {
+      regenBtn.disabled = atLimit;
+      regenBtn.title = atLimit
+        ? `Regeneration limit reached (${regenLimit} per outline on your plan)`
+        : `${regenLimit - regenCount} regeneration${regenLimit - regenCount !== 1 ? 's' : ''} remaining`;
+      regenBtn.innerHTML = atLimit
+        ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> ${regenCount}/${regenLimit} regens`
+        : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Regenerate`;
+    }
+
     document.getElementById('outline-modal').classList.add('open');
     document.body.style.overflow = 'hidden';
   };
@@ -1181,6 +1232,49 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
       setTimeout(() => { btn.innerHTML = orig; }, 2000);
     });
+  };
+
+  window.regenerateOutline = async function () {
+    if (!_currentOutlineId) return;
+    const regenBtn = document.getElementById('modal-regen-btn');
+    const origHTML = regenBtn.innerHTML;
+    regenBtn.disabled = true;
+    regenBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Regenerating…`;
+    try {
+      const res = await fetch(`/outlines/${_currentOutlineId}/regenerate`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (res.status === 429) {
+        alert(data.error || 'Regeneration limit reached.');
+        regenBtn.disabled = true;
+        regenBtn.innerHTML = origHTML;
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || 'Regeneration failed');
+      const idx = _outlines.findIndex(o => o.id === _currentOutlineId);
+      if (idx !== -1) _outlines[idx] = data;
+      renderOutlines();
+      const text = data.content?.outline || '';
+      _currentOutlineText = text;
+      document.getElementById('modal-outline-body').innerHTML = formatOutlineText(text);
+      const meta = data.meta || {};
+      const regenCount = meta.regen_count ?? 0;
+      const regenLimit = meta.regen_limit ?? getRegenLimit();
+      const atLimit = regenCount >= regenLimit;
+      regenBtn.disabled = atLimit;
+      regenBtn.title = atLimit
+        ? `Regeneration limit reached (${regenLimit} per outline on your plan)`
+        : `${regenLimit - regenCount} regeneration${regenLimit - regenCount !== 1 ? 's' : ''} remaining`;
+      regenBtn.innerHTML = atLimit
+        ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> ${regenCount}/${regenLimit} regens`
+        : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Regenerate`;
+    } catch (err) {
+      alert(err.message || 'Regeneration failed. Please try again.');
+      regenBtn.disabled = false;
+      regenBtn.innerHTML = origHTML;
+    }
   };
 
   function formatOutlineText(text) {

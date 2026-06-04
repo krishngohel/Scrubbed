@@ -41,13 +41,14 @@ app.use('/outlines', require('./routes/outlines'));
 app.get('/me', authMiddleware, async (req, res) => {
   const { data } = await supabase
     .from('profiles')
-    .select('subscription_status')
+    .select('subscription_status, plan_type')
     .eq('id', req.user.id)
     .single();
   res.json({
     id: req.user.id,
     username: req.user.username,
     subscription_status: data?.subscription_status || 'free',
+    plan_type: data?.plan_type || null,
   });
 });
 
