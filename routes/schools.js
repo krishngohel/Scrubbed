@@ -125,7 +125,7 @@ router.get('/', async (req, res) => {
 router.post('/:slug/refresh-prompts', authMiddleware, async (req, res) => {
   const { data: school, error: schoolErr } = await supabase
     .from('schools')
-    .select('id, name, prompts_url')
+    .select('id, name, prompts_url, prompts, prompts_updated_at')
     .eq('slug', req.params.slug)
     .single();
 
@@ -174,6 +174,15 @@ ${cleanHtml}`,
     console.error('Prompt extraction error:', err);
     // Don't fail the request — return empty prompts with a warning
     prompts = [];
+  }
+
+  // If Claude found nothing, preserve existing prompts — don't overwrite with []
+  if (prompts.length === 0) {
+    return res.json({
+      prompts: school.prompts || [],
+      prompts_updated_at: school.prompts_updated_at,
+      no_new_prompts: true,
+    });
   }
 
   const { error: updateErr } = await supabase

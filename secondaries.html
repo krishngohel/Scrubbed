@@ -342,11 +342,9 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   <div class="footer-inner">
     <span class="wordmark">Scrubbed.</span>
     <div class="footer-links">
-      <a href="/#how-it-works">How it works</a>
+      <a href="/">Home</a>
       <a href="/vault.html">The Vault</a>
-      <a href="/#pricing">Pricing</a>
-      <a href="#">Privacy</a>
-      <a href="#">Terms</a>
+      <a href="/secondaries">Secondary AI</a>
     </div>
     <div class="footer-legal">© 2026 Scrubbed</div>
   </div>
@@ -766,18 +764,29 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       if (!res.ok) throw new Error(data.error || 'Refresh failed');
       const school = _schools.find(s => s.slug === slug);
       if (school) {
-        school.prompts = data.prompts;
-        school.prompts_updated_at = data.prompts_updated_at;
-        const panel = document.getElementById('prompts-' + slug);
-        if (panel) panel.innerHTML = renderPromptsHTML(school);
-        updateProGate();
-        // update status badge
-        const card = document.querySelector(`[data-slug="${slug}"]`);
-        if (card) {
-          const statusBadge = card.querySelector('.school-status');
-          if (statusBadge && data.prompts.length > 0) {
-            statusBadge.className = 'school-status available';
-            statusBadge.innerHTML = `<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg> ${data.prompts.length} prompt${data.prompts.length !== 1 ? 's' : ''}`;
+        if (data.no_new_prompts) {
+          // No new prompts found — keep existing display, show a brief notice
+          const panel = document.getElementById('prompts-' + slug);
+          if (panel) {
+            const notice = document.createElement('p');
+            notice.style.cssText = 'font-size:12px;color:var(--stone);font-style:italic;padding:6px 0 2px;';
+            notice.textContent = 'No new prompts posted yet — existing prompts preserved.';
+            panel.prepend(notice);
+            setTimeout(() => notice.remove(), 4000);
+          }
+        } else {
+          school.prompts = data.prompts;
+          school.prompts_updated_at = data.prompts_updated_at;
+          const panel = document.getElementById('prompts-' + slug);
+          if (panel) panel.innerHTML = renderPromptsHTML(school);
+          updateProGate();
+          const card = document.querySelector(`[data-slug="${slug}"]`);
+          if (card) {
+            const statusBadge = card.querySelector('.school-status');
+            if (statusBadge && data.prompts.length > 0) {
+              statusBadge.className = 'school-status available';
+              statusBadge.innerHTML = `<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg> ${data.prompts.length} prompt${data.prompts.length !== 1 ? 's' : ''}`;
+            }
           }
         }
       }
