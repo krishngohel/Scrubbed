@@ -62,18 +62,22 @@ em{font-family:var(--font-display,"Newsreader",Georgia,serif);font-style:italic}
 .user-dropdown-divider{border:none;border-top:1px solid var(--rule);margin:4px 0}
 .user-dropdown-logout{color:var(--rust)}
 .user-dropdown-logout:hover{background:var(--rust-s);color:var(--rust)}
-.theme-section{padding:10px 11px 8px}
-.theme-section-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.theme-section-lbl{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:var(--graphite)}
-.theme-reset-btn{font-size:11px;color:var(--stone);background:none;border:none;cursor:pointer;padding:0}
-.theme-reset-btn:hover{color:var(--graphite)}
-.theme-presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.theme-swatch{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform 140ms var(--ease),border-color 140ms var(--ease)}
-.theme-swatch:hover,.theme-swatch.active{transform:scale(1.15);border-color:var(--ink)}
-.theme-custom-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.theme-color-row{display:flex;align-items:center;gap:6px;padding:3px 0}
-.tc-label{font-size:11px;color:var(--stone);flex:1}
-.tc-input{width:24px;height:24px;border:none;border-radius:4px;cursor:pointer;padding:0;background:none}
+body.theme-transition *,body.theme-transition *::before,body.theme-transition *::after{transition:background-color 0.5s ease,color 0.5s ease,border-color 0.5s ease !important}
+.theme-section{padding:6px 6px 2px}
+.theme-section-hd{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 6px}
+.theme-section-lbl{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:500;color:var(--graphite);letter-spacing:0.06em;text-transform:uppercase}
+.theme-reset-btn{font-size:11px;font-family:var(--font-body);color:var(--cream);background:var(--rust);border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-weight:600;transition:background 0.15s}
+.theme-reset-btn:hover{background:var(--clay)}
+.theme-presets{display:flex;gap:6px;flex-wrap:wrap;padding:0 4px 7px}
+.theme-preset{width:20px;height:20px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;padding:0;position:relative;transition:transform 0.15s,border-color 0.15s;flex-shrink:0;outline:none}
+.theme-preset:hover,.theme-preset.active{border-color:var(--ink);transform:scale(1.15)}
+.theme-custom-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:0 4px 7px}
+.theme-color-row{display:flex;flex-direction:column;gap:3px}
+.tc-label{font-size:10px;color:var(--graphite);font-family:var(--font-body)}
+.tc-input{width:100%;height:24px;border:1px solid var(--rule);border-radius:5px;cursor:pointer;padding:1px 2px;background:rgba(31,27,22,0.04)}
+.tc-input:hover{border-color:var(--clay)}
+.tc-input::-webkit-color-swatch-wrapper{padding:0}
+.tc-input::-webkit-color-swatch{border:none;border-radius:3px}
 
 /* ── LAYOUT ── */
 .page-wrap{max-width:1200px;margin:0 auto;padding:0 32px}
@@ -693,31 +697,51 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   document.getElementById('login-btn').addEventListener('click', () => openModal('login'));
 
   // ── THEME PICKER ──────────────────────────────────────────────────────
-  if (window.THEME_PRESETS) {
+  (function(){
     const presetsEl = document.getElementById('theme-presets');
-    window.THEME_PRESETS.forEach(p => {
-      const sw = document.createElement('button');
-      sw.className = 'theme-swatch';
-      sw.title = p.name;
-      sw.style.background = p.primary;
-      sw.addEventListener('click', () => {
-        window.applyTheme(p);
-        document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
-        sw.classList.add('active');
+    if (presetsEl && window.THEME_PRESETS) {
+      window.THEME_PRESETS.forEach((p, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'theme-preset';
+        btn.title = p.name;
+        btn.style.background = `linear-gradient(135deg,${p.primary} 50%,${p.accent} 50%)`;
+        btn.dataset.idx = i;
+        btn.addEventListener('click', () => { window.applyTheme(p); });
+        presetsEl.appendChild(btn);
       });
-      presetsEl.appendChild(sw);
+    }
+
+    window.syncThemePicker = function(colors) {
+      const ids = ['tc-bg','tc-font','tc-primary','tc-accent'];
+      const keys = ['bg','font','primary','accent'];
+      ids.forEach((id, i) => { const el = document.getElementById(id); if (el) el.value = colors[keys[i]]; });
+      document.querySelectorAll('.theme-preset').forEach((btn, i) => {
+        const p = window.THEME_PRESETS[i];
+        btn.classList.toggle('active', p && p.bg === colors.bg && p.font === colors.font && p.primary === colors.primary && p.accent === colors.accent);
+      });
+    };
+
+    function readCustom() {
+      return {
+        bg:      document.getElementById('tc-bg')?.value      || window.THEME_DEFAULT.bg,
+        font:    document.getElementById('tc-font')?.value    || window.THEME_DEFAULT.font,
+        primary: document.getElementById('tc-primary')?.value || window.THEME_DEFAULT.primary,
+        accent:  document.getElementById('tc-accent')?.value  || window.THEME_DEFAULT.accent,
+      };
+    }
+    ['tc-bg','tc-font','tc-primary','tc-accent'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => window.applyTheme(readCustom()));
     });
-  }
-  document.getElementById('theme-reset')?.addEventListener('click', () => {
-    window.applyTheme(window.THEME_DEFAULT, true);
-  });
-  ['bg','font','primary','accent'].forEach(k => {
-    document.getElementById('tc-' + k)?.addEventListener('input', function () {
-      const cur = JSON.parse(localStorage.getItem('scrubbed_theme') || '{}');
-      cur[k] = this.value;
-      window.applyTheme(cur, false);
-    });
-  });
+
+    const resetBtn = document.getElementById('theme-reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => window.applyTheme(window.THEME_DEFAULT));
+
+    try {
+      const saved = localStorage.getItem('scrubbed_theme');
+      if (window.syncThemePicker) window.syncThemePicker(saved ? JSON.parse(saved) : window.THEME_DEFAULT);
+    } catch(e) {}
+  })();
 
   // ── PRO GATE ──────────────────────────────────────────────────────────
   function updateProGate() {
