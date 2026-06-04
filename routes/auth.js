@@ -46,7 +46,7 @@ router.post('/signup', async (req, res) => {
     return res.status(500).json({ error: 'Server error. Please try again.' });
   }
 
-  sendWelcomeEmail(email.trim().toLowerCase());
+  await sendWelcomeEmail(email.trim().toLowerCase());
   res.status(201).json({ message: 'Account created successfully.' });
 });
 
