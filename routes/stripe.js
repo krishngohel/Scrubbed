@@ -41,8 +41,8 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
     mode: 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${process.env.APP_URL}/vault.html?upgraded=1`,
-    cancel_url: `${process.env.APP_URL}/vault.html`,
+    success_url: `${process.env.APP_URL}/secondaries?upgraded=1`,
+    cancel_url: `${process.env.APP_URL}/secondaries`,
   });
 
   res.json({ url: session.url });

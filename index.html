@@ -603,7 +603,7 @@ function Marketing({ onEnter, user, onLogout }) {
                 <li>{IC.check} School-specific prompt mapping</li>
                 <li>{IC.check} Built from your real Vault data</li>
               </ul>
-              <button className="btn-primary btn-md" onClick={onEnter}>Start Pro {IC.arrow}</button>
+              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('monthly')}>Start Pro {IC.arrow}</button>
             </div>
             <div className="price-card">
               <div className="price-name">Cycle Pass</div>
@@ -615,7 +615,7 @@ function Marketing({ onEnter, user, onLogout }) {
                 <li>{IC.check} School-specific prompt mapping</li>
                 <li>{IC.check} Built from your real Vault data</li>
               </ul>
-              <button className="btn-primary btn-md" onClick={onEnter}>Get the cycle {IC.arrow}</button>
+              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('cycle')}>Get the cycle {IC.arrow}</button>
             </div>
             <div className="price-card price-card--featured">
               <div className="price-name">Pro Annual</div>
@@ -627,7 +627,7 @@ function Marketing({ onEnter, user, onLogout }) {
                 <li>{IC.check} School-specific prompt mapping</li>
                 <li>{IC.check} Built from your real Vault data</li>
               </ul>
-              <button className="btn-primary btn-md" onClick={onEnter}>Get a year {IC.arrow}</button>
+              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('annual')}>Get a year {IC.arrow}</button>
             </div>
           </div>
         </div>
@@ -982,10 +982,35 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   }
   function allMet(pw) { return Object.values(checks).every(fn => fn(pw)); }
 
+  window.startCheckout = async function(plan) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      sessionStorage.setItem('pending_checkout_plan', plan);
+      openModal('signup');
+      return;
+    }
+    try {
+      const res = await fetch('/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else alert('Could not start checkout. Please try again.');
+    } catch { alert('Could not start checkout. Please try again.'); }
+  };
+
   function setLoggedIn(username) {
     overlay.classList.remove('open');
     if (window.__scrubbedLogin) window.__scrubbedLogin(username);
-    window.location.href = '/vault.html';
+    const pending = sessionStorage.getItem('pending_checkout_plan');
+    if (pending) {
+      sessionStorage.removeItem('pending_checkout_plan');
+      window.startCheckout(pending);
+    } else {
+      window.location.href = '/vault.html';
+    }
   }
 
   function openModal(tab) { overlay.classList.add('open'); switchTab(tab || 'login'); }
