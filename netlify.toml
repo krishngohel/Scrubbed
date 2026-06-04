@@ -2,6 +2,9 @@
   functions = "netlify/functions"
   publish = "."
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "EMAIL_HOST"
+
 [functions]
   node_bundler = "esbuild"
 
