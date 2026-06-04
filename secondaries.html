@@ -219,6 +219,30 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
 .footer-links a:hover{color:var(--graphite)}
 .footer-legal{font-size:12px;color:var(--stone);font-family:var(--font-mono)}
 
+/* ── CUSTOM SCHOOL MODAL ── */
+#custom-school-modal{display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:300;align-items:center;justify-content:center;padding:20px}
+#custom-school-modal.open{display:flex}
+.custom-modal-inner{background:var(--cream);border:1px solid var(--rule);border-radius:16px;width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(31,27,22,0.22)}
+.custom-modal-head{padding:20px 26px 16px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.custom-modal-title{font-family:var(--font-display);font-size:20px;letter-spacing:-0.01em;color:var(--ink)}
+.custom-modal-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--stone);border-radius:6px;transition:background 140ms,color 140ms}
+.custom-modal-close:hover{background:rgba(31,27,22,0.06);color:var(--ink)}
+.custom-modal-body{padding:20px 26px;overflow-y:auto;flex:1}
+.custom-modal-foot{padding:14px 26px;border-top:1px solid var(--rule);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+.cs-field{margin-bottom:13px}
+.cs-field label{display:block;font-size:11.5px;font-weight:600;color:var(--graphite);margin-bottom:5px;letter-spacing:0.01em}
+.cs-field input,.cs-field textarea{width:100%;border:1.5px solid var(--rule);border-radius:8px;padding:9px 12px;font-size:13.5px;font-family:var(--font-body);background:var(--paper);color:var(--ink);outline:none;transition:border-color 140ms}
+.cs-field input:focus,.cs-field textarea:focus{border-color:var(--clay)}
+.cs-field textarea{resize:vertical;min-height:60px;line-height:1.5}
+.cs-prompt-block{background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:13px 13px 9px;margin-bottom:9px;position:relative}
+.cs-prompt-num{font-size:10px;font-family:var(--font-mono);color:var(--stone);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:9px}
+.cs-prompt-remove{position:absolute;top:9px;right:9px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:var(--stone);border-radius:4px;font-size:14px;line-height:1;transition:background 120ms,color 120ms}
+.cs-prompt-remove:hover{background:var(--rust-s);color:var(--rust)}
+.cs-add-prompt{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--clay);padding:6px 0;margin-top:2px;transition:color 140ms}
+.cs-add-prompt:hover{color:var(--clay-d)}
+.add-school-card{width:100%;background:transparent;border:2px dashed var(--rule);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:10px;padding:26px 24px;cursor:pointer;transition:border-color 180ms,background 180ms,color 180ms;color:var(--stone);font-size:14px;font-weight:500;margin-top:16px}
+.add-school-card:hover{border-color:var(--clay);background:rgba(181,86,58,0.04);color:var(--clay)}
+
 /* ── RESPONSIVE ── */
 @media(max-width:700px){
   .nav-inner{padding:0 16px;gap:16px}
@@ -321,6 +345,10 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     <div class="skel-card skeleton"></div>
     <div class="skel-card skeleton"></div>
   </div>
+  <button class="add-school-card" onclick="openCustomModal()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add a school not on this list
+  </button>
 
   <!-- OUTLINES SECTION -->
   <div class="section-hd-row" style="margin-top:60px">
@@ -370,6 +398,43 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         Copy to clipboard
       </button>
       <button class="btn-ghost btn-sm" onclick="closeOutlineModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM SCHOOL MODAL -->
+<div id="custom-school-modal">
+  <div class="custom-modal-inner">
+    <div class="custom-modal-head">
+      <div class="custom-modal-title" id="custom-modal-title">Add Custom School</div>
+      <button class="custom-modal-close" onclick="closeCustomModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="custom-modal-body">
+      <div class="cs-field">
+        <label>School name *</label>
+        <input type="text" id="cs-name" placeholder="e.g. Harvard Medical School"/>
+      </div>
+      <div class="cs-field">
+        <label>Short name <span style="font-weight:400;color:var(--stone)">(optional)</span></label>
+        <input type="text" id="cs-short" placeholder="e.g. HMS"/>
+      </div>
+      <div class="cs-field">
+        <label>Mission / focus <span style="font-weight:400;color:var(--stone)">(optional — helps Claude write a better outline)</span></label>
+        <textarea id="cs-mission" placeholder="What makes this school unique? Research focus, community mission, location, etc."></textarea>
+      </div>
+      <div style="font-size:11.5px;font-weight:600;color:var(--graphite);letter-spacing:0.01em;margin-bottom:10px">PROMPTS</div>
+      <div id="cs-prompts-list"></div>
+      <button class="cs-add-prompt" onclick="addPromptEntry()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add prompt
+      </button>
+      <p id="cs-error" style="font-size:12.5px;color:var(--rust);margin-top:10px;min-height:16px"></p>
+    </div>
+    <div class="custom-modal-foot">
+      <button class="btn-secondary btn-sm" onclick="closeCustomModal()">Cancel</button>
+      <button class="btn-primary btn-sm" onclick="saveCustomSchool()">Save school</button>
     </div>
   </div>
 </div>
@@ -430,9 +495,20 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   const REFRESH_KEY = 'scrubbed_refresh';
   let _isPro = false;
   let _schools = [];
+  let _customSchools = [];
+  let _editingCustomSlug = null;
+  let _promptCounter = 0;
   let _outlines = [];
   let _activeFilter = 'all';
   let _currentOutlineText = '';
+
+  function loadCustomSchools() {
+    try { _customSchools = JSON.parse(localStorage.getItem('scrubbed_custom_schools') || '[]'); }
+    catch { _customSchools = []; }
+  }
+  function saveCustomSchoolsLocally() {
+    localStorage.setItem('scrubbed_custom_schools', JSON.stringify(_customSchools));
+  }
 
   function token() { return localStorage.getItem(TOKEN_KEY); }
   function authHeaders() { return { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' }; }
@@ -549,6 +625,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
 
   // ── INIT ──────────────────────────────────────────────────────────────
   async function init() {
+    loadCustomSchools();
     const t = token();
 
     if (!t) {
@@ -671,6 +748,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       renderSchools();
     } catch {
       document.getElementById('schools-grid').innerHTML = '<p style="color:var(--stone);font-size:14px;grid-column:1/-1">Could not load schools. Please refresh.</p>';
+      renderCustomSchools();
     }
   }
 
@@ -724,7 +802,52 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
 
       grid.appendChild(card);
     });
+    renderCustomSchools();
     updateProGate();
+  }
+
+  function renderCustomSchools() {
+    const grid = document.getElementById('schools-grid');
+    _customSchools.forEach(school => {
+      const hasPrompts = Array.isArray(school.prompts) && school.prompts.length > 0;
+      const card = document.createElement('div');
+      card.className = 'school-card collapsed';
+      card.dataset.slug = school.slug;
+      card.innerHTML = `
+        <div class="school-card-head" onclick="toggleSchool('${school.slug}')">
+          <div class="school-card-top">
+            <div class="school-name">${escapeHtml(school.name)}</div>
+            <span style="font-size:10px;font-family:var(--font-mono);background:var(--rule);color:var(--graphite);padding:2px 9px;border-radius:999px;font-weight:600;letter-spacing:0.04em;white-space:nowrap">Custom</span>
+          </div>
+          <div class="school-badge-row">
+            <span class="school-status ${hasPrompts ? 'available' : 'pending'}">
+              <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg>
+              ${hasPrompts ? school.prompts.length + ' prompt' + (school.prompts.length !== 1 ? 's' : '') : 'No prompts'}
+            </span>
+          </div>
+          ${school.mission_snippet ? `<p class="school-mission">${escapeHtml(school.mission_snippet)}</p>` : ''}
+        </div>
+        <div class="school-card-actions">
+          <button class="school-toggle-btn" id="toggle-${school.slug}"
+            data-label-open="Hide prompts" data-label-closed="${hasPrompts ? 'View prompts' : 'No prompts added'}"
+            onclick="event.stopPropagation();toggleSchool('${school.slug}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <span class="toggle-label">${hasPrompts ? 'View prompts' : 'No prompts added'}</span>
+          </button>
+          <button class="school-refresh-btn" onclick="event.stopPropagation();openCustomModal('${school.slug}')" title="Edit school">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          <button class="school-refresh-btn" onclick="event.stopPropagation();deleteCustomSchool('${school.slug}')" style="color:var(--rust)" title="Delete">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Delete
+          </button>
+        </div>
+        <div class="school-prompts" id="prompts-${school.slug}">
+          ${renderPromptsHTML(school)}
+        </div>`;
+      grid.appendChild(card);
+    });
   }
 
   function renderPromptsHTML(school) {
@@ -810,10 +933,21 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Generating…`;
 
     try {
+      const customSchool = _customSchools.find(s => s.slug === schoolSlug);
+      let body;
+      if (customSchool) {
+        const p = (customSchool.prompts || []).find(p => p.prompt_id === promptId);
+        body = {
+          custom_school: { name: customSchool.name, short_name: customSchool.short_name || customSchool.name, mission_snippet: customSchool.mission_snippet || '' },
+          custom_prompt: { prompt_text: p.prompt_text, word_limit: p.word_limit },
+        };
+      } else {
+        body = { school_slug: schoolSlug, prompt_id: promptId };
+      }
       const res = await fetch('/outlines/generate', {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ school_slug: schoolSlug, prompt_id: promptId }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation failed');
@@ -975,6 +1109,114 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       .replace(/\n{2,}/g, '</p><p>')
       .replace(/^(?!<[hup])/gm, '')
       .trim();
+  }
+
+  // ── CUSTOM SCHOOL MODAL ───────────────────────────────────────────────
+  window.openCustomModal = function(slug) {
+    _editingCustomSlug = slug || null;
+    _promptCounter = 0;
+    document.getElementById('cs-name').value = '';
+    document.getElementById('cs-short').value = '';
+    document.getElementById('cs-mission').value = '';
+    document.getElementById('cs-error').textContent = '';
+    document.getElementById('cs-prompts-list').innerHTML = '';
+    document.getElementById('custom-modal-title').textContent = slug ? 'Edit School' : 'Add Custom School';
+
+    if (slug) {
+      const school = _customSchools.find(s => s.slug === slug);
+      if (school) {
+        document.getElementById('cs-name').value = school.name;
+        document.getElementById('cs-short').value = school.short_name || '';
+        document.getElementById('cs-mission').value = school.mission_snippet || '';
+        (school.prompts || []).forEach(p => addPromptEntry(p.prompt_text, p.word_limit));
+      }
+    } else {
+      addPromptEntry();
+    }
+
+    document.getElementById('custom-school-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('cs-name').focus(), 60);
+  };
+
+  window.closeCustomModal = function() {
+    document.getElementById('custom-school-modal').classList.remove('open');
+    document.body.style.overflow = '';
+    _editingCustomSlug = null;
+  };
+
+  document.getElementById('custom-school-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeCustomModal();
+  });
+
+  window.addPromptEntry = function(text, wordLimit) {
+    _promptCounter++;
+    const list = document.getElementById('cs-prompts-list');
+    const n = list.children.length + 1;
+    const entry = document.createElement('div');
+    entry.className = 'cs-prompt-block';
+    entry.innerHTML = `
+      <div class="cs-prompt-num">Prompt ${n}</div>
+      <button class="cs-prompt-remove" onclick="this.closest('.cs-prompt-block').remove();renumberPrompts()" title="Remove">&#x2715;</button>
+      <div class="cs-field" style="margin-bottom:9px">
+        <label>Prompt text *</label>
+        <textarea class="cs-prompt-text" rows="3" placeholder="Paste the exact prompt question here...">${text ? escapeHtmlAttr(text) : ''}</textarea>
+      </div>
+      <div class="cs-field" style="margin-bottom:0">
+        <label>Word limit <span style="font-weight:400;color:var(--stone)">(optional)</span></label>
+        <input type="number" class="cs-word-limit" placeholder="e.g. 350" min="1" max="2000" value="${wordLimit || ''}"/>
+      </div>`;
+    list.appendChild(entry);
+  };
+
+  window.renumberPrompts = function() {
+    document.querySelectorAll('#cs-prompts-list .cs-prompt-block').forEach((el, i) => {
+      el.querySelector('.cs-prompt-num').textContent = 'Prompt ' + (i + 1);
+    });
+  };
+
+  window.saveCustomSchool = function() {
+    const name = document.getElementById('cs-name').value.trim();
+    const short = document.getElementById('cs-short').value.trim();
+    const mission = document.getElementById('cs-mission').value.trim();
+    const errorEl = document.getElementById('cs-error');
+
+    if (!name) { errorEl.textContent = 'School name is required.'; return; }
+
+    const entries = document.querySelectorAll('#cs-prompts-list .cs-prompt-block');
+    const prompts = [];
+    for (const entry of entries) {
+      const text = entry.querySelector('.cs-prompt-text').value.trim();
+      if (!text) { errorEl.textContent = 'All prompts need text, or remove the empty ones.'; return; }
+      const limit = entry.querySelector('.cs-word-limit').value;
+      const slug = _editingCustomSlug || ('custom-' + Date.now());
+      prompts.push({ prompt_id: slug + '-' + (prompts.length + 1), prompt_text: text, word_limit: limit ? parseInt(limit) : null });
+    }
+    errorEl.textContent = '';
+
+    if (_editingCustomSlug) {
+      const idx = _customSchools.findIndex(s => s.slug === _editingCustomSlug);
+      if (idx !== -1) _customSchools[idx] = { ..._customSchools[idx], name, short_name: short || name, mission_snippet: mission, prompts };
+    } else {
+      const slug = 'custom-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
+      _customSchools.push({ slug, name, short_name: short || name, mission_snippet: mission, prompts, is_custom: true });
+    }
+
+    saveCustomSchoolsLocally();
+    closeCustomModal();
+    renderSchools();
+  };
+
+  window.deleteCustomSchool = function(slug) {
+    if (!confirm('Delete this custom school?')) return;
+    _customSchools = _customSchools.filter(s => s.slug !== slug);
+    saveCustomSchoolsLocally();
+    const card = document.querySelector(`[data-slug="${slug}"]`);
+    if (card) card.remove();
+  };
+
+  function escapeHtmlAttr(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   // ── UTILS ─────────────────────────────────────────────────────────────

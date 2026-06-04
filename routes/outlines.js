@@ -22,9 +22,11 @@ router.get('/', async (req, res) => {
 
 // POST /outlines/generate — generates and saves an outline (pro only)
 router.post('/generate', async (req, res) => {
-  const { school_slug, prompt_id } = req.body;
-  if (!school_slug || !prompt_id) {
-    return res.status(400).json({ error: 'school_slug and prompt_id are required.' });
+  const { school_slug, prompt_id, custom_school, custom_prompt } = req.body;
+
+  const isCustom = !!(custom_school && custom_prompt);
+  if (!isCustom && (!school_slug || !prompt_id)) {
+    return res.status(400).json({ error: 'Provide school_slug + prompt_id, or custom_school + custom_prompt.' });
   }
 
   // Pro gate
@@ -37,16 +39,30 @@ router.post('/generate', async (req, res) => {
     return res.status(403).json({ error: 'Secondary AI requires a Pro subscription.' });
   }
 
-  // Get school + prompt
-  const { data: school, error: schoolErr } = await supabase
-    .from('schools')
-    .select('name, short_name, mission_snippet, prompts')
-    .eq('slug', school_slug)
-    .single();
-  if (schoolErr || !school) return res.status(404).json({ error: 'School not found.' });
+  let school, prompt;
 
-  const prompt = school.prompts?.find(p => p.prompt_id === prompt_id);
-  if (!prompt) return res.status(404).json({ error: 'Prompt not found.' });
+  if (isCustom) {
+    school = {
+      name: custom_school.name,
+      short_name: custom_school.short_name || custom_school.name,
+      mission_snippet: custom_school.mission_snippet || '',
+    };
+    prompt = {
+      prompt_text: custom_prompt.prompt_text,
+      word_limit: custom_prompt.word_limit ?? null,
+    };
+  } else {
+    const { data: dbSchool, error: schoolErr } = await supabase
+      .from('schools')
+      .select('name, short_name, mission_snippet, prompts')
+      .eq('slug', school_slug)
+      .single();
+    if (schoolErr || !dbSchool) return res.status(404).json({ error: 'School not found.' });
+    const dbPrompt = dbSchool.prompts?.find(p => p.prompt_id === prompt_id);
+    if (!dbPrompt) return res.status(404).json({ error: 'Prompt not found.' });
+    school = dbSchool;
+    prompt = dbPrompt;
+  }
 
   // Get all user vault files (excluding previous outlines to avoid circular context)
   const { data: files, error: filesErr } = await supabase
