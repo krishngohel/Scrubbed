@@ -51,7 +51,7 @@ app.get('/me', authMiddleware, async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-if (!process.env.VERCEL) {
+if (require.main === module) {
   app.listen(PORT, () => console.log(`Scrubbed server running at http://localhost:${PORT}`));
 }
 
