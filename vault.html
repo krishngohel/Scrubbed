@@ -366,6 +366,12 @@ footer{padding:40px 32px;border-top:1px solid var(--rule);background:var(--paper
 .user-dropdown-item:hover{background:rgba(31,27,22,0.04);color:var(--ink)}
 .user-dropdown-divider{border:none;border-top:1px solid var(--rule);margin:4px 8px}
 .user-dropdown-logout:hover{background:rgba(139,58,46,0.06);color:var(--rust)}
+.plan-row{display:flex;align-items:center;justify-content:space-between;padding:6px 11px 2px;gap:8px}
+.plan-badge{font-size:11.5px;color:var(--graphite);font-weight:500}
+.plan-badge.is-pro{color:var(--moss)}
+.plan-badge.is-canceling{color:var(--rust)}
+.plan-action-btn{font-size:11px;font-family:var(--font-body);font-weight:600;color:var(--clay);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap}
+.plan-action-btn:hover{text-decoration:underline}
 
 /* ── THEME PICKER ── */
 body.theme-transition *,body.theme-transition *::before,body.theme-transition *::after{transition:background-color 0.5s ease,color 0.5s ease,border-color 0.5s ease !important}
@@ -449,6 +455,10 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
               My Vault
             </a>
+            <div class="plan-row">
+              <span class="plan-badge" id="plan-badge">—</span>
+              <button class="plan-action-btn" id="plan-action-btn" style="display:none"></button>
+            </div>
             <div class="theme-section">
               <div class="theme-section-hd">
                 <span class="theme-section-lbl">
@@ -1523,6 +1533,53 @@ async function submitQuickEntry(){
 /* Delegate click-outside-to-close so it works regardless of script/HTML parse order */
 document.addEventListener('click',function(e){if(e.target&&e.target.id==='qe-overlay')closeQuickEntry()});
 
+/* ── PLAN STATUS ── */
+async function loadPlanStatus(){
+  if(!getToken())return;
+  try{
+    const res=await fetch('/stripe/status',{headers:authHeaders()});
+    if(!res.ok)return;
+    const d=await res.json();
+    const badge=document.getElementById('plan-badge');
+    const btn=document.getElementById('plan-action-btn');
+    if(!badge)return;
+    if(d.status==='pro'&&d.cancel_at){
+      const dt=new Date(d.cancel_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      badge.textContent='Pro · ends '+dt;
+      badge.className='plan-badge is-canceling';
+      if(btn){btn.textContent='Reactivate';btn.style.display='';btn.onclick=reactivatePlan}
+    }else if(d.status==='pro'){
+      badge.textContent='Pro';
+      badge.className='plan-badge is-pro';
+      if(btn){btn.textContent='Manage plan';btn.style.display='';btn.onclick=openBillingPortal}
+    }else{
+      badge.textContent='Free plan';
+      badge.className='plan-badge';
+      if(btn){btn.textContent='Upgrade';btn.style.display='';btn.onclick=()=>window.location.href='/#pricing'}
+    }
+  }catch(e){}
+}
+
+async function openBillingPortal(){
+  if(!getToken()){showToast('Sign in first');return}
+  try{
+    const res=await fetch('/stripe/portal',{method:'POST',headers:authHeaders(),body:JSON.stringify({return_url:window.location.href})});
+    const d=await res.json();
+    if(d.url)window.location.href=d.url;
+    else showToast(d.error||'Could not open portal');
+  }catch{showToast('Could not open billing portal')}
+}
+
+async function reactivatePlan(){
+  if(!getToken())return;
+  try{
+    const res=await fetch('/stripe/reactivate',{method:'POST',headers:authHeaders()});
+    const d=await res.json();
+    if(d.ok){showToast('Subscription reactivated');loadPlanStatus()}
+    else showToast(d.error||'Could not reactivate');
+  }catch{showToast('Error reactivating plan')}
+}
+
 /* ── VAULT EXPORT ── */
 async function exportVault(){
   if(!getToken()){showToast('Sign in to export');return}
@@ -1789,6 +1846,7 @@ function setLoggedIn(username){
   const from=new URLSearchParams(location.search).get('from');
   if(from==='secondaries'){window.location.href='/secondaries';return;}
   if(typeof loadFilesFromServer==='function')loadFilesFromServer();
+  if(typeof loadPlanStatus==='function')loadPlanStatus();
 }
 
 window._openAuthModal=function(tab){overlay.classList.add('open');switchTab(tab||'login')};

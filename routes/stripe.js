@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/auth');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 
-// POST /stripe/create-checkout-session  (requires auth)
+// ── CHECKOUT ──────────────────────────────────────────────────────────────────
 router.post('/create-checkout-session', authMiddleware, async (req, res) => {
   const { plan = 'monthly' } = req.body;
   const userId = req.user.id;
@@ -19,12 +19,16 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
 
   if (!priceId) return res.status(500).json({ error: 'Pricing not configured.' });
 
-  // Get or create Stripe customer
   const { data: profile } = await supabase
     .from('profiles')
-    .select('stripe_customer_id')
+    .select('stripe_customer_id, subscription_status')
     .eq('id', userId)
     .single();
+
+  // Block if already Pro
+  if (profile?.subscription_status === 'pro') {
+    return res.status(400).json({ error: 'Already subscribed. Use the billing portal to change your plan.' });
+  }
 
   let customerId = profile?.stripe_customer_id;
   if (!customerId) {
@@ -42,13 +46,124 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${process.env.APP_URL}/secondaries?upgraded=1`,
-    cancel_url: `${process.env.APP_URL}/secondaries`,
+    cancel_url:  `${process.env.APP_URL}/secondaries`,
   });
 
   res.json({ url: session.url });
 });
 
-// POST /stripe/webhook  (raw body applied at app level in server.js before express.json())
+// ── BILLING PORTAL (upgrade, cancel, payment method) ─────────────────────────
+router.post('/portal', authMiddleware, async (req, res) => {
+  const { return_url } = req.body;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_customer_id')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!profile?.stripe_customer_id) {
+    return res.status(400).json({ error: 'No billing account found.' });
+  }
+
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: return_url || `${process.env.APP_URL}/secondaries`,
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Portal error:', err.message);
+    res.status(500).json({ error: 'Could not open billing portal.' });
+  }
+});
+
+// ── CANCEL (end of term) ──────────────────────────────────────────────────────
+router.post('/cancel', authMiddleware, async (req, res) => {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_subscription_id')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!profile?.stripe_subscription_id) {
+    return res.status(400).json({ error: 'No active subscription found.' });
+  }
+
+  try {
+    const sub = await stripe.subscriptions.update(profile.stripe_subscription_id, {
+      cancel_at_period_end: true,
+    });
+    const cancelAt = new Date(sub.current_period_end * 1000).toISOString();
+    await supabase
+      .from('profiles')
+      .update({ cancel_at: cancelAt })
+      .eq('id', req.user.id);
+    res.json({ cancel_at: cancelAt });
+  } catch (err) {
+    console.error('Cancel error:', err.message);
+    res.status(500).json({ error: 'Could not cancel subscription.' });
+  }
+});
+
+// ── REACTIVATE (undo end-of-term cancel) ──────────────────────────────────────
+router.post('/reactivate', authMiddleware, async (req, res) => {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_subscription_id')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!profile?.stripe_subscription_id) {
+    return res.status(400).json({ error: 'No active subscription found.' });
+  }
+
+  try {
+    await stripe.subscriptions.update(profile.stripe_subscription_id, {
+      cancel_at_period_end: false,
+    });
+    await supabase
+      .from('profiles')
+      .update({ cancel_at: null })
+      .eq('id', req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Reactivate error:', err.message);
+    res.status(500).json({ error: 'Could not reactivate subscription.' });
+  }
+});
+
+// ── SUBSCRIPTION STATUS ───────────────────────────────────────────────────────
+router.get('/status', authMiddleware, async (req, res) => {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('subscription_status, stripe_subscription_id, cancel_at')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!profile) return res.status(404).json({ error: 'Profile not found.' });
+
+  if (!profile.stripe_subscription_id || profile.subscription_status !== 'pro') {
+    return res.json({ status: profile.subscription_status || 'free', cancel_at: null });
+  }
+
+  try {
+    const sub = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+    const cancelAt = sub.cancel_at_period_end
+      ? new Date(sub.current_period_end * 1000).toISOString()
+      : null;
+    return res.json({
+      status: sub.status === 'active' ? 'pro' : 'canceled',
+      cancel_at_period_end: sub.cancel_at_period_end,
+      cancel_at: cancelAt,
+      current_period_end: sub.current_period_end,
+    });
+  } catch {
+    return res.json({ status: profile.subscription_status || 'free', cancel_at: null });
+  }
+});
+
+// ── WEBHOOK ───────────────────────────────────────────────────────────────────
 router.post('/webhook', async (req, res) => {
   let event;
   try {
@@ -65,24 +180,42 @@ router.post('/webhook', async (req, res) => {
   const obj = event.data.object;
 
   if (event.type === 'checkout.session.completed') {
+    // Store both subscription status and the subscription ID for future management
     await supabase
       .from('profiles')
-      .update({ subscription_status: 'pro' })
-      .eq('stripe_customer_id', obj.customer);
-  }
-
-  if (event.type === 'customer.subscription.deleted') {
-    await supabase
-      .from('profiles')
-      .update({ subscription_status: 'canceled' })
+      .update({
+        subscription_status: 'pro',
+        stripe_subscription_id: obj.subscription || null,
+        cancel_at: null,
+      })
       .eq('stripe_customer_id', obj.customer);
   }
 
   if (event.type === 'customer.subscription.updated') {
+    // Handles upgrades, downgrades, and cancel_at_period_end changes
     const status = obj.status === 'active' ? 'pro' : 'canceled';
+    const cancelAt = obj.cancel_at_period_end
+      ? new Date(obj.current_period_end * 1000).toISOString()
+      : null;
     await supabase
       .from('profiles')
-      .update({ subscription_status: status })
+      .update({
+        subscription_status: status,
+        stripe_subscription_id: obj.id,
+        cancel_at: cancelAt,
+      })
+      .eq('stripe_customer_id', obj.customer);
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    // Subscription actually ended — revoke access
+    await supabase
+      .from('profiles')
+      .update({
+        subscription_status: 'canceled',
+        stripe_subscription_id: null,
+        cancel_at: null,
+      })
       .eq('stripe_customer_id', obj.customer);
   }
 
