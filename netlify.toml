@@ -8,9 +8,26 @@
 [functions]
   node_bundler = "esbuild"
 
-# Route everything through the Express function
+# Static URL aliases — served by Netlify CDN, no function needed
+[[redirects]]
+  from = "/index.html"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/earlyaccess"
+  to = "/landing.html"
+  status = 200
+
+[[redirects]]
+  from = "/secondaries"
+  to = "/secondaries.html"
+  status = 200
+
+# API routes → Express function
+# Without force = true, Netlify serves real files directly and only
+# falls through to the function when no matching file exists.
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
-  force = true
