@@ -119,12 +119,15 @@ router.get('/', async (req, res) => {
   }
 
   // Restore seed prompts for any school whose prompts were wiped to []
-  const emptySlugs = data.filter(s => !s.prompts || s.prompts.length === 0).map(s => s.slug);
-  if (emptySlugs.length > 0) {
-    const toRestore = SEED_SCHOOLS.filter(s => emptySlugs.includes(s.slug));
-    if (toRestore.length > 0) {
-      await supabase.from('schools').upsert(toRestore, { onConflict: 'slug' });
-    }
+  const emptySchools = data.filter(s => !s.prompts || s.prompts.length === 0);
+  if (emptySchools.length > 0) {
+    await Promise.all(emptySchools.map(s => {
+      const seed = SEED_SCHOOLS.find(seed => seed.slug === s.slug);
+      if (!seed) return Promise.resolve();
+      return supabase.from('schools')
+        .update({ prompts: seed.prompts, prompts_updated_at: seed.prompts_updated_at })
+        .eq('slug', s.slug);
+    }));
     const { data: restored } = await supabase.from('schools').select(select).eq('is_active', true).order('name');
     return res.json(restored || []);
   }
