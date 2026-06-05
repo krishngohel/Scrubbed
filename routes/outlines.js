@@ -273,21 +273,35 @@ async function generateOutlineText(vaultContext, school, prompt, maxTokens) {
 *[MOCK OUTLINE — set ANTHROPIC_API_KEY in Netlify to generate real outlines]*`;
   }
 
-  const systemPrompt = `You are an expert pre-medical application advisor helping a student write secondary essay outlines. Be specific, concrete, and reference the student's actual experiences from their record by name. Never write generic advice — every bullet point should cite something from their record.`;
+  const systemPrompt = `You are an expert pre-medical application advisor writing secondary essay outlines for pre-med students.
 
-  const wordLimitNote = prompt.word_limit ? `Word limit: ${prompt.word_limit} words` : 'No word limit specified';
+STRICT RULES — violating any of these means the outline is useless:
+1. NEVER use placeholder brackets like [insert experience] or [describe X]. Every bullet must contain real, specific content.
+2. If the student's record contains experiences, name them explicitly — use the actual activity name, organization, supervisor, or detail from the record.
+3. If the student's record is empty or missing a category, write a genuinely generic outline using plain language like "your strongest clinical experience" — not brackets.
+4. Every body paragraph must tie directly to the school's stated mission using the school's actual name.
+5. Write in second person ("you shadowed", "your research on X").`;
+
+  const wordLimitNote = prompt.word_limit ? `Target word count for the final essay: ${prompt.word_limit} words — scale outline depth accordingly.` : '';
+
+  const hasVault = vaultContext && vaultContext.trim().length > 0;
 
   const schoolBlock = `SCHOOL: ${school.name}
 MISSION: ${school.mission_snippet || '(not provided)'}
 PROMPT: "${prompt.prompt_text}"
 ${wordLimitNote}
 
-Write a detailed secondary essay OUTLINE (not the full essay) with these sections:
-- Hook: One specific opening moment drawn from their record (name it explicitly)
-- Body P1–P3: The 2–3 most relevant experiences from their record, each tied to this school's mission with 3–4 concrete talking points
-- Conclusion: A forward-looking sentence connecting their goals to this specific school
+${hasVault
+  ? `The student's full application record is above. Use it. Pull specific experience names, organizations, dates, and outcomes directly from that record into every section of the outline. Do not invent details — only use what is in the record.`
+  : `The student has not uploaded vault documents yet. Write a genuine outline framework using plain language (no brackets) that they can fill in — e.g., "your most meaningful clinical experience" not "[insert experience]".`
+}
 
-Format: use bold headers (Hook, Body P1, Body P2, Body P3, Conclusion), bullet points under each. Reference vault items by name throughout.`;
+Write the outline with these sections, using bold headers:
+**Hook** — one specific vivid opening moment (name it from their record, or describe the type of moment if no record)
+**Body P1** — most relevant experience tied to ${school.name}'s mission, 3–4 concrete talking points
+**Body P2** — second experience tied to ${school.name}'s mission, 3–4 concrete talking points
+**Body P3** — third experience or theme (optional if only 2 strong ones), tied to ${school.name}'s mission
+**Conclusion** — forward-looking sentence specific to ${school.name}, no generic "I hope to" language`;
 
   try {
     const msg = await anthropic.messages.create({
