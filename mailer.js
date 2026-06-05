@@ -126,4 +126,47 @@ async function sendWelcomeEmail(toEmail) {
   }
 }
 
-module.exports = { sendWelcomeEmail };
+function otpHtml(otp) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your Scrubbed code</title></head>
+<body style="margin:0;padding:0;background:#EDE8DF;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EDE8DF;padding:48px 20px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px">
+        <tr><td style="padding:0 0 20px"><div style="font-weight:700;font-size:20px;letter-spacing:-0.03em;color:#1F1B16">Scrubbed.</div></td></tr>
+        <tr><td style="background:#FBF7EE;border:1px solid #E5DDCD;border-radius:12px;overflow:hidden">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="padding:36px 36px 28px">
+              <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#1F1B16">Verification code</h1>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5C544A">Use this code to complete your sign-in. It expires in 10 minutes.</p>
+              <div style="background:#F6F1E8;border:1px solid #E5DDCD;border-radius:10px;padding:20px;text-align:center;letter-spacing:0.25em;font-size:32px;font-weight:700;color:#1F1B16;font-family:'Courier New',monospace">${otp}</div>
+              <p style="margin:20px 0 0;font-size:12px;color:#A89C8A">If you didn't request this, you can safely ignore this email.</p>
+            </td></tr>
+            <tr><td style="padding:16px 36px;border-top:1px solid #E5DDCD"><p style="margin:0;font-size:12px;color:#A89C8A">&copy; 2026 Scrubbed</p></td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+async function sendOtpEmail(toEmail, otp) {
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn('[mailer] Email env vars not set — skipping OTP email for', toEmail);
+    return;
+  }
+  try {
+    await transporter.sendMail({
+      from:    FROM,
+      to:      toEmail,
+      subject: `${otp} is your Scrubbed verification code`,
+      html:    otpHtml(otp),
+    });
+  } catch (err) {
+    console.error('[mailer] Failed to send OTP to', toEmail, '—', err.message);
+  }
+}
+
+module.exports = { sendWelcomeEmail, sendOtpEmail };

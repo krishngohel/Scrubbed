@@ -315,6 +315,15 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
               </div>
             </div>
             <hr class="user-dropdown-divider"/>
+            <button class="user-dropdown-item" id="twofa-toggle-btn" onclick="toggle2FA()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <span id="twofa-toggle-label">Two-factor auth: Off</span>
+            </button>
+            <button class="user-dropdown-item" style="color:var(--rust)" onclick="openDeleteModal()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+              Delete account
+            </button>
+            <hr class="user-dropdown-divider"/>
             <button class="user-dropdown-item user-dropdown-logout" id="logout-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Log out
@@ -462,6 +471,29 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   </div>
 </div>
 
+<div id="delete-account-modal" style="display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:500;display:none;align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--cream);border:1px solid var(--rule);border-radius:16px;padding:32px;max-width:420px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rust)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span style="font-size:16px;font-weight:700;color:var(--rust)">Delete account</span>
+    </div>
+    <p style="font-size:14px;color:var(--graphite);line-height:1.6;margin-bottom:8px">This will permanently delete:</p>
+    <ul style="font-size:13.5px;color:var(--graphite);line-height:1.8;margin:0 0 16px 18px">
+      <li>All your vault files and documents</li>
+      <li>All your secondary outlines</li>
+      <li>Your account and login credentials</li>
+      <li>Your active subscription (if any)</li>
+    </ul>
+    <p style="font-size:13.5px;color:var(--graphite);margin-bottom:14px"><strong>This cannot be undone.</strong> Type <strong>DELETE</strong> to confirm.</p>
+    <input type="text" id="delete-confirm-input" placeholder="Type DELETE here" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:14px;margin-bottom:14px;outline:none"/>
+    <p id="delete-account-error" style="font-size:12.5px;color:var(--rust);min-height:16px;margin-bottom:12px"></p>
+    <div style="display:flex;gap:10px">
+      <button class="btn-secondary btn-sm" style="flex:1" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn-sm" id="delete-confirm-btn" onclick="confirmDeleteAccount()" style="flex:1;background:var(--rust);color:var(--cream);border-radius:8px;font-weight:600;font-size:13px">Delete my account</button>
+    </div>
+  </div>
+</div>
+
 <div id="auth-overlay">
   <div id="auth-modal">
     <button id="auth-close" aria-label="Close">&#x2715;</button>
@@ -480,6 +512,29 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       </div>
       <p id="login-error" class="auth-error"></p>
       <button type="submit" class="auth-submit">Log in</button>
+      <p style="text-align:right;margin-top:10px"><button type="button" onclick="switchAuthForm('forgot')" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Forgot password?</button></p>
+    </form>
+
+    <form id="twofa-form" style="display:none">
+      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">A 6-digit code was sent to your email. Enter it below to continue.</p>
+      <div class="auth-field">
+        <label for="twofa-code">Verification code</label>
+        <input type="text" id="twofa-code" autocomplete="one-time-code" placeholder="000000" maxlength="6" inputmode="numeric" style="letter-spacing:0.2em;font-size:20px;text-align:center"/>
+      </div>
+      <p id="twofa-error" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Verify</button>
+      <p style="text-align:center;margin-top:10px"><button type="button" onclick="switchAuthForm('login')" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
+    </form>
+
+    <form id="forgot-form" style="display:none">
+      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">Enter your email and we'll send a reset link.</p>
+      <div class="auth-field">
+        <label for="forgot-email">Email</label>
+        <input type="text" id="forgot-email" autocomplete="email" placeholder="your email"/>
+      </div>
+      <p id="forgot-msg" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Send reset link</button>
+      <p style="text-align:center;margin-top:10px"><button type="button" onclick="switchAuthForm('login')" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
     </form>
     <form id="signup-form" style="display:none">
       <div class="auth-field">
@@ -518,6 +573,8 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   const REFRESH_KEY = 'scrubbed_refresh';
   let _isPro = false;
   let _planType = null;
+  let _pending2faUserId = null;
+  let _twoFaEnabled = false;
   let _schools = [];
   let _customSchools = [];
   let _editingCustomSlug = null;
@@ -582,17 +639,30 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   function openModal(tab) {
     overlay.classList.add('open');
     switchAuthTab(tab || 'login');
+    switchAuthForm('login');
   }
   function closeModal() {
     overlay.classList.remove('open');
     loginError.textContent = ''; signupError.textContent = '';
     loginForm.reset(); signupForm.reset(); updateReqs('');
+    switchAuthForm('login');
   }
   function switchAuthTab(tab) {
     authTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     loginForm.style.display = tab === 'login' ? 'block' : 'none';
     signupForm.style.display = tab === 'signup' ? 'block' : 'none';
+    document.getElementById('twofa-form').style.display = 'none';
+    document.getElementById('forgot-form').style.display = 'none';
   }
+  window.switchAuthForm = function(form) {
+    loginForm.style.display = form === 'login' ? 'block' : 'none';
+    document.getElementById('twofa-form').style.display = form === '2fa' ? 'block' : 'none';
+    document.getElementById('forgot-form').style.display = form === 'forgot' ? 'block' : 'none';
+    signupForm.style.display = 'none';
+    if (form === 'login') {
+      authTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === 'login'));
+    }
+  };
 
   document.getElementById('auth-close').addEventListener('click', closeModal);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
@@ -609,11 +679,62 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem(TOKEN_KEY, data.token);
-        if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
-        await onAuthSuccess(data.user.username);
+        if (data.requires_2fa) {
+          _pending2faUserId = data.user_id;
+          switchAuthForm('2fa');
+        } else {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+          await onAuthSuccess(data.user.username);
+        }
       } else { loginError.textContent = data.error || 'Login failed.'; }
     } catch { loginError.textContent = 'Unable to connect. Is the server running?'; }
+    finally { btn.disabled = false; }
+  });
+
+  document.getElementById('twofa-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const errorEl = document.getElementById('twofa-error');
+    errorEl.textContent = '';
+    const code = document.getElementById('twofa-code').value.trim();
+    if (!code) { errorEl.textContent = 'Please enter the verification code.'; return; }
+    const btn = document.getElementById('twofa-form').querySelector('.auth-submit');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/auth/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: _pending2faUserId, code }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem(TOKEN_KEY, data.token);
+        if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+        _pending2faUserId = null;
+        document.getElementById('twofa-code').value = '';
+        await onAuthSuccess(data.user.username);
+      } else { errorEl.textContent = data.error || 'Verification failed.'; }
+    } catch { errorEl.textContent = 'Connection error. Please try again.'; }
+    finally { btn.disabled = false; }
+  });
+
+  document.getElementById('forgot-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msgEl = document.getElementById('forgot-msg');
+    msgEl.textContent = ''; msgEl.style.color = '';
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) { msgEl.textContent = 'Please enter your email.'; return; }
+    const btn = document.getElementById('forgot-form').querySelector('.auth-submit');
+    btn.disabled = true;
+    try {
+      await fetch('/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      msgEl.textContent = 'If that email exists, a reset link is on its way.';
+      msgEl.style.color = 'var(--moss)';
+    } catch { msgEl.textContent = 'Connection error. Please try again.'; }
     finally { btn.disabled = false; }
   });
 
@@ -656,7 +777,19 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       }
     } catch {}
     loadPlanStatus();
+    load2FAStatus();
     await Promise.all([loadSchools(), loadOutlines()]);
+  }
+
+  async function load2FAStatus() {
+    try {
+      const res = await fetch('/auth/2fa-status', { headers: authHeaders() });
+      if (!res.ok) return;
+      const { two_fa_enabled } = await res.json();
+      _twoFaEnabled = two_fa_enabled;
+      const label = document.getElementById('twofa-toggle-label');
+      if (label) label.textContent = `Two-factor auth: ${_twoFaEnabled ? 'On' : 'Off'}`;
+    } catch {}
   }
 
   // ── INIT ──────────────────────────────────────────────────────────────
@@ -1405,6 +1538,63 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+
+  // ── 2FA + DELETE ACCOUNT ─────────────────────────────────────────────
+  window.toggle2FA = async function() {
+    try {
+      const statusRes = await fetch('/auth/2fa-status', { headers: authHeaders() });
+      if (!statusRes.ok) return;
+      const { two_fa_enabled } = await statusRes.json();
+      const endpoint = two_fa_enabled ? '/auth/disable-2fa' : '/auth/enable-2fa';
+      const res = await fetch(endpoint, { method: 'POST', headers: authHeaders() });
+      if (!res.ok) throw new Error();
+      _twoFaEnabled = !two_fa_enabled;
+      const label = document.getElementById('twofa-toggle-label');
+      if (label) label.textContent = `Two-factor auth: ${_twoFaEnabled ? 'On' : 'Off'}`;
+      document.getElementById('user-dropdown').classList.remove('open');
+    } catch { alert('Could not update two-factor authentication setting.'); }
+  };
+
+  window.openDeleteModal = function() {
+    document.getElementById('user-dropdown').classList.remove('open');
+    const modal = document.getElementById('delete-account-modal');
+    modal.style.display = 'flex';
+    document.getElementById('delete-confirm-input').value = '';
+    document.getElementById('delete-account-error').textContent = '';
+  };
+
+  window.closeDeleteModal = function() {
+    document.getElementById('delete-account-modal').style.display = 'none';
+    document.getElementById('delete-confirm-input').value = '';
+    document.getElementById('delete-account-error').textContent = '';
+  };
+
+  window.confirmDeleteAccount = async function() {
+    const input = document.getElementById('delete-confirm-input').value.trim();
+    const errorEl = document.getElementById('delete-account-error');
+    if (input !== 'DELETE') { errorEl.textContent = 'Type DELETE exactly to confirm.'; return; }
+    const btn = document.getElementById('delete-confirm-btn');
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    try {
+      const res = await fetch('/auth/account', { method: 'DELETE', headers: authHeaders() });
+      if (!res.ok) {
+        const d = await res.json();
+        errorEl.textContent = d.error || 'Could not delete account.';
+        btn.disabled = false; btn.textContent = 'Delete my account';
+        return;
+      }
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      window.location.href = '/';
+    } catch {
+      errorEl.textContent = 'Connection error. Please try again.';
+      btn.disabled = false; btn.textContent = 'Delete my account';
+    }
+  };
+
+  document.getElementById('delete-account-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
 
   // ── START ─────────────────────────────────────────────────────────────
   init();
