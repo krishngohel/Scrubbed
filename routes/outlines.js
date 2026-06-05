@@ -240,6 +240,39 @@ async function getCachedVaultContext(userId) {
 }
 
 async function generateOutlineText(vaultContext, school, prompt, maxTokens) {
+  // Mock mode: set ANTHROPIC_API_KEY=mock in Netlify env vars to test without API calls
+  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'mock') {
+    const hasVault = vaultContext && vaultContext.length > 0;
+    return `**Hook**
+- ${hasVault ? 'Opening with a specific moment drawn from your vault record' : '[Add vault documents to get personalized hooks]'}
+- Sets up the central tension: clinical exposure meeting research curiosity
+
+**Body P1 — Clinical Experience**
+- ${hasVault ? 'References experiences found in your vault' : '[Upload clinical hours log to populate this section]'}
+- Connects directly to ${school.name}'s mission: ${school.mission_snippet || 'community-focused care'}
+- Talking point: patient interaction that shifted your perspective
+- Talking point: skill developed under supervising physician
+
+**Body P2 — Research / Academic**
+- ${hasVault ? 'Draws from research log entries in your vault' : '[Upload research log to populate this section]'}
+- Ties methodology experience to evidence-based medicine values
+- Talking point: specific finding or moment of discovery
+- Talking point: how this shapes your approach as a future physician
+
+**Body P3 — Community / Service**
+- ${hasVault ? 'Pulls from volunteer or shadowing records' : '[Upload volunteer hours to populate this section]'}
+- Aligns with ${school.name}'s emphasis on underserved populations
+- Talking point: relationship built with a specific patient or community member
+- Talking point: systemic gap you observed and want to address
+
+**Conclusion**
+- Forward-looking: how your background prepares you to contribute to ${school.name}'s mission
+- Specific program or faculty interest (add during editing)
+
+---
+*[MOCK OUTLINE — set ANTHROPIC_API_KEY in Netlify to generate real outlines]*`;
+  }
+
   const systemPrompt = `You are an expert pre-medical application advisor helping a student write secondary essay outlines. Be specific, concrete, and reference the student's actual experiences from their record by name. Never write generic advice — every bullet point should cite something from their record.`;
 
   const wordLimitNote = prompt.word_limit ? `Word limit: ${prompt.word_limit} words` : 'No word limit specified';
