@@ -13,10 +13,10 @@ const anthropic = new Anthropic({
 
 // Per-plan limits — outlines_per_month: null = unlimited
 const PLAN_LIMITS = {
-  monthly:  { outlines_per_month: 30,  regen_per_prompt: 3, max_tokens: 1500 },
-  annual:   { outlines_per_month: 80,  regen_per_prompt: 5, max_tokens: 2000 },
-  cycle:    { outlines_per_month: 15,  regen_per_prompt: 2, max_tokens: 1200 },
-  _default: { outlines_per_month: 30,  regen_per_prompt: 3, max_tokens: 1500 },
+  monthly:  { outlines_per_month: 30,  regen_per_prompt: 3, max_tokens: 2000 },
+  annual:   { outlines_per_month: 80,  regen_per_prompt: 5, max_tokens: 2400 },
+  cycle:    { outlines_per_month: 15,  regen_per_prompt: 2, max_tokens: 1800 },
+  _default: { outlines_per_month: 30,  regen_per_prompt: 3, max_tokens: 2000 },
 };
 
 // In-memory vault context cache: userId -> { context, buildAt }
@@ -273,35 +273,73 @@ async function generateOutlineText(vaultContext, school, prompt, maxTokens) {
 *[MOCK OUTLINE — set ANTHROPIC_API_KEY in Netlify to generate real outlines]*`;
   }
 
-  const systemPrompt = `You are an expert pre-medical application advisor writing secondary essay outlines for pre-med students.
+  const systemPrompt = `You are a medical school admissions consultant who has reviewed thousands of secondary applications and coached applicants into top MD programs. Your specialty is translating raw application data into tightly structured essay outlines that adcoms remember.
 
-STRICT RULES — violating any of these means the outline is useless:
-1. NEVER use placeholder brackets like [insert experience] or [describe X]. Every bullet must contain real, specific content.
-2. If the student's record contains experiences, name them explicitly — use the actual activity name, organization, supervisor, or detail from the record.
-3. If the student's record is empty or missing a category, write a genuinely generic outline using plain language like "your strongest clinical experience" — not brackets.
-4. Every body paragraph must tie directly to the school's stated mission using the school's actual name.
-5. Write in second person ("you shadowed", "your research on X").`;
+You are writing a SECONDARY ESSAY OUTLINE — a writer's blueprint, not the essay itself. A great outline gives the applicant a clear, executable instruction for every sentence they will write. Vague guidance wastes their time. Specific guidance wins interviews.
 
-  const wordLimitNote = prompt.word_limit ? `Target word count for the final essay: ${prompt.word_limit} words — scale outline depth accordingly.` : '';
+ABSOLUTE RULES — break any of these and the outline is worthless:
+1. ZERO placeholder brackets. Never write [insert X], [describe Y], [add experience], or any variation. Every bullet is a complete, specific instruction the writer can act on immediately.
+2. VAULT DATA IS GOLD: If the student record contains any named experience, organization, supervisor, patient population, research finding, date, or outcome — use it by name in the outline. "Your 180 hours at St. David's ER" beats "your clinical experience" every time.
+3. NO VAULT = VIVID SPECIFICITY ANYWAY: If no record exists, describe the type of moment so concretely the writer immediately knows what memory to reach for. "The moment a patient thanked you by name" beats "a meaningful patient interaction."
+4. MISSION LOCK: Every body section must name ${school.short_name || 'this school'} and connect the experience to their specific stated mission — not to medicine in general.
+5. TALKING POINTS ARE VERB-LED INSTRUCTIONS: Start every bullet with an action verb — "Describe...", "Name...", "Explain...", "Connect...", "Contrast...", "Quote..." — followed by what to say and why it matters here.
+6. SCALE TO WORD LIMIT: <300 words → 2 tight body sections, 4 bullets each. 300–500 words → 3 sections, 4 bullets each. 500+ words → 3 sections, 5 bullets each with richer connection points.
+7. CLOSE SPECIFICALLY: The conclusion must name ${school.short_name || 'this school'} and reference something concrete — a program, a curriculum feature, a faculty research area, a clinical partner — not just "your mission."`;
+
+  const wordLimitNote = prompt.word_limit
+    ? `WORD LIMIT: ${prompt.word_limit} words. Scale the outline depth accordingly — this determines how many body sections to write and how many bullets per section.`
+    : 'WORD LIMIT: Not specified — default to 3 body sections with 4–5 bullets each.';
 
   const hasVault = vaultContext && vaultContext.trim().length > 0;
 
   const schoolBlock = `SCHOOL: ${school.name}
-MISSION: ${school.mission_snippet || '(not provided)'}
-PROMPT: "${prompt.prompt_text}"
+MISSION: ${school.mission_snippet || '(not provided — use the school name and write mission-aligned bullets based on their reputation and location)'}
+SECONDARY PROMPT: "${prompt.prompt_text}"
 ${wordLimitNote}
 
-${hasVault
-  ? `The student's full application record is above. Use it. Pull specific experience names, organizations, dates, and outcomes directly from that record into every section of the outline. Do not invent details — only use what is in the record.`
-  : `The student has not uploaded vault documents yet. Write a genuine outline framework using plain language (no brackets) that they can fill in — e.g., "your most meaningful clinical experience" not "[insert experience]".`
-}
+━━━ STEP 1: CLASSIFY THE PROMPT ━━━
+Before writing, identify which type this prompt is, then use that classification to decide which vault experiences to prioritize:
 
-Write the outline with these sections, using bold headers:
-**Hook** — one specific vivid opening moment (name it from their record, or describe the type of moment if no record)
-**Body P1** — most relevant experience tied to ${school.name}'s mission, 3–4 concrete talking points
-**Body P2** — second experience tied to ${school.name}'s mission, 3–4 concrete talking points
-**Body P3** — third experience or theme (optional if only 2 strong ones), tied to ${school.name}'s mission
-**Conclusion** — forward-looking sentence specific to ${school.name}, no generic "I hope to" language`;
+• WHY THIS SCHOOL — mission fit, specific programs, curriculum, dual degree, clinical partners, location
+• DIVERSITY / UNIQUE PERSPECTIVE — what background, identity, or experience makes this applicant different
+• CHALLENGE / ADVERSITY / GROWTH — a difficulty overcome; what it required and what it built
+• RESEARCH / SCHOLARLY INTEREST — academic work, intellectual curiosity, evidence-based medicine
+• COMMUNITY SERVICE / ADVOCACY — underserved work, systemic awareness, patient populations
+• CLINICAL EXPERIENCE — direct patient care, shadowing, specific observations
+• WHY MEDICINE / MOTIVATION — the origin and evolution of the applicant's commitment
+
+━━━ STEP 2: SELECT THE BEST MATERIAL ━━━
+${hasVault
+  ? `The student's full application record is in the message above. Scan it now and identify:
+- The SINGLE strongest hook moment (a specific scene with sensory detail, not a summary)
+- The 2–3 experiences most directly relevant to this prompt type and this school's mission
+- Any metric, name, organization, or outcome that can replace a generic description
+Use only what is in the record. Do not invent details.`
+  : `No vault documents have been uploaded. Write the outline using vivid, specific language that tells the applicant exactly what TYPE of memory to use — specific enough that they immediately know which experience fits, without using bracket placeholders.`}
+
+━━━ STEP 3: WRITE THE OUTLINE ━━━
+Use these exact bold headers. Under each, write 4–5 complete-sentence bullet points that tell the writer what to open with, what to say, what detail to name, and why it lands for ${school.name}.
+
+**Hook — [name the scene or moment type]**
+One specific, present-tense or past-tense scene. Sensory, grounded, not reflective. The reader should be able to picture it. Name the place, person, or moment.
+
+**Body P1 — [name the experience or theme]**
+The most directly relevant experience for this prompt. Tie it to ${school.name}'s mission by name. 4–5 verb-led bullets.
+
+**Body P2 — [name the experience or theme]**
+Second strongest thread — shows a different dimension. 4–5 verb-led bullets.
+
+**Body P3 — [name the experience or theme, or label "Bridge / Synthesis" if tying P1 and P2 together]**
+Include only if word limit supports it. Can be a third experience or a thematic synthesis. 4–5 verb-led bullets.
+
+**Closing — [forward-looking, school-specific]**
+2–3 sentences in the final essay. Name ${school.name} and something concrete about their program. No "I hope to" or "I believe" openings.
+
+━━━ STEP 4: WRITING NOTES ━━━
+After the outline, add this section with 2–4 bullets:
+
+**Writing Notes**
+Strategic callouts only: why this hook is the right one, what the most common mistake is on this prompt type, any school-specific nuance (curriculum feature, patient population, research focus) worth weaving in, what to cut first if over the word limit.`;
 
   try {
     const msg = await anthropic.messages.create({
@@ -313,7 +351,9 @@ Write the outline with these sections, using bold headers:
         content: [
           {
             type: 'text',
-            text: `STUDENT'S APPLICATION RECORD:\n${vaultContext || 'No vault documents uploaded yet. Write a general outline framework with placeholder brackets like [specific experience] that the student should fill in.'}`,
+            text: hasVault
+              ? `STUDENT'S APPLICATION RECORD:\n\n${vaultContext}`
+              : `STUDENT'S APPLICATION RECORD: No documents uploaded yet.\n\nWrite the outline using vivid, specific language — concrete enough that the applicant immediately knows which memory to use, but without bracket placeholders.`,
             cache_control: { type: 'ephemeral' },
           },
           {
@@ -330,6 +370,17 @@ Write the outline with these sections, using bold headers:
   }
 }
 
+// Human-readable labels for template IDs so Claude understands what each file is
+const TEMPLATE_LABELS = {
+  'personal-statement':  'Personal Statement',
+  'activity-description':'Activity Description',
+  'clinical-hours':      'Clinical Hours Log',
+  'research-log':        'Research Log',
+  'volunteer-hours':     'Volunteer Hours Log',
+  'shadowing-log':       'Shadowing Log',
+  'employment-record':   'Employment Record',
+};
+
 function buildVaultContext(files) {
   if (!files || files.length === 0) return '';
 
@@ -345,7 +396,7 @@ function buildVaultContext(files) {
 
   const sections = [];
   let totalChars = 0;
-  const CHAR_LIMIT = 16000; // ~4k tokens, leaves room for school + prompt
+  const CHAR_LIMIT = 20000; // ~5k tokens for vault context
 
   for (const file of sorted) {
     if (totalChars >= CHAR_LIMIT) break;
@@ -362,25 +413,56 @@ function buildVaultContext(files) {
 function formatFileForContext(file) {
   const content = file.content || {};
   const meta = file.meta || {};
-  const lines = [`=== ${file.name.toUpperCase()} (${file.template_id || file.type}) ===`];
+  const typeLabel = TEMPLATE_LABELS[file.template_id] || file.template_id || file.type || 'Document';
+  const lines = [`=== ${file.name.toUpperCase()} [${typeLabel}] ===`];
 
+  // Meta fields: skip internal/system keys, label them clearly
+  const skipMeta = new Set(['regen_count', 'regen_limit', 'prompt_id', 'school_slug', 'short_name']);
   for (const [k, v] of Object.entries(meta)) {
-    if (v && typeof v === 'string') lines.push(`${k}: ${v}`);
+    if (skipMeta.has(k)) continue;
+    if (v && (typeof v === 'string' || typeof v === 'number')) {
+      const label = k.replace(/_/g, ' ');
+      lines.push(`${label}: ${v}`);
+    }
   }
 
   if (content.rows && Array.isArray(content.rows)) {
-    for (const row of content.rows.slice(0, 20)) {
-      const vals = Object.values(row).filter(Boolean).join(' | ');
+    // Spreadsheet: include column headers so Claude knows what each value means
+    const cols = content.cols;
+    if (cols && Array.isArray(cols) && cols.length > 0) {
+      lines.push(`Columns: ${cols.join(' | ')}`);
+    }
+    for (const row of content.rows.slice(0, 30)) {
+      let vals;
+      if (cols && Array.isArray(row)) {
+        // row is an array aligned to cols
+        vals = row.map((v, i) => (v ? `${cols[i] || i}: ${v}` : '')).filter(Boolean).join(' | ');
+      } else if (typeof row === 'object') {
+        vals = Object.entries(row)
+          .filter(([, v]) => v)
+          .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
+          .join(' | ');
+      } else {
+        vals = String(row);
+      }
       if (vals) lines.push(vals);
     }
   } else if (content.sections && Array.isArray(content.sections)) {
     for (const sec of content.sections) {
-      if (sec.label) lines.push(`[${sec.label}]`);
-      if (sec.content) lines.push(String(sec.content).slice(0, 600));
+      if (sec.label) lines.push(`\n[${sec.label}]`);
+      if (sec.content) {
+        const text = String(sec.content).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (text) lines.push(text.slice(0, 900));
+      }
     }
+  } else if (content.outline) {
+    // Skip secondary outlines — they are generated output, not source material
+    return '';
   } else {
     for (const [k, v] of Object.entries(content)) {
-      if (v && typeof v === 'string' && v.trim()) lines.push(`${k}: ${v.slice(0, 400)}`);
+      if (!v || typeof v !== 'string' || !v.trim()) continue;
+      const text = v.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (text) lines.push(`${k.replace(/_/g, ' ')}: ${text.slice(0, 500)}`);
     }
   }
 
