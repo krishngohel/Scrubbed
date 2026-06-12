@@ -461,6 +461,16 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
             <span id="login-label">Sign in</span>
           </button>
         </form>
+        <form id="twofa-form" novalidate style="display:none">
+          <p style="font-size:0.83rem;color:var(--graphite);line-height:1.6;margin-bottom:14px">A 6-digit code was sent to your email. Enter it below to continue.</p>
+          <div class="field">
+            <label for="twofa-code">Verification code</label>
+            <input type="text" id="twofa-code" autocomplete="one-time-code" placeholder="000000" maxlength="6" inputmode="numeric" style="letter-spacing:0.2em;font-size:1.2rem;text-align:center">
+          </div>
+          <button type="submit" class="btn-submit" id="twofa-btn">
+            <span id="twofa-label">Verify</span>
+          </button>
+        </form>
       </div>
     </div>
   </div>
@@ -500,6 +510,10 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
   function switchTab(name) {
     tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.panel === name); });
     panels.forEach(function (p) { p.classList.toggle('active', p.id === 'panel-' + name); });
+    /* leaving a half-finished 2FA step resets the login panel */
+    var lf = document.getElementById('login-form'), tf = document.getElementById('twofa-form');
+    if (lf) lf.style.display = '';
+    if (tf) tf.style.display = 'none';
     clearError();
   }
   tabs.forEach(function (t) {
@@ -562,7 +576,10 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
       try {
         var lr = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:email,password:pw}) });
         var ld = await lr.json();
-        if (lr.ok) localStorage.setItem('scrubbed_token', ld.token);
+        if (lr.ok && ld.token) {
+          localStorage.setItem('scrubbed_token', ld.token);
+          if (ld.refresh_token) localStorage.setItem('scrubbed_refresh', ld.refresh_token);
+        }
       } catch (_) {}
 
       formBody.classList.add('hidden');
@@ -594,13 +611,53 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
       var res = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:email,password:pw}) });
       var data = await res.json();
       if (!res.ok) { showError(data.error || 'Invalid email or password.'); loginBtn.disabled=false; loginLabel.textContent='Sign in'; return; }
+      if (data.requires_2fa) {
+        pending2faUserId = data.user_id;
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('twofa-form').style.display = '';
+        loginBtn.disabled = false;
+        loginLabel.textContent = 'Sign in';
+        setTimeout(function () { document.getElementById('twofa-code').focus(); }, 60);
+        return;
+      }
       localStorage.setItem('scrubbed_token', data.token);
+      if (data.refresh_token) localStorage.setItem('scrubbed_refresh', data.refresh_token);
       loginLabel.textContent = 'Welcome back.';
       setTimeout(function () { window.location.href = '/vault.html'; }, 800);
     } catch (_) {
       showError('Network error. Check your connection and try again.');
       loginBtn.disabled = false;
       loginLabel.textContent = 'Sign in';
+    }
+  });
+
+  /* ── two-factor step ── */
+  var pending2faUserId = null;
+  var twofaBtn = document.getElementById('twofa-btn');
+  var twofaLabel = document.getElementById('twofa-label');
+
+  document.getElementById('twofa-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    clearError();
+    var code = document.getElementById('twofa-code').value.trim();
+    if (!code) { showError('Please enter the verification code.'); return; }
+
+    twofaBtn.disabled = true;
+    twofaLabel.textContent = 'Verifying…';
+
+    try {
+      var res = await fetch('/auth/verify-2fa', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:pending2faUserId,code:code}) });
+      var data = await res.json();
+      if (!res.ok) { showError(data.error || 'Verification failed.'); twofaBtn.disabled=false; twofaLabel.textContent='Verify'; return; }
+      localStorage.setItem('scrubbed_token', data.token);
+      if (data.refresh_token) localStorage.setItem('scrubbed_refresh', data.refresh_token);
+      pending2faUserId = null;
+      twofaLabel.textContent = 'Welcome back.';
+      setTimeout(function () { window.location.href = '/vault.html'; }, 800);
+    } catch (_) {
+      showError('Network error. Check your connection and try again.');
+      twofaBtn.disabled = false;
+      twofaLabel.textContent = 'Verify';
     }
   });
 }());

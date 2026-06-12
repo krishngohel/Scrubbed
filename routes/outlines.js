@@ -1,3 +1,4 @@
+'use strict';
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const supabase = require('../supabase');
@@ -363,7 +364,9 @@ Strategic callouts only: why this hook is the right one, what the most common mi
         ],
       }],
     });
-    return msg.content[0].text;
+    const text = msg.content?.[0]?.text;
+    if (!text) return new Error('AI generation returned no content. Please try again.');
+    return text;
   } catch (err) {
     console.error('Outline generation error:', err);
     return new Error('AI generation failed. Please try again.');

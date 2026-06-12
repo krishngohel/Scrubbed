@@ -307,6 +307,10 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 .tc-input:hover{border-color:var(--clay)}
 .tc-input::-webkit-color-swatch-wrapper{padding:0}
 .tc-input::-webkit-color-swatch{border:none;border-radius:3px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}
+  html{scroll-behavior:auto}
+}
 </style>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -910,6 +914,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('scrubbed_token');
+    localStorage.removeItem('scrubbed_refresh');
     setUser(null);
   };
 
@@ -928,13 +933,28 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
       <button class="auth-tab" data-tab="signup">Create account</button>
     </div>
     <form id="login-form">
-      <div class="auth-field"><label for="login-username">Username</label><input type="text" id="login-username" autocomplete="username" placeholder="your username"/></div>
+      <div class="auth-field"><label for="login-username">Email</label><input type="email" id="login-username" autocomplete="email" placeholder="your email"/></div>
       <div class="auth-field"><label for="login-password">Password</label><input type="password" id="login-password" autocomplete="current-password" placeholder="your password"/></div>
       <p id="login-error" class="auth-error"></p>
       <button type="submit" class="auth-submit">Log in</button>
+      <p style="text-align:right;margin-top:10px"><button type="button" id="forgot-link" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Forgot password?</button></p>
+    </form>
+    <form id="twofa-form" style="display:none">
+      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">A 6-digit code was sent to your email. Enter it below to continue.</p>
+      <div class="auth-field"><label for="twofa-code">Verification code</label><input type="text" id="twofa-code" autocomplete="one-time-code" placeholder="000000" maxlength="6" inputmode="numeric" style="letter-spacing:0.2em;font-size:20px;text-align:center"/></div>
+      <p id="twofa-error" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Verify</button>
+      <p style="text-align:center;margin-top:10px"><button type="button" class="back-to-login" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
+    </form>
+    <form id="forgot-form" style="display:none">
+      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">Enter your email and we'll send a reset link.</p>
+      <div class="auth-field"><label for="forgot-email">Email</label><input type="email" id="forgot-email" autocomplete="email" placeholder="your email"/></div>
+      <p id="forgot-msg" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Send reset link</button>
+      <p style="text-align:center;margin-top:10px"><button type="button" class="back-to-login" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
     </form>
     <form id="signup-form" style="display:none">
-      <div class="auth-field"><label for="signup-username">Username</label><input type="text" id="signup-username" autocomplete="username" placeholder="choose a username"/></div>
+      <div class="auth-field"><label for="signup-username">Email</label><input type="email" id="signup-username" autocomplete="email" placeholder="your email"/></div>
       <div class="auth-field"><label for="signup-password">Password</label><input type="password" id="signup-password" autocomplete="new-password" placeholder="create a password"/></div>
       <ul id="pw-reqs"><li data-req="length">At least 8 characters</li><li data-req="upper">One uppercase letter (A–Z)</li><li data-req="lower">One lowercase letter (a–z)</li><li data-req="digit">One number (0–9)</li><li data-req="special">One special character (!@#$…)</li></ul>
       <div class="auth-field"><label for="signup-confirm">Confirm password</label><input type="password" id="signup-confirm" autocomplete="new-password" placeholder="confirm your password"/></div>
@@ -958,6 +978,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 /* ── AUTH ── */
 (function(){
   const TOKEN_KEY = 'scrubbed_token';
+  const REFRESH_KEY = 'scrubbed_refresh';
   const overlay = document.getElementById('auth-overlay');
   const closeBtn = document.getElementById('auth-close');
   const tabs = document.querySelectorAll('.auth-tab');
@@ -1013,19 +1034,37 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
     }
   }
 
+  const twofaForm = document.getElementById('twofa-form');
+  const forgotForm = document.getElementById('forgot-form');
+  let pending2faUserId = null;
+
   function openModal(tab) { overlay.classList.add('open'); switchTab(tab || 'login'); }
   function closeModal() {
     overlay.classList.remove('open');
     loginError.textContent = '';
     signupError.textContent = '';
+    document.getElementById('twofa-error').textContent = '';
+    document.getElementById('forgot-msg').textContent = '';
     loginForm.reset();
     signupForm.reset();
+    twofaForm.reset();
+    forgotForm.reset();
     updateReqs('');
   }
   function switchTab(tab) {
     tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     loginForm.style.display  = tab === 'login'  ? 'block' : 'none';
     signupForm.style.display = tab === 'signup' ? 'block' : 'none';
+    twofaForm.style.display = 'none';
+    forgotForm.style.display = 'none';
+  }
+  function switchAuthForm(form) {
+    loginForm.style.display  = form === 'login'  ? 'block' : 'none';
+    twofaForm.style.display  = form === '2fa'    ? 'block' : 'none';
+    forgotForm.style.display = form === 'forgot' ? 'block' : 'none';
+    signupForm.style.display = 'none';
+    if (form === 'login') tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === 'login'));
+    if (form === '2fa') setTimeout(() => document.getElementById('twofa-code').focus(), 60);
   }
 
   window._openAuthModal = openModal;
@@ -1034,21 +1073,70 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
   tabs.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
   if (signupPw) signupPw.addEventListener('input', () => updateReqs(signupPw.value));
+  document.getElementById('forgot-link').addEventListener('click', () => switchAuthForm('forgot'));
+  document.querySelectorAll('.back-to-login').forEach(b => b.addEventListener('click', () => switchAuthForm('login')));
 
   loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     loginError.textContent = '';
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
-    if (!username || !password) { loginError.textContent = 'Please enter username and password.'; return; }
+    if (!username || !password) { loginError.textContent = 'Please enter email and password.'; return; }
     const btn = loginForm.querySelector('.auth-submit');
     btn.disabled = true;
     try {
       const res = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) });
       const data = await res.json();
-      if (res.ok) { localStorage.setItem(TOKEN_KEY, data.token); setLoggedIn(data.user.username); }
+      if (res.ok) {
+        if (data.requires_2fa) {
+          pending2faUserId = data.user_id;
+          switchAuthForm('2fa');
+        } else {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+          setLoggedIn(data.user.username);
+        }
+      }
       else { loginError.textContent = data.error || 'Login failed.'; }
     } catch { loginError.textContent = 'Unable to connect. Is the server running?'; }
+    finally { btn.disabled = false; }
+  });
+
+  twofaForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const errorEl = document.getElementById('twofa-error');
+    errorEl.textContent = '';
+    const code = document.getElementById('twofa-code').value.trim();
+    if (!code) { errorEl.textContent = 'Please enter the verification code.'; return; }
+    const btn = twofaForm.querySelector('.auth-submit');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/auth/verify-2fa', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: pending2faUserId, code }) });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem(TOKEN_KEY, data.token);
+        if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+        pending2faUserId = null;
+        document.getElementById('twofa-code').value = '';
+        setLoggedIn(data.user.username);
+      } else { errorEl.textContent = data.error || 'Verification failed.'; }
+    } catch { errorEl.textContent = 'Connection error. Please try again.'; }
+    finally { btn.disabled = false; }
+  });
+
+  forgotForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const msgEl = document.getElementById('forgot-msg');
+    msgEl.textContent = ''; msgEl.style.color = '';
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) { msgEl.textContent = 'Please enter your email.'; return; }
+    const btn = forgotForm.querySelector('.auth-submit');
+    btn.disabled = true;
+    try {
+      await fetch('/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+      msgEl.textContent = 'If that email exists, a reset link is on its way.';
+      msgEl.style.color = 'var(--moss)';
+    } catch { msgEl.textContent = 'Connection error. Please try again.'; }
     finally { btn.disabled = false; }
   });
 
@@ -1069,7 +1157,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
       if (res.ok) {
         const lr = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) });
         const ld = await lr.json();
-        if (lr.ok) { localStorage.setItem(TOKEN_KEY, ld.token); setLoggedIn(ld.user.username); }
+        if (lr.ok) {
+          localStorage.setItem(TOKEN_KEY, ld.token);
+          if (ld.refresh_token) localStorage.setItem(REFRESH_KEY, ld.refresh_token);
+          setLoggedIn(ld.user.username);
+        }
         else { signupError.textContent = 'Account created! Please log in.'; switchTab('login'); }
       } else { signupError.textContent = data.error || 'Signup failed.'; }
     } catch { signupError.textContent = 'Unable to connect. Is the server running?'; }

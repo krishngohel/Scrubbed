@@ -131,6 +131,10 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 .school-refresh-btn:hover{color:var(--graphite);background:rgba(31,27,22,0.04)}
 .school-refresh-btn.spinning svg{animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}
+  html{scroll-behavior:auto}
+}
 
 /* ── PROMPT LIST ── */
 .school-prompts{display:none;border-top:1px solid var(--rule);padding:16px 22px 20px}
@@ -1011,10 +1015,10 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       card.innerHTML = `
         <div class="school-card-head" onclick="toggleSchool('${school.slug}')">
           <div class="school-card-top">
-            <div class="school-name">${school.name}</div>
+            <div class="school-name">${escapeHtml(school.name)}</div>
           </div>
           <div class="school-badge-row">
-            <span class="school-location">${school.location}</span>
+            <span class="school-location">${escapeHtml(school.location)}</span>
             <span class="school-status ${hasPrompts ? 'available' : 'pending'}">
               ${hasPrompts
                 ? `<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg> ${school.prompts.length} prompt${school.prompts.length !== 1 ? 's' : ''}`
@@ -1022,7 +1026,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
               }
             </span>
           </div>
-          <p class="school-mission">${school.mission_snippet}</p>
+          <p class="school-mission">${escapeHtml(school.mission_snippet || '')}</p>
         </div>
         <div class="school-card-actions">
           <button class="school-toggle-btn" id="toggle-${school.slug}"
@@ -1100,7 +1104,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       <div class="prompt-item">
         <p class="prompt-text">${escapeHtml(p.prompt_text)}</p>
         <div class="prompt-meta-row">
-          <span class="prompt-wordlimit">${p.limit_text || (p.word_limit ? p.word_limit + ' words' : 'No limit specified')}</span>
+          <span class="prompt-wordlimit">${escapeHtml(p.limit_text || (p.word_limit ? p.word_limit + ' words' : 'No limit specified'))}</span>
           <button class="generate-btn" ${_isPro ? '' : 'disabled title="Upgrade to Pro to generate outlines"'}
             onclick="generateOutline('${school.slug}', '${escapeHtml(p.prompt_id)}', this)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -1278,7 +1282,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     try {
       const res = await fetch('/files/' + id, { method: 'DELETE', headers: authHeaders() });
       if (!res.ok) throw new Error();
-      _outlines = _outlines.filter(o => o.id !== id);
+      _outlines = _outlines.filter(o => String(o.id) !== String(id));
       renderOutlines();
       rebuildFilterPills();
     } catch {
@@ -1319,7 +1323,8 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
 
   // ── OUTLINE VIEWER ────────────────────────────────────────────────────
   window.viewOutline = function (id) {
-    const outline = _outlines.find(o => o.id === id);
+    // String-compare: DB ids may be numbers while onclick handlers pass strings
+    const outline = _outlines.find(o => String(o.id) === String(id));
     if (!outline) return;
     _currentOutlineId = id;
     const meta = outline.meta || {};
@@ -1386,7 +1391,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         return;
       }
       if (!res.ok) throw new Error(data.error || 'Regeneration failed');
-      const idx = _outlines.findIndex(o => o.id === _currentOutlineId);
+      const idx = _outlines.findIndex(o => String(o.id) === String(_currentOutlineId));
       if (idx !== -1) _outlines[idx] = data;
       renderOutlines();
       const text = data.content?.outline || '';

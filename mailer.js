@@ -1,3 +1,4 @@
+'use strict';
 const nodemailer = require('nodemailer');
 
 /*
@@ -23,6 +24,11 @@ const transporter = nodemailer.createTransport({
 
 const FROM    = process.env.EMAIL_FROM || '"Scrubbed" <hello@scrubbed.app>';
 const APP_URL = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+// Escape user-supplied values before interpolating into email HTML
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 function welcomeHtml(email) {
   return `<!DOCTYPE html>
@@ -97,7 +103,7 @@ function welcomeHtml(email) {
         <!-- outer footer -->
         <tr>
           <td style="padding:20px 0 0;text-align:center">
-            <p style="margin:0;font-size:11px;color:#A89C8A">You received this because you signed up at scrubbed.app with ${email}</p>
+            <p style="margin:0;font-size:11px;color:#A89C8A">You received this because you signed up at scrubbed.app with ${escHtml(email)}</p>
           </td>
         </tr>
 

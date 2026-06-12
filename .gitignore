@@ -1,4 +1,7 @@
 node_modules/
-scrubbed.db
-*.db
 .env
+.env.local
+*.log
+scrubbed.db
+.DS_Store
+.claude/

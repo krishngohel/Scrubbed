@@ -30,3 +30,7 @@ make sure the scaling is dynamic and mobile friendly/ smaller screensizes.
 - Login functionality
 - Figure out data storage
 - Data redundancy
+
+6/6/26
+- Fix "Add Row" in spreadsheet templates: new rows should append to the end of existing data, and unpopulated/empty rows should be ignored (not counted or exported)
+- Fix 2FA and password reset

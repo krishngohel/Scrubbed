@@ -329,6 +329,10 @@ footer{padding:40px 32px;border-top:1px solid var(--rule);background:var(--paper
 /* KEYFRAMES */
 @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.65)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}
+  html{scroll-behavior:auto}
+}
 
 /* ── AUTH MODAL ── */
 #auth-overlay{display:none;position:fixed;inset:0;background:rgba(31,27,22,0.44);backdrop-filter:blur(8px);z-index:800;align-items:center;justify-content:center;padding:24px}
@@ -761,8 +765,11 @@ const TEMPLATES = [
   function mkLeaf(fromTop){return{x:rnd(-40,W+40),y:fromTop?rnd(-120,-10):rnd(-H,H),sz:rnd(7,22),vx:rnd(-0.22,0.22),vy:rnd(0.08,0.28),rot:rnd(0,Math.PI*2),rotV:rnd(-0.008,0.008),wob:rnd(0,Math.PI*2),wobV:rnd(0.004,0.012),alpha:rnd(0.05,0.14),color:pick(COLORS)}}
   function init(){leaves=Array.from({length:110},()=>mkLeaf(false))}
   function drawLeaf(l){cx.save();cx.translate(l.x+Math.sin(l.wob)*10,l.y);cx.rotate(l.rot);cx.globalAlpha=l.alpha;cx.fillStyle=l.color;cx.strokeStyle='rgba(30,70,20,0.08)';cx.lineWidth=0.5;cx.beginPath();cx.ellipse(0,0,l.sz*0.36,l.sz,0,0,Math.PI*2);cx.fill();cx.stroke();cx.restore()}
+  const reducedMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function drawStatic(){cx.clearRect(0,0,W,H);leaves.forEach(drawLeaf)}
   function frame(){cx.clearRect(0,0,W,H);for(let i=0;i<leaves.length;i++){const l=leaves[i];l.x+=l.vx+Math.sin(l.wob)*0.15;l.y+=l.vy;l.rot+=l.rotV;l.wob+=l.wobV;if(l.y>H+50)leaves[i]=mkLeaf(true);drawLeaf(l)}requestAnimationFrame(frame)}
-  new ResizeObserver(resize).observe(cv);resize();frame();
+  new ResizeObserver(resize).observe(cv);resize();
+  if(reducedMotion)drawStatic();else frame();
 })();
 
 /* ── NAVBAR ── */
@@ -975,7 +982,7 @@ function renderRecentFiles(files){
         ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`
         :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
     const typeLabel=isPdf?'PDF':isSheet?'SHEET':'DOC';
-    return`<div class="rf-item" onclick="openFileForEdit(${f.id})">
+    return`<div class="rf-item" onclick="openFileForEdit('${escHtml(String(f.id))}')">
       <div class="rf-icon" style="background:${accent}18">${icon}</div>
       <span class="rf-name">${escHtml(f.name)}</span>
       <div class="rf-meta">
@@ -1129,16 +1136,16 @@ function renderVaultFiles(files,grid){
   });
 }
 
-function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 
 window.openFileForEdit=async function openFileForEdit(fileId){
   if(!getToken())return;
   try{
-    const resp=await fetch('/files',{headers:authHeaders()});
+    /* Fetch just this file — the list endpoint strips PDF payloads */
+    const resp=await fetch('/files/'+encodeURIComponent(fileId),{headers:authHeaders()});
     if(!resp.ok)throw new Error();
-    const files=await resp.json();
-    const f=files.find(x=>x.id===fileId);
-    if(!f)return;
+    const f=await resp.json();
+    if(!f||!f.id)return;
     /* Build synthetic template for uploaded files (no template_id) */
     const t=TEMPLATES.find(x=>x.id===f.template_id)||{
       id:null,name:f.name,type:f.type,meta:[],
@@ -1156,10 +1163,13 @@ window.openFileForEdit=async function openFileForEdit(fileId){
       badge.textContent='PDF';
       badge.style.background='rgba(90,110,74,0.1)';
       badge.style.color='var(--moss)';
-      document.getElementById('modal-body').innerHTML=`
-        <div style="flex:1;display:flex;flex-direction:column;min-height:0;background:#525659">
-          <iframe src="${f.content.dataUrl}" style="flex:1;width:100%;border:none;min-height:500px" title="${escHtml(f.name)}"></iframe>
-        </div>`;
+      /* Only render genuine PDF data URLs — never arbitrary stored strings */
+      const pdfSrc=String(f.content.dataUrl||'');
+      document.getElementById('modal-body').innerHTML=pdfSrc.startsWith('data:application/pdf;base64,')
+        ?`<div style="flex:1;display:flex;flex-direction:column;min-height:0;background:#525659">
+          <iframe src="${pdfSrc}" style="flex:1;width:100%;border:none;min-height:500px" title="${escHtml(f.name)}"></iframe>
+        </div>`
+        :'<p style="padding:24px;color:var(--graphite)">This PDF could not be displayed.</p>';
       document.getElementById('modal-overlay').classList.add('open');
       document.body.style.overflow='hidden';
       return;
@@ -1367,20 +1377,36 @@ window.makeDocBlank=function(){
 
 /* ── UPLOAD HANDLING ── */
 /* Accepted types: .xlsx, .xls (Excel), .docx (Word), .pdf */
+function fileToDataUrl(file){
+  /* Native base64 encoding — replaces the old 1KB-chunk string-concat loop,
+     which was O(n²) and froze the tab on multi-MB PDFs */
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);
+    r.onerror=()=>reject(r.error||new Error('Could not read file'));
+    r.readAsDataURL(file);
+  });
+}
+
 async function handleFiles(files){
   if(!files||!files.length)return;
   if(!getToken()){showToast('Sign in to upload files');return}
   const ALLOWED=['xlsx','xls','docx','pdf'];
-  let uploaded=0;
-  for(const file of files){
+  const MAX_PDF=4*1024*1024;      /* PDFs travel as base64 JSON — keep under server/Netlify payload limits */
+  const MAX_OTHER=20*1024*1024;   /* xlsx/docx are parsed client-side, only extracted data is sent */
+  const list=[...files];
+  showToast(list.length===1?'Uploading…':`Uploading ${list.length} files…`);
+  /* Parse + upload all files in parallel instead of one at a time */
+  const results=await Promise.all(list.map(async file=>{
     const name=file.name.replace(/\.[^.]+$/,'');
     const ext=file.name.split('.').pop().toLowerCase();
-    if(!ALLOWED.includes(ext)){showToast(`${ext.toUpperCase()} not supported — use .xlsx, .docx, or .pdf`);continue}
-    if(file.size>20*1024*1024){showToast(`${file.name} is too large (max 20 MB)`);continue}
+    if(!ALLOWED.includes(ext)){showToast(`${ext.toUpperCase()} not supported — use .xlsx, .docx, or .pdf`);return false}
+    if(ext==='pdf'&&file.size>MAX_PDF){showToast(`${file.name} is too large — PDFs must be under 4 MB`);return false}
+    if(file.size>MAX_OTHER){showToast(`${file.name} is too large (max 20 MB)`);return false}
     let type,content;
     try{
       if(ext==='xlsx'||ext==='xls'){
-        if(typeof XLSX==='undefined'){showToast('Spreadsheet library not loaded — check your connection');continue}
+        if(typeof XLSX==='undefined'){showToast('Spreadsheet library not loaded — check your connection');return false}
         type='spreadsheet';
         const buf=await file.arrayBuffer();
         const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
@@ -1390,30 +1416,23 @@ async function handleFiles(files){
         const rows=data.slice(1).map(r=>cols.map((_,ci)=>String(r[ci]||'')));
         content={cols,rows};
       }else if(ext==='docx'){
-        if(typeof mammoth==='undefined'){showToast('DOCX library not loaded — check your connection');continue}
+        if(typeof mammoth==='undefined'){showToast('DOCX library not loaded — check your connection');return false}
         type='document';
         const buf=await file.arrayBuffer();
         const result=await mammoth.convertToHtml({arrayBuffer:buf});
         content={blank:true,html:result.value||''};
       }else if(ext==='pdf'){
         type='document';
-        const buf=await file.arrayBuffer();
-        /* encode binary to base64 in chunks to avoid call-stack overflow */
-        const bytes=new Uint8Array(buf);
-        const chunk=1024;
-        let b64='';
-        for(let i=0;i<bytes.length;i+=chunk){
-          b64+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));
-        }
-        content={pdf:true,dataUrl:'data:application/pdf;base64,'+btoa(b64),fileName:file.name};
+        content={pdf:true,dataUrl:await fileToDataUrl(file),fileName:file.name};
       }
       const resp=await fetch('/files',{method:'POST',headers:authHeaders(),body:JSON.stringify({name,type,content,meta:{}})});
       if(!resp.ok)throw new Error();
-      uploaded++;
-    }catch(e){showToast('Error uploading '+file.name)}
-  }
+      return true;
+    }catch(e){showToast('Error uploading '+file.name);return false}
+  }));
+  const uploaded=results.filter(Boolean).length;
   if(uploaded>0){
-    showToast(uploaded===1?`"${files[0].name}" added to Vault`:`${uploaded} files added to Vault`);
+    showToast(uploaded===1?`"${list[0].name}" added to Vault`:`${uploaded} files added to Vault`);
     loadFilesFromServer();
   }
 }
@@ -1455,7 +1474,7 @@ let _qeFileId=null,_qeMap=null,_qeFile=null;
 
 function openQuickEntry(fileId){
   if(!getToken()){window._openAuthModal&&window._openAuthModal('login');return}
-  const f=_vf.find(x=>x.id===fileId);
+  const f=_vf.find(x=>String(x.id)===String(fileId));
   if(!f){showToast('Reload the page and try again');return}
   const map=QUICK_ENTRY_MAP[f.template_id];
   if(!map){window.openFileForEdit(fileId);return}
@@ -1601,18 +1620,33 @@ async function exportVault(){
   const zip=new JSZip();
   const used={};
   function uniqueName(base){
-    if(!used[base]){used[base]=1;return base}
-    return base+'_'+(++used[base]);
+    const k='n:'+base; /* prefixed so names like "constructor" can't hit Object.prototype */
+    if(!used[k]){used[k]=1;return base}
+    return base+'_'+(++used[k]);
   }
+  /* Excel sheet names: max 31 chars, no [ ] : * ? / \ — invalid names made
+     XLSX.write throw, which silently killed the whole export */
+  function sheetName(n){
+    const s=String(n||'Sheet').replace(/[\[\]:*?\/\\]/g,' ').replace(/\s+/g,' ').trim().slice(0,31);
+    return s||'Sheet';
+  }
+  let skipped=0;
 
   for(const f of _vf){
+   try{ /* one bad file no longer aborts the entire export */
     const safeName=(f.name||'file').replace(/[/\\:*?"<>|]/g,'_').slice(0,60);
     const content=f.content||{};
 
     if(content.pdf){
-      /* Already a PDF stored as base64 data URL */
-      const b64=content.dataUrl?content.dataUrl.split(',')[1]:'';
+      /* List view strips PDF payloads — fetch the full file on demand */
+      let dataUrl=content.dataUrl;
+      if(!dataUrl){
+        const r=await fetch('/files/'+encodeURIComponent(f.id),{headers:authHeaders()});
+        if(r.ok){const full=await r.json();dataUrl=full.content&&full.content.dataUrl}
+      }
+      const b64=dataUrl?String(dataUrl).split(',')[1]:'';
       if(b64)zip.file(uniqueName(safeName)+'.pdf',b64,{base64:true});
+      else skipped++;
 
     }else if(f.type==='spreadsheet'||content.rows){
       /* Spreadsheet → Excel */
@@ -1620,9 +1654,9 @@ async function exportVault(){
       const t=TEMPLATES.find(t=>t.id===f.template_id);
       const cols=content.cols||(t?t.cols:[]);
       const rows=content.rows||[];
-      const wsData=cols.length?[cols,...rows]:rows;
+      const wsData=cols.length?[cols,...rows]:(rows.length?rows:[['']]);
       const ws=XLSX.utils.aoa_to_sheet(wsData);
-      XLSX.utils.book_append_sheet(wb,ws,(f.name||'Sheet').slice(0,31));
+      XLSX.utils.book_append_sheet(wb,ws,sheetName(f.name));
       const xlsBuf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
       zip.file(uniqueName(safeName)+'.xlsx',xlsBuf);
 
@@ -1678,7 +1712,13 @@ async function exportVault(){
 
       zip.file(uniqueName(safeName)+'.pdf',doc.output('arraybuffer'));
     }
+   }catch(err){
+    skipped++;
+    console.error('Export: skipped',f&&f.name,err);
+   }
   }
+
+  if(Object.keys(zip.files).length===0){showToast('Export failed — no files could be packaged');return}
 
   try{
     const blob=await zip.generateAsync({type:'blob'});
@@ -1690,7 +1730,7 @@ async function exportVault(){
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast('Export downloaded!');
+    showToast(skipped?`Export downloaded (${skipped} file${skipped===1?'':'s'} skipped)`:'Export downloaded!');
   }catch(err){
     showToast('Export failed — try again');
     console.error('Export error:',err);
@@ -1767,8 +1807,8 @@ async function exportVault(){
     </div>
     <form id="login-form">
       <div class="auth-field">
-        <label for="login-username">Username</label>
-        <input type="text" id="login-username" autocomplete="username" placeholder="your username"/>
+        <label for="login-username">Email</label>
+        <input type="email" id="login-username" autocomplete="email" placeholder="your email"/>
       </div>
       <div class="auth-field">
         <label for="login-password">Password</label>
@@ -1776,11 +1816,32 @@ async function exportVault(){
       </div>
       <p id="login-error" class="auth-error"></p>
       <button type="submit" class="auth-submit">Log in</button>
+      <p style="text-align:right;margin-top:10px"><button type="button" onclick="switchAuthForm('forgot')" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Forgot password?</button></p>
+    </form>
+    <form id="twofa-form" style="display:none">
+      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">A 6-digit code was sent to your email. Enter it below to continue.</p>
+      <div class="auth-field">
+        <label for="twofa-code">Verification code</label>
+        <input type="text" id="twofa-code" autocomplete="one-time-code" placeholder="000000" maxlength="6" inputmode="numeric" style="letter-spacing:0.2em;font-size:20px;text-align:center"/>
+      </div>
+      <p id="twofa-error" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Verify</button>
+      <p style="text-align:center;margin-top:10px"><button type="button" onclick="switchAuthForm('login')" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
+    </form>
+    <form id="forgot-form" style="display:none">
+      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">Enter your email and we'll send a reset link.</p>
+      <div class="auth-field">
+        <label for="forgot-email">Email</label>
+        <input type="email" id="forgot-email" autocomplete="email" placeholder="your email"/>
+      </div>
+      <p id="forgot-msg" class="auth-error"></p>
+      <button type="submit" class="auth-submit">Send reset link</button>
+      <p style="text-align:center;margin-top:10px"><button type="button" onclick="switchAuthForm('login')" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
     </form>
     <form id="signup-form" style="display:none">
       <div class="auth-field">
-        <label for="signup-username">Username</label>
-        <input type="text" id="signup-username" autocomplete="username" placeholder="choose a username"/>
+        <label for="signup-username">Email</label>
+        <input type="email" id="signup-username" autocomplete="email" placeholder="your email"/>
       </div>
       <div class="auth-field">
         <label for="signup-password">Password</label>
@@ -1888,13 +1949,27 @@ function openModal(tab){overlay.classList.add('open');switchTab(tab||'login')}
 function closeModal(){
   overlay.classList.remove('open');
   loginError.textContent='';signupError.textContent='';
+  const te=document.getElementById('twofa-error');if(te)te.textContent='';
+  const fm=document.getElementById('forgot-msg');if(fm)fm.textContent='';
   loginForm.reset();signupForm.reset();updateReqs('');
+  const tf=document.getElementById('twofa-form');if(tf)tf.reset();
+  const ff=document.getElementById('forgot-form');if(ff)ff.reset();
 }
 function switchTab(tab){
   tabs.forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
   loginForm.style.display=tab==='login'?'block':'none';
   signupForm.style.display=tab==='signup'?'block':'none';
+  document.getElementById('twofa-form').style.display='none';
+  document.getElementById('forgot-form').style.display='none';
 }
+window.switchAuthForm=function(form){
+  loginForm.style.display=form==='login'?'block':'none';
+  document.getElementById('twofa-form').style.display=form==='2fa'?'block':'none';
+  document.getElementById('forgot-form').style.display=form==='forgot'?'block':'none';
+  signupForm.style.display='none';
+  if(form==='login')tabs.forEach(t=>t.classList.toggle('active',t.dataset.tab==='login'));
+  if(form==='2fa')setTimeout(()=>{const c=document.getElementById('twofa-code');if(c)c.focus()},60);
+};
 
 if(loginBtn)loginBtn.addEventListener('click',()=>openModal('login'));
 if(closeBtn)closeBtn.addEventListener('click',closeModal);
@@ -1902,18 +1977,65 @@ overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal()});
 tabs.forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
 if(signupPw)signupPw.addEventListener('input',()=>updateReqs(signupPw.value));
 
+let _pending2faUserId=null;
+
 loginForm.addEventListener('submit',async e=>{
   e.preventDefault();loginError.textContent='';
   const username=document.getElementById('login-username').value.trim();
   const password=document.getElementById('login-password').value;
-  if(!username||!password){loginError.textContent='Please enter username and password.';return}
+  if(!username||!password){loginError.textContent='Please enter email and password.';return}
   const btn=loginForm.querySelector('.auth-submit');btn.disabled=true;
   try{
     const res=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
     const data=await res.json();
-    if(res.ok){localStorage.setItem(TOKEN_KEY,data.token);if(data.refresh_token)localStorage.setItem(REFRESH_KEY,data.refresh_token);setLoggedIn(data.user.username)}
+    if(res.ok){
+      if(data.requires_2fa){
+        _pending2faUserId=data.user_id;
+        window.switchAuthForm('2fa');
+      }else{
+        localStorage.setItem(TOKEN_KEY,data.token);
+        if(data.refresh_token)localStorage.setItem(REFRESH_KEY,data.refresh_token);
+        setLoggedIn(data.user.username);
+      }
+    }
     else{loginError.textContent=data.error||'Login failed.'}
   }catch{loginError.textContent='Unable to connect. Is the server running?'}
+  finally{btn.disabled=false}
+});
+
+document.getElementById('twofa-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const errorEl=document.getElementById('twofa-error');
+  errorEl.textContent='';
+  const code=document.getElementById('twofa-code').value.trim();
+  if(!code){errorEl.textContent='Please enter the verification code.';return}
+  const btn=e.target.querySelector('.auth-submit');btn.disabled=true;
+  try{
+    const res=await fetch('/auth/verify-2fa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:_pending2faUserId,code})});
+    const data=await res.json();
+    if(res.ok){
+      localStorage.setItem(TOKEN_KEY,data.token);
+      if(data.refresh_token)localStorage.setItem(REFRESH_KEY,data.refresh_token);
+      _pending2faUserId=null;
+      document.getElementById('twofa-code').value='';
+      setLoggedIn(data.user.username);
+    }else{errorEl.textContent=data.error||'Verification failed.'}
+  }catch{errorEl.textContent='Connection error. Please try again.'}
+  finally{btn.disabled=false}
+});
+
+document.getElementById('forgot-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const msgEl=document.getElementById('forgot-msg');
+  msgEl.textContent='';msgEl.style.color='';
+  const email=document.getElementById('forgot-email').value.trim();
+  if(!email){msgEl.textContent='Please enter your email.';return}
+  const btn=e.target.querySelector('.auth-submit');btn.disabled=true;
+  try{
+    await fetch('/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    msgEl.textContent='If that email exists, a reset link is on its way.';
+    msgEl.style.color='var(--moss)';
+  }catch{msgEl.textContent='Connection error. Please try again.'}
   finally{btn.disabled=false}
 });
 
@@ -1962,7 +2084,9 @@ if(logoutBtn){
   });
 }
 
-function toggle2FA(){
+/* Exposed on window — these are invoked from inline onclick handlers,
+   so keeping them inside the IIFE made the buttons throw ReferenceErrors. */
+window.toggle2FA=function toggle2FA(){
   fetch('/auth/2fa-status',{headers:authHeaders()})
     .then(r=>r.ok?r.json():Promise.reject())
     .then(({two_fa_enabled})=>{
@@ -1977,24 +2101,24 @@ function toggle2FA(){
       if(dd)dd.classList.remove('open');
     })
     .catch(()=>alert('Could not update two-factor authentication setting.'));
-}
+};
 
-function openDeleteModal(){
+window.openDeleteModal=function openDeleteModal(){
   const dd=document.getElementById('user-dropdown');
   if(dd)dd.classList.remove('open');
   const modal=document.getElementById('delete-account-modal');
   modal.style.display='flex';
   document.getElementById('delete-confirm-input').value='';
   document.getElementById('delete-account-error').textContent='';
-}
+};
 
-function closeDeleteModal(){
+window.closeDeleteModal=function closeDeleteModal(){
   document.getElementById('delete-account-modal').style.display='none';
   document.getElementById('delete-confirm-input').value='';
   document.getElementById('delete-account-error').textContent='';
-}
+};
 
-function confirmDeleteAccount(){
+window.confirmDeleteAccount=function confirmDeleteAccount(){
   const input=document.getElementById('delete-confirm-input').value.trim();
   const errorEl=document.getElementById('delete-account-error');
   if(input!=='DELETE'){errorEl.textContent='Type DELETE exactly to confirm.';return;}
@@ -2010,7 +2134,7 @@ function confirmDeleteAccount(){
       errorEl.textContent=err.message||'Connection error. Please try again.';
       btn.disabled=false;btn.textContent='Delete my account';
     });
-}
+};
 
 document.getElementById('delete-account-modal').addEventListener('click',function(e){
   if(e.target===this)closeDeleteModal();
