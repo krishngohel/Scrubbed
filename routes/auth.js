@@ -302,4 +302,68 @@ router.post('/enable-2fa/confirm', authMiddleware, confirmLimiter, async (req, r
 });
 
 // ── SIGN IN WITH GOOGLE (Supabase OAuth) ─────────────────────────────────────
-// Requires the Google provider
+// Requires the Google provider to be configured in the Supabase dashboard
+// (Authentication → Providers → Google) with APP_URL/auth-callback.html added
+// to the allowed redirect URLs.
+router.get('/google', (req, res) => {
+  const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  const url = `${process.env.SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(`${appUrl}/auth-callback.html`)}`;
+  res.redirect(url);
+});
+
+// ── DISABLE 2FA ───────────────────────────────────────────────────────────────
+router.post('/disable-2fa', authMiddleware, async (req, res) => {
+  await supabase.from('profiles').update({
+    two_fa_enabled: false,
+    otp_code: null,
+    otp_expires_at: null,
+    pending_token: null,
+    pending_refresh_token: null,
+  }).eq('id', req.user.id);
+  res.json({ ok: true });
+});
+
+// ── GET 2FA STATUS ────────────────────────────────────────────────────────────
+router.get('/2fa-status', authMiddleware, async (req, res) => {
+  const { data } = await supabase.from('profiles').select('two_fa_enabled').eq('id', req.user.id).single();
+  res.json({ two_fa_enabled: data?.two_fa_enabled || false });
+});
+
+// ── DELETE ACCOUNT ────────────────────────────────────────────────────────────
+router.delete('/account', authMiddleware, async (req, res) => {
+  const userId = req.user.id;
+
+  // Delete all user vault files
+  await supabase.from('files').delete().eq('user_id', userId);
+
+  // Cancel Stripe subscription if active
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_subscription_id')
+    .eq('id', userId)
+    .single();
+
+  if (profile?.stripe_subscription_id) {
+    try {
+      const Stripe = require('stripe');
+      const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+      await stripe.subscriptions.cancel(profile.stripe_subscription_id);
+    } catch (err) {
+      console.error('[delete-account] Stripe cancel error:', err.message);
+    }
+  }
+
+  // Delete profile row
+  await supabase.from('profiles').delete().eq('id', userId);
+
+  // Delete auth user (must be last)
+  const { error } = await supabase.auth.admin.deleteUser(userId);
+  if (error) {
+    console.error('[delete-account] Auth delete error:', error.message);
+    return res.status(500).json({ error: 'Could not delete account. Please contact support.' });
+  }
+
+  res.json({ ok: true });
+});
+
+module.exports = router;

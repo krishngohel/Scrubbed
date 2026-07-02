@@ -1595,4 +1595,8 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   window.open2faEnableModal = function() {
     const m = document.getElementById('twofa-enable-modal');
     m.style.display = 'flex';
-    document.getElementById('twofa-e
+    document.getElementById('twofa-enable-code').value = '';
+    document.getElementById('twofa-enable-error').textContent = '';
+    setTimeout(() => document.getElementById('twofa-enable-code').focus(), 60);
+  };
+  windo
