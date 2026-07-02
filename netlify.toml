@@ -31,6 +31,11 @@
   to = "/secondaries.html"
   status = 200
 
+[[redirects]]
+  from = "/vault"
+  to = "/vault.html"
+  status = 200
+
 # API routes → Express function
 # Without force = true, Netlify serves real files directly and only
 # falls through to the function when no matching file exists.

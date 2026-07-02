@@ -297,11 +297,18 @@ textarea:focus{border-color:var(--clay)}
 .user-dropdown-divider{border:none;border-top:1px solid var(--rule);margin:4px 8px}
 .user-dropdown-logout:hover{background:rgba(139,58,46,0.06);color:var(--rust)}
 
+.plan-row{display:flex;align-items:center;justify-content:space-between;padding:6px 11px}
+.plan-badge{font-size:11.5px;color:var(--graphite);font-weight:500}
+.plan-badge.is-pro{color:var(--moss)}
+.plan-badge.is-canceling{color:var(--rust)}
+.plan-action-btn{font-size:11.5px;font-weight:600;color:var(--clay);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap}
+.plan-action-btn:hover{text-decoration:underline}
+
 /* ── THEME PICKER ── */
 body.theme-transition *,body.theme-transition *::before,body.theme-transition *::after{transition:background-color 0.5s ease,color 0.5s ease,border-color 0.5s ease !important}
 .theme-section{padding:6px 6px 2px}
 .theme-section-hd{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 6px}
-.theme-section-lbl{font-size:10.5px;font-weight:500;color:var(--graphite);letter-spacing:0.06em;text-transform:uppercase}
+.theme-section-lbl{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:500;color:var(--graphite);letter-spacing:0.06em;text-transform:uppercase}
 .theme-reset-btn{font-size:11px;font-family:"Inter Tight",system-ui,sans-serif;color:#FBF7EE;background:var(--rust);border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-weight:600;transition:background 0.15s}
 .theme-reset-btn:hover{background:var(--clay)}
 .theme-presets{display:flex;gap:6px;flex-wrap:wrap;padding:0 4px 7px}
@@ -320,6 +327,8 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
   html{scroll-behavior:auto}
 }
 </style>
+<script src="theme.js"></script>
+<script src="account-menu.js"></script>
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 </head>
@@ -372,6 +381,38 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         By creating an account you agree to our <a href="/privacy.html" target="_blank" style="color:var(--clay);text-underline-offset:2px">Privacy Policy</a>.
       </p>
     </form>
+  </div>
+</div>
+
+<!-- 2FA ENABLE MODAL -->
+<div id="twofa-enable-modal" style="display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:900;align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--cream);border:1px solid var(--rule);border-radius:16px;padding:32px;max-width:400px;width:100%">
+    <div style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:10px">Confirm two-factor auth</div>
+    <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:16px">We sent a 6-digit code to your email. Enter it below to turn on two-factor authentication.</p>
+    <input type="text" id="twofa-enable-code" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:20px;letter-spacing:0.2em;text-align:center;margin-bottom:12px;outline:none"/>
+    <p id="twofa-enable-error" style="font-size:12.5px;color:var(--rust);min-height:16px;margin-bottom:12px"></p>
+    <div style="display:flex;gap:10px">
+      <button type="button" onclick="close2faEnableModal()" style="flex:1;height:36px;background:transparent;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:13px;font-weight:500;cursor:pointer">Cancel</button>
+      <button type="button" id="twofa-enable-btn" onclick="confirm2faEnable()" style="flex:1;height:36px;background:var(--clay);color:var(--cream);border:none;border-radius:8px;font:inherit;font-weight:600;font-size:13px;cursor:pointer">Verify &amp; enable</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE ACCOUNT MODAL -->
+<div id="delete-account-modal" style="display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:900;align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--cream);border:1px solid var(--rule);border-radius:16px;padding:32px;max-width:420px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rust)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span style="font-size:16px;font-weight:700;color:var(--rust)">Delete account</span>
+    </div>
+    <p style="font-size:14px;color:var(--graphite);line-height:1.6;margin-bottom:8px">This will permanently delete your vault files, outlines, account, and subscription.</p>
+    <p style="font-size:13.5px;color:var(--graphite);margin-bottom:14px"><strong>This cannot be undone.</strong> Type <strong>DELETE</strong> to confirm.</p>
+    <input type="text" id="delete-confirm-input" placeholder="Type DELETE here" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:14px;margin-bottom:14px;outline:none"/>
+    <p id="delete-account-error" style="font-size:12.5px;color:var(--rust);min-height:16px;margin-bottom:12px"></p>
+    <div style="display:flex;gap:10px">
+      <button type="button" onclick="closeDeleteModal()" style="flex:1;height:36px;background:transparent;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:13px;font-weight:500;cursor:pointer">Cancel</button>
+      <button type="button" id="delete-confirm-btn" onclick="confirmDeleteAccount()" style="flex:1;height:36px;background:var(--rust);color:var(--cream);border:none;border-radius:8px;font:inherit;font-weight:600;font-size:13px;cursor:pointer">Delete my account</button>
+    </div>
   </div>
 </div>
 
@@ -451,6 +492,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
   function setLoggedIn(username) {
     overlay.classList.remove('open');
     if (window.__scrubbedLogin) window.__scrubbedLogin(username);
+    if (window.AccountMenu) window.AccountMenu.refresh();
     const pending = sessionStorage.getItem('pending_checkout_plan');
     if (pending) {
       sessionStorage.removeItem('pending_checkout_plan');
@@ -609,7 +651,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     if (!token) return;
     try {
       const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const u = await res.json(); if (window.__scrubbedLogin) window.__scrubbedLogin(u.username); }
+      if (res.ok) { const u = await res.json(); if (window.__scrubbedLogin) window.__scrubbedLogin(u.username); if (window.AccountMenu) window.AccountMenu.refresh(); }
       else { localStorage.removeItem(TOKEN_KEY); }
     } catch { localStorage.removeItem(TOKEN_KEY); }
   }
@@ -632,4 +674,69 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 
 <script>
 /* ── AUDIO ── */
-(fu
+let audioOn=false,audioCtx=null,gainNode=null,nodesRunning=[],chirpTimeouts=[];
+const audioBtnEl=document.getElementById('audio-btn');
+function startAmbient(){
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  gainNode=audioCtx.createGain();gainNode.gain.setValueAtTime(0,audioCtx.currentTime);
+  gainNode.gain.linearRampToValueAtTime(0.07,audioCtx.currentTime+3);
+  gainNode.connect(audioCtx.destination);
+  function mkNoise(secs){
+    const len=audioCtx.sampleRate*secs,buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    return buf;
+  }
+  function noiseLayer(hp,lp,vol,secs){
+    const src=audioCtx.createBufferSource();src.buffer=mkNoise(secs);src.loop=true;
+    const hpf=audioCtx.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=hp;
+    const lpf=audioCtx.createBiquadFilter();lpf.type='lowpass';lpf.frequency.value=lp;
+    const g=audioCtx.createGain();g.gain.value=vol;
+    src.connect(hpf);hpf.connect(lpf);lpf.connect(g);g.connect(gainNode);src.start();
+    nodesRunning.push(src);
+  }
+  noiseLayer(1400,7000,0.26,5);
+  noiseLayer(380,2200,0.17,7);
+  noiseLayer(60,380,0.11,9);
+  const wSrc=audioCtx.createBufferSource();wSrc.buffer=mkNoise(11);wSrc.loop=true;
+  const wFilt=audioCtx.createBiquadFilter();wFilt.type='bandpass';wFilt.frequency.value=110;wFilt.Q.value=0.45;
+  const wGain=audioCtx.createGain();wGain.gain.value=0.09;
+  const lfo=audioCtx.createOscillator();lfo.frequency.value=0.07;
+  const lfoG=audioCtx.createGain();lfoG.gain.value=0.065;
+  lfo.connect(lfoG);lfoG.connect(wGain.gain);
+  wSrc.connect(wFilt);wFilt.connect(wGain);wGain.connect(gainNode);
+  wSrc.start();lfo.start();nodesRunning.push(wSrc,lfo);
+  function chirp(){
+    if(!audioCtx||audioCtx.state==='closed')return;
+    const freq=1700+Math.random()*2200,t=audioCtx.currentTime;
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(freq,t);
+    o.frequency.linearRampToValueAtTime(freq*(1.14+Math.random()*0.22),t+0.1);
+    o.frequency.linearRampToValueAtTime(freq*0.87,t+0.22);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.02,t+0.04);g.gain.linearRampToValueAtTime(0,t+0.28);
+    o.connect(g);g.connect(gainNode);o.start(t);o.stop(t+0.32);nodesRunning.push(o);
+    if(Math.random()>0.5){
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain(),t2=t+0.4;
+      o2.type='sine';
+      o2.frequency.setValueAtTime(freq*0.93,t2);o2.frequency.linearRampToValueAtTime(freq*1.1,t2+0.09);o2.frequency.linearRampToValueAtTime(freq*0.84,t2+0.18);
+      g2.gain.setValueAtTime(0,t2);g2.gain.linearRampToValueAtTime(0.014,t2+0.03);g2.gain.linearRampToValueAtTime(0,t2+0.22);
+      o2.connect(g2);g2.connect(gainNode);o2.start(t2);o2.stop(t2+0.26);nodesRunning.push(o2);
+    }
+    chirpTimeouts.push(setTimeout(chirp,4000+Math.random()*8000));
+  }
+  chirpTimeouts.push(setTimeout(chirp,1800+Math.random()*2500));
+}
+function stopAmbient(){
+  chirpTimeouts.forEach(t=>clearTimeout(t));chirpTimeouts=[];
+  if(!gainNode)return;
+  gainNode.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1.5);
+  setTimeout(()=>{nodesRunning.forEach(n=>{try{n.stop()}catch(e){}});nodesRunning=[];if(audioCtx){audioCtx.close();audioCtx=null}},1600);
+}
+if(audioBtnEl)audioBtnEl.addEventListener('click',()=>{
+  audioOn=!audioOn;
+  if(audioOn){startAmbient();document.getElementById('audio-icon-off').style.display='none';document.getElementById('audio-icon-on').style.display='';document.getElementById('audio-label').textContent='ON';audioBtnEl.classList.add('on')}
+  else{stopAmbient();document.getElementById('audio-icon-off').style.display='';document.getElementById('audio-icon-on').style.display='none';document.getElementById('audio-label').textContent='OFF';audioBtnEl.classList.remove('on')}
+});
+</script>
+</body>
+</html>

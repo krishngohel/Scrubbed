@@ -11,6 +11,9 @@ const IC = {
   spark: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
   logout:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
   vault: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+  lock:  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>,
+  trash: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>,
+  theme: <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
 };
 
 function Nav({ onEnter, onSignIn, user, onLogout }) {
@@ -24,6 +27,16 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
   }, []);
+
+  useEffect(() => {
+    if (user && window.AccountMenu) window.AccountMenu.refresh();
+  }, [user]);
+
+  useEffect(() => {
+    if (dropOpen && window.AccountMenu) window.AccountMenu.initThemePicker();
+  }, [dropOpen]);
+
+  const closeDrop = () => setDropOpen(false);
 
   return (
     <nav className="nav">
@@ -50,9 +63,33 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
                   </div>
                   <div className="user-dropdown-list">
                     <a href="/vault.html" className="user-dropdown-item">{IC.vault} My Vault</a>
-                    <a href="/vault.html" className="user-dropdown-item">{IC.edit} Account &amp; settings</a>
+                    <a href="/secondaries" className="user-dropdown-item">{IC.spark} Secondary AI</a>
+                    <div className="plan-row">
+                      <span className="plan-badge" id="plan-badge">—</span>
+                      <button className="plan-action-btn" id="plan-action-btn" style={{display:'none'}}></button>
+                    </div>
+                    <div className="theme-section">
+                      <div className="theme-section-hd">
+                        <span className="theme-section-lbl">{IC.theme} Appearance</span>
+                        <button type="button" className="theme-reset-btn" id="theme-reset">Reset</button>
+                      </div>
+                      <div className="theme-presets" id="theme-presets"></div>
+                      <div className="theme-custom-grid">
+                        <div className="theme-color-row"><label className="tc-label">Background</label><input type="color" className="tc-input" id="tc-bg"/></div>
+                        <div className="theme-color-row"><label className="tc-label">Text</label><input type="color" className="tc-input" id="tc-font"/></div>
+                        <div className="theme-color-row"><label className="tc-label">Primary</label><input type="color" className="tc-input" id="tc-primary"/></div>
+                        <div className="theme-color-row"><label className="tc-label">Accent</label><input type="color" className="tc-input" id="tc-accent"/></div>
+                      </div>
+                    </div>
                     <hr className="user-dropdown-divider"/>
-                    <button className="user-dropdown-item user-dropdown-logout" onClick={onLogout}>
+                    <button type="button" className="user-dropdown-item" onClick={() => { closeDrop(); window.toggle2FA && window.toggle2FA(); }}>
+                      {IC.lock} <span id="twofa-toggle-label">Two-factor auth: Off</span>
+                    </button>
+                    <button type="button" className="user-dropdown-item" style={{color:'var(--rust)'}} onClick={() => { closeDrop(); window.openDeleteModal && window.openDeleteModal(); }}>
+                      {IC.trash} Delete account
+                    </button>
+                    <hr className="user-dropdown-divider"/>
+                    <button type="button" className="user-dropdown-item user-dropdown-logout" onClick={() => { closeDrop(); onLogout(); }}>
                       {IC.logout} Log out
                     </button>
                   </div>

@@ -51,6 +51,7 @@ app.get('/earlyaccess', (req, res) => res.redirect(301, '/early-access'));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/early-access', (req, res) => res.sendFile(path.join(__dirname, 'landing.html')));
 app.get('/secondaries', (req, res) => res.sendFile(path.join(__dirname, 'secondaries.html')));
+app.get('/vault', (req, res) => res.sendFile(path.join(__dirname, 'vault.html')));
 
 // Secret early-access link (share /earlyaccess/SECRET with invited users)
 if (process.env.EARLY_ACCESS_SECRET) {
@@ -68,6 +69,7 @@ const PUBLIC_FILES = new Set([
   '/privacy.html',
   '/reset-password.html',
   '/theme.js',
+  '/account-menu.js',
 ]);
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();

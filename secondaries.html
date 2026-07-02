@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="theme.js"></script>
+<script src="account-menu.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
@@ -48,9 +49,8 @@ em{font-family:var(--font-display,"Newsreader",Georgia,serif);font-style:italic}
 .nav-link:hover,.nav-link.is-active{color:var(--ink)}
 .nav-right{display:flex;align-items:center;gap:12px;position:relative}
 .user-menu-wrapper{position:relative}
-#nav-user-btn{width:36px;height:36px;border-radius:50%;background:var(--clay);color:var(--cream);display:none;align-items:center;justify-content:center;transition:background 140ms var(--ease)}
-#nav-user-btn:hover{background:var(--clay-d)}
-#nav-user-btn svg{pointer-events:none}
+#nav-user-btn.nav-avatar{width:32px;height:32px;border-radius:999px;background:var(--clay);color:var(--cream);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:600;user-select:none}
+#nav-user-btn.nav-avatar.visible{display:flex}
 #user-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--cream);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 32px rgba(31,27,22,0.12);min-width:230px;overflow:hidden;z-index:200}
 #user-dropdown.open{display:block}
 .user-dropdown-header{padding:14px 16px 10px;border-bottom:1px solid var(--rule)}
@@ -290,9 +290,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     </div>
     <div class="nav-right">
       <div class="user-menu-wrapper">
-        <button id="nav-user-btn" aria-label="Account">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.866 3.582-7 8-7s8 3.134 8 7"/></svg>
-        </button>
+        <div class="nav-avatar" id="nav-user-btn" aria-label="Account" role="button" tabindex="0"></div>
         <div id="user-dropdown">
           <div class="user-dropdown-header">
             <div class="user-dropdown-greeting">Signed in as</div>
@@ -302,6 +300,10 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
             <a href="/vault.html" class="user-dropdown-item">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
               My Vault
+            </a>
+            <a href="/secondaries" class="user-dropdown-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Secondary AI
             </a>
             <div class="plan-row">
               <span class="plan-badge" id="plan-badge">—</span>
@@ -602,7 +604,6 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   let _isPro = false;
   let _planType = null;
   let _pending2faUserId = null;
-  let _twoFaEnabled = false;
   let _schools = [];
   let _customSchools = [];
   let _editingCustomSlug = null;
@@ -804,59 +805,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         updateProGate();
       }
     } catch {}
-    loadPlanStatus();
-    load2FAStatus();
-    await Promise.all([loadSchools(), loadOutlines()]);
-  }
-
-  async function load2FAStatus() {
-    try {
-      const res = await fetch('/auth/2fa-status', { headers: authHeaders() });
-      if (!res.ok) return;
-      const { two_fa_enabled } = await res.json();
-      _twoFaEnabled = two_fa_enabled;
-      const label = document.getElementById('twofa-toggle-label');
-      if (label) label.textContent = `Two-factor auth: ${_twoFaEnabled ? 'On' : 'Off'}`;
-    } catch {}
-  }
-
-  // ── INIT ──────────────────────────────────────────────────────────────
-  async function init() {
-    loadCustomSchools();
-    const t = token();
-
-    if (!t) {
-      const refreshed = await tryRefresh();
-      if (!refreshed) { openModal('login'); return; }
-      setLoggedIn(refreshed.username);
-      await loadMeAndProceed();
-      return;
-    }
-
-    try {
-      const res = await fetch('/me', { headers: { Authorization: 'Bearer ' + t } });
-      if (!res.ok) {
-        localStorage.removeItem(TOKEN_KEY);
-        const refreshed = await tryRefresh();
-        if (!refreshed) { openModal('login'); return; }
-        setLoggedIn(refreshed.username);
-        await loadMeAndProceed();
-        return;
-      }
-      const user = await res.json();
-      setLoggedIn(user.username);
-      _isPro = user.subscription_status === 'pro';
-      _planType = user.plan_type || null;
-      updateProGate();
-      loadPlanStatus();
-    } catch {
-      const refreshed = await tryRefresh();
-      if (!refreshed) { openModal('login'); return; }
-      setLoggedIn(refreshed.username);
-      await loadMeAndProceed();
-      return;
-    }
-
+    if (window.AccountMenu) window.AccountMenu.refresh();
     await Promise.all([loadSchools(), loadOutlines()]);
   }
 
@@ -870,6 +819,45 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       }
     } catch {}
     updateProGate();
+    if (window.AccountMenu) window.AccountMenu.refresh();
+    await Promise.all([loadSchools(), loadOutlines()]);
+  }
+  async function init() {
+    loadCustomSchools();
+    const t = token();
+
+    if (!t) {
+      const refreshed = await tryRefresh();
+      if (!refreshed) { await loadSchools(); return; }
+      setLoggedIn(refreshed.username);
+      await loadMeAndProceed();
+      return;
+    }
+
+    try {
+      const res = await fetch('/me', { headers: { Authorization: 'Bearer ' + t } });
+      if (!res.ok) {
+        localStorage.removeItem(TOKEN_KEY);
+        const refreshed = await tryRefresh();
+        if (!refreshed) { await loadSchools(); return; }
+        setLoggedIn(refreshed.username);
+        await loadMeAndProceed();
+        return;
+      }
+      const user = await res.json();
+      setLoggedIn(user.username);
+      _isPro = user.subscription_status === 'pro';
+      _planType = user.plan_type || null;
+      updateProGate();
+      if (window.AccountMenu) window.AccountMenu.refresh();
+    } catch {
+      const refreshed = await tryRefresh();
+      if (!refreshed) { await loadSchools(); return; }
+      setLoggedIn(refreshed.username);
+      await loadMeAndProceed();
+      return;
+    }
+
     await Promise.all([loadSchools(), loadOutlines()]);
   }
 
@@ -877,7 +865,8 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   function setLoggedIn(username) {
     document.getElementById('login-btn').style.display = 'none';
     const userBtn = document.getElementById('nav-user-btn');
-    userBtn.style.display = 'flex';
+    userBtn.classList.add('visible');
+    userBtn.textContent = username[0].toUpperCase();
     document.getElementById('dropdown-username').textContent = username;
   }
 
@@ -885,62 +874,18 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     e.stopPropagation();
     document.getElementById('user-dropdown').classList.toggle('open');
   });
-  document.addEventListener('click', () => document.getElementById('user-dropdown').classList.remove('open'));
+  document.addEventListener('click', e => {
+    const wrap = document.querySelector('.user-menu-wrapper');
+    if (wrap && !wrap.contains(e.target)) document.getElementById('user-dropdown').classList.remove('open');
+  });
+
+  document.getElementById('login-btn').addEventListener('click', () => openModal('login'));
 
   document.getElementById('logout-btn').addEventListener('click', () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
     window.location.href = '/';
   });
-
-  document.getElementById('login-btn').addEventListener('click', () => openModal('login'));
-
-  // ── THEME PICKER ──────────────────────────────────────────────────────
-  (function(){
-    const presetsEl = document.getElementById('theme-presets');
-    if (presetsEl && window.THEME_PRESETS) {
-      window.THEME_PRESETS.forEach((p, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'theme-preset';
-        btn.title = p.name;
-        btn.style.background = `linear-gradient(135deg,${p.primary} 50%,${p.accent} 50%)`;
-        btn.dataset.idx = i;
-        btn.addEventListener('click', () => { window.applyTheme(p); });
-        presetsEl.appendChild(btn);
-      });
-    }
-
-    window.syncThemePicker = function(colors) {
-      const ids = ['tc-bg','tc-font','tc-primary','tc-accent'];
-      const keys = ['bg','font','primary','accent'];
-      ids.forEach((id, i) => { const el = document.getElementById(id); if (el) el.value = colors[keys[i]]; });
-      document.querySelectorAll('.theme-preset').forEach((btn, i) => {
-        const p = window.THEME_PRESETS[i];
-        btn.classList.toggle('active', p && p.bg === colors.bg && p.font === colors.font && p.primary === colors.primary && p.accent === colors.accent);
-      });
-    };
-
-    function readCustom() {
-      return {
-        bg:      document.getElementById('tc-bg')?.value      || window.THEME_DEFAULT.bg,
-        font:    document.getElementById('tc-font')?.value    || window.THEME_DEFAULT.font,
-        primary: document.getElementById('tc-primary')?.value || window.THEME_DEFAULT.primary,
-        accent:  document.getElementById('tc-accent')?.value  || window.THEME_DEFAULT.accent,
-      };
-    }
-    ['tc-bg','tc-font','tc-primary','tc-accent'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('input', () => window.applyTheme(readCustom()));
-    });
-
-    const resetBtn = document.getElementById('theme-reset');
-    if (resetBtn) resetBtn.addEventListener('click', () => window.applyTheme(window.THEME_DEFAULT));
-
-    try {
-      const saved = localStorage.getItem('scrubbed_theme');
-      if (window.syncThemePicker) window.syncThemePicker(saved ? JSON.parse(saved) : window.THEME_DEFAULT);
-    } catch(e) {}
-  })();
 
   // ── PRO GATE ──────────────────────────────────────────────────────────
   function updateProGate() {
@@ -962,52 +907,6 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       else alert(data.error || 'Could not start checkout. Please try again.');
     } catch { alert('Could not start checkout. Please try again.'); }
   };
-
-  window.openBillingPortal = async function () {
-    try {
-      const res = await fetch('/stripe/portal', {
-        method: 'POST', headers: authHeaders(),
-        body: JSON.stringify({ return_url: window.location.href })
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch { alert('Could not open billing portal.'); }
-  };
-
-  async function loadPlanStatus() {
-    if (!authHeaders().Authorization.split(' ')[1]) return;
-    try {
-      const res = await fetch('/stripe/status', { headers: authHeaders() });
-      if (!res.ok) return;
-      const d = await res.json();
-      const badge = document.getElementById('plan-badge');
-      const btn = document.getElementById('plan-action-btn');
-      if (!badge) return;
-      const fmt = iso => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      if (d.status === 'pro' && d.cancel_at) {
-        badge.textContent = 'Pro · ends ' + fmt(d.cancel_at);
-        badge.className = 'plan-badge is-canceling';
-        if (btn) { btn.textContent = 'Reactivate'; btn.style.display = ''; btn.onclick = reactivatePlan; }
-      } else if (d.status === 'pro') {
-        badge.textContent = 'Pro' + (d.renews_at ? ' · renews ' + fmt(d.renews_at) : '');
-        badge.className = 'plan-badge is-pro';
-        if (btn) { btn.textContent = 'Manage plan'; btn.style.display = ''; btn.onclick = window.openBillingPortal; }
-      } else {
-        badge.textContent = 'Free plan';
-        badge.className = 'plan-badge';
-        if (btn) { btn.textContent = 'Upgrade'; btn.style.display = ''; btn.onclick = () => window.location.href = '/#pricing'; }
-      }
-    } catch (e) {}
-  }
-
-  async function reactivatePlan() {
-    try {
-      const res = await fetch('/stripe/reactivate', { method: 'POST', headers: authHeaders() });
-      const d = await res.json();
-      if (d.ok) loadPlanStatus();
-      else alert(d.error || 'Could not reactivate.');
-    } catch { alert('Error reactivating plan.'); }
-  }
 
   // ── SCHOOLS ───────────────────────────────────────────────────────────
   async function loadSchools() {
@@ -1568,35 +1467,11 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  // ── 2FA + DELETE ACCOUNT ─────────────────────────────────────────────
-  window.toggle2FA = async function() {
-    try {
-      const statusRes = await fetch('/auth/2fa-status', { headers: authHeaders() });
-      if (!statusRes.ok) return;
-      const { two_fa_enabled } = await statusRes.json();
-      if (two_fa_enabled) {
-        // Disabling is immediate
-        const res = await fetch('/auth/disable-2fa', { method: 'POST', headers: authHeaders() });
-        if (!res.ok) throw new Error();
-        _twoFaEnabled = false;
-        const label = document.getElementById('twofa-toggle-label');
-        if (label) label.textContent = 'Two-factor auth: Off';
-        document.getElementById('user-dropdown').classList.remove('open');
-        return;
-      }
-      // Enabling requires verifying a code emailed to the user
-      const res = await fetch('/auth/enable-2fa', { method: 'POST', headers: authHeaders() });
-      if (!res.ok) throw new Error();
-      document.getElementById('user-dropdown').classList.remove('open');
-      window.open2faEnableModal();
-    } catch { alert('Could not update two-factor authentication setting.'); }
-  };
+  window._openAuthModal = openModal;
+  window._checkSession = init;
 
-  window.open2faEnableModal = function() {
-    const m = document.getElementById('twofa-enable-modal');
-    m.style.display = 'flex';
-    document.getElementById('twofa-enable-code').value = '';
-    document.getElementById('twofa-enable-error').textContent = '';
-    setTimeout(() => document.getElementById('twofa-enable-code').focus(), 60);
-  };
-  windo
+  init();
+})();
+</script>
+</body>
+</html>
