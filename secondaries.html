@@ -1609,4 +1609,13 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   if (new URLSearchParams(location.search).get('upgraded') === '1') {
     history.replaceState({}, '', '/secondaries');
     const banner = document.getElementById('pro-gate-banner');
-    banner.innerHTML = `<div class="pro-gate-text" style="color:var(--moss)"><stro
+    banner.innerHTML = `<div class="pro-gate-text" style="color:var(--moss)"><strong style="color:var(--moss)">Welcome to Pro!</strong>You now have full access to Secondary AI. Generate your first outline below.</div>`;
+    banner.style.background = 'var(--moss-s)';
+    banner.style.borderColor = 'rgba(90,110,74,0.2)';
+    banner.classList.remove('hidden');
+    setTimeout(() => banner.classList.add('hidden'), 6000);
+  }
+})();
+</script>
+</body>
+</html>
