@@ -350,6 +350,11 @@ footer{padding:40px 32px;border-top:1px solid var(--rule);background:var(--paper
 .auth-field input{border:1.5px solid var(--rule);border-radius:8px;padding:10px 13px;font-size:14px;font-family:var(--font-body);color:var(--ink);background:var(--paper);outline:none;transition:border-color 0.15s}
 .auth-field input:focus{border-color:var(--clay);box-shadow:0 0 0 3px rgba(181,86,58,0.1)}
 .auth-field input::placeholder{color:var(--stone)}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:40px;margin-top:12px;background:var(--paper);border:1.5px solid var(--rule);border-radius:8px;font:inherit;font-size:13.5px;font-weight:500;color:var(--ink);cursor:pointer;transition:border-color 0.15s}
+.google-btn:hover{border-color:var(--clay)}
+.auth-or{display:flex;align-items:center;gap:10px;margin-top:14px;color:var(--stone);font-size:11.5px;text-transform:uppercase;letter-spacing:0.06em}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--rule)}
+
 .auth-submit{width:100%;padding:11px;background:var(--clay);color:var(--cream);border:none;border-radius:8px;font-size:14px;font-weight:600;font-family:var(--font-body);cursor:pointer;margin-top:4px;transition:background 0.15s;letter-spacing:-0.01em}
 .auth-submit:hover{background:var(--clay-d)}
 .auth-submit:disabled{opacity:0.5;cursor:not-allowed}
@@ -1774,6 +1779,20 @@ async function exportVault(){
 </div>
 
 <!-- ══ DELETE ACCOUNT MODAL ══ -->
+<!-- ══ 2FA ENABLE MODAL ══ -->
+<div id="twofa-enable-modal" style="display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:900;align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--cream);border:1px solid var(--rule);border-radius:16px;padding:32px;max-width:400px;width:100%">
+    <div style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:10px">Confirm two-factor auth</div>
+    <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:16px">We sent a 6-digit code to your email. Enter it below to turn on two-factor authentication. From then on, logging in requires a code from your email.</p>
+    <input type="text" id="twofa-enable-code" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:20px;letter-spacing:0.2em;text-align:center;margin-bottom:12px;outline:none"/>
+    <p id="twofa-enable-error" style="font-size:12.5px;color:var(--rust);min-height:16px;margin-bottom:12px"></p>
+    <div style="display:flex;gap:10px">
+      <button onclick="close2faEnableModal()" style="flex:1;height:36px;background:transparent;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:13px;font-weight:500;cursor:pointer">Cancel</button>
+      <button id="twofa-enable-btn" onclick="confirm2faEnable()" style="flex:1;height:36px;background:var(--clay);color:var(--cream);border:none;border-radius:8px;font:inherit;font-weight:600;font-size:13px;cursor:pointer">Verify &amp; enable</button>
+    </div>
+  </div>
+</div>
+
 <div id="delete-account-modal" style="display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:900;align-items:center;justify-content:center;padding:24px">
   <div style="background:var(--cream);border:1px solid var(--rule);border-radius:16px;padding:32px;max-width:420px;width:100%">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
@@ -1816,6 +1835,8 @@ async function exportVault(){
       </div>
       <p id="login-error" class="auth-error"></p>
       <button type="submit" class="auth-submit">Log in</button>
+      <div class="auth-or">or</div>
+      <button type="button" class="google-btn" onclick="location.href='/auth/google'"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>Continue with Google</button>
       <p style="text-align:right;margin-top:10px"><button type="button" onclick="switchAuthForm('forgot')" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Forgot password?</button></p>
     </form>
     <form id="twofa-form" style="display:none">
@@ -1860,6 +1881,8 @@ async function exportVault(){
       </div>
       <p id="signup-error" class="auth-error"></p>
       <button type="submit" class="auth-submit">Create account</button>
+      <div class="auth-or">or</div>
+      <button type="button" class="google-btn" onclick="location.href='/auth/google'"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>Sign up with Google</button>
       <p style="font-size:11.5px;color:var(--stone);text-align:center;margin-top:12px;line-height:1.5">
         By creating an account you agree to our <a href="/privacy.html" target="_blank" style="color:var(--clay);text-underline-offset:2px">Privacy Policy</a>.
       </p>
@@ -2087,20 +2110,55 @@ if(logoutBtn){
 /* Exposed on window — these are invoked from inline onclick handlers,
    so keeping them inside the IIFE made the buttons throw ReferenceErrors. */
 window.toggle2FA=function toggle2FA(){
+  const dd=document.getElementById('user-dropdown');
   fetch('/auth/2fa-status',{headers:authHeaders()})
     .then(r=>r.ok?r.json():Promise.reject())
     .then(({two_fa_enabled})=>{
-      const ep=two_fa_enabled?'/auth/disable-2fa':'/auth/enable-2fa';
-      return fetch(ep,{method:'POST',headers:authHeaders()})
-        .then(r=>{if(!r.ok)throw new Error();return{newState:!two_fa_enabled}});
-    })
-    .then(({newState})=>{
-      const label=document.getElementById('twofa-toggle-label');
-      if(label)label.textContent=`Two-factor auth: ${newState?'On':'Off'}`;
-      const dd=document.getElementById('user-dropdown');
-      if(dd)dd.classList.remove('open');
+      if(two_fa_enabled){
+        // Disabling is immediate
+        return fetch('/auth/disable-2fa',{method:'POST',headers:authHeaders()}).then(r=>{
+          if(!r.ok)throw new Error();
+          const label=document.getElementById('twofa-toggle-label');
+          if(label)label.textContent='Two-factor auth: Off';
+          if(dd)dd.classList.remove('open');
+        });
+      }
+      // Enabling requires verifying a code emailed to the user
+      return fetch('/auth/enable-2fa',{method:'POST',headers:authHeaders()}).then(r=>{
+        if(!r.ok)throw new Error();
+        if(dd)dd.classList.remove('open');
+        window.open2faEnableModal();
+      });
     })
     .catch(()=>alert('Could not update two-factor authentication setting.'));
+};
+
+window.open2faEnableModal=function(){
+  const m=document.getElementById('twofa-enable-modal');
+  m.style.display='flex';
+  document.getElementById('twofa-enable-code').value='';
+  document.getElementById('twofa-enable-error').textContent='';
+  setTimeout(()=>document.getElementById('twofa-enable-code').focus(),60);
+};
+window.close2faEnableModal=function(){
+  document.getElementById('twofa-enable-modal').style.display='none';
+};
+window.confirm2faEnable=function(){
+  const code=document.getElementById('twofa-enable-code').value.trim();
+  const errorEl=document.getElementById('twofa-enable-error');
+  if(!/^\d{6}$/.test(code)){errorEl.textContent='Enter the 6-digit code from your email.';return;}
+  const btn=document.getElementById('twofa-enable-btn');
+  btn.disabled=true;btn.textContent='Verifying…';
+  fetch('/auth/enable-2fa/confirm',{method:'POST',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({code})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d})))
+    .then(({ok,d})=>{
+      if(!ok)throw new Error(d.error||'Verification failed.');
+      const label=document.getElementById('twofa-toggle-label');
+      if(label)label.textContent='Two-factor auth: On';
+      window.close2faEnableModal();
+    })
+    .catch(err=>{errorEl.textContent=err.message||'Verification failed.';})
+    .finally(()=>{btn.disabled=false;btn.textContent='Verify & enable';});
 };
 
 window.openDeleteModal=function openDeleteModal(){
@@ -2120,88 +2178,4 @@ window.closeDeleteModal=function closeDeleteModal(){
 
 window.confirmDeleteAccount=function confirmDeleteAccount(){
   const input=document.getElementById('delete-confirm-input').value.trim();
-  const errorEl=document.getElementById('delete-account-error');
-  if(input!=='DELETE'){errorEl.textContent='Type DELETE exactly to confirm.';return;}
-  const btn=document.getElementById('delete-confirm-btn');
-  btn.disabled=true;btn.textContent='Deleting…';
-  fetch('/auth/account',{method:'DELETE',headers:authHeaders()})
-    .then(r=>{
-      if(!r.ok)return r.json().then(d=>{throw new Error(d.error||'Could not delete account.')});
-      localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(REFRESH_KEY);
-      window.location.href='/';
-    })
-    .catch(err=>{
-      errorEl.textContent=err.message||'Connection error. Please try again.';
-      btn.disabled=false;btn.textContent='Delete my account';
-    });
-};
-
-document.getElementById('delete-account-modal').addEventListener('click',function(e){
-  if(e.target===this)closeDeleteModal();
-});
-
-function load2FAStatus(){
-  fetch('/auth/2fa-status',{headers:authHeaders()})
-    .then(r=>r.ok?r.json():null)
-    .then(d=>{
-      if(!d)return;
-      const label=document.getElementById('twofa-toggle-label');
-      if(label)label.textContent=`Two-factor auth: ${d.two_fa_enabled?'On':'Off'}`;
-    }).catch(()=>{});
-}
-
-checkSession();
-/* Initial vault load — runs after checkSession resolves via setLoggedIn */
-if(typeof loadFilesFromServer==='function')loadFilesFromServer();
-})();
-</script>
-<script>
-// Theme picker initialisation
-(function(){
-  const presetsEl=document.getElementById('theme-presets');
-  if(presetsEl&&window.THEME_PRESETS){
-    window.THEME_PRESETS.forEach((p,i)=>{
-      const btn=document.createElement('button');
-      btn.className='theme-preset';
-      btn.title=p.name;
-      btn.style.background=`linear-gradient(135deg,${p.primary} 50%,${p.accent} 50%)`;
-      btn.dataset.idx=i;
-      btn.addEventListener('click',()=>{window.applyTheme(p);});
-      presetsEl.appendChild(btn);
-    });
-  }
-
-  window.syncThemePicker=function(colors){
-    const ids=['tc-bg','tc-font','tc-primary','tc-accent'];
-    const keys=['bg','font','primary','accent'];
-    ids.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=colors[keys[i]];});
-    document.querySelectorAll('.theme-preset').forEach((btn,i)=>{
-      const p=window.THEME_PRESETS[i];
-      btn.classList.toggle('active',p&&p.bg===colors.bg&&p.font===colors.font&&p.primary===colors.primary&&p.accent===colors.accent);
-    });
-  };
-
-  function readCustom(){
-    return {
-      bg:   document.getElementById('tc-bg')?.value    || window.THEME_DEFAULT.bg,
-      font: document.getElementById('tc-font')?.value  || window.THEME_DEFAULT.font,
-      primary:document.getElementById('tc-primary')?.value || window.THEME_DEFAULT.primary,
-      accent: document.getElementById('tc-accent')?.value  || window.THEME_DEFAULT.accent,
-    };
-  }
-  ['tc-bg','tc-font','tc-primary','tc-accent'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.addEventListener('input',()=>window.applyTheme(readCustom()));
-  });
-
-  const resetBtn=document.getElementById('theme-reset');
-  if(resetBtn)resetBtn.addEventListener('click',()=>window.applyTheme(window.THEME_DEFAULT));
-
-  try{
-    const saved=localStorage.getItem('scrubbed_theme');
-    if(window.syncThemePicker)window.syncThemePicker(saved?JSON.parse(saved):window.THEME_DEFAULT);
-  }catch(e){}
-})();
-</script>
-</body>
-</html>
+  const errorEl=document.getElementByI

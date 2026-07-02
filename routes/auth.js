@@ -53,6 +53,11 @@ const otpLimiter = rateLimit({
   message: 'Too many verification attempts. Please log in again.',
 });
 const forgotLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: 'Too many reset requests. Please try again later.' });
+const confirmLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, max: 10,
+  keyFn: req => asString(req.user?.id),
+  message: 'Too many verification attempts. Please try again later.',
+});
 
 // ── SIGNUP ───────────────────────────────────────────────────────────────────
 router.post('/signup', signupLimiter, async (req, res) => {
@@ -241,65 +246,60 @@ router.post('/reset-password', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── ENABLE 2FA ────────────────────────────────────────────────────────────────
+// ── ENABLE 2FA (step 1: send verification code) ──────────────────────────────
+// 2FA is NOT enabled until the emailed code is confirmed via /enable-2fa/confirm.
 router.post('/enable-2fa', authMiddleware, async (req, res) => {
+  const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  otpAttempts.delete(req.user.id);
+  await supabase.from('profiles').update({
+    otp_code: otp,
+    otp_expires_at: expiresAt,
+  }).eq('id', req.user.id);
+  await sendOtpEmail(req.user.username, otp);
+  res.json({ verification_required: true });
+});
+
+// ── ENABLE 2FA (step 2: confirm code, then activate) ─────────────────────────
+router.post('/enable-2fa/confirm', authMiddleware, confirmLimiter, async (req, res) => {
+  const code = asString(req.body?.code).trim();
+  if (!code) return res.status(400).json({ error: 'Verification code is required.' });
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('otp_code, otp_expires_at')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!profile?.otp_code) return res.status(401).json({ error: 'No pending verification. Toggle 2FA again to get a new code.' });
+
+  async function clearOtp() {
+    await supabase.from('profiles').update({ otp_code: null, otp_expires_at: null }).eq('id', req.user.id);
+  }
+
+  if (!profile.otp_expires_at || new Date(profile.otp_expires_at) < new Date()) {
+    await clearOtp();
+    otpAttempts.delete(req.user.id);
+    return res.status(401).json({ error: 'Code expired. Toggle 2FA again to get a new code.' });
+  }
+
+  if (!safeEqual(profile.otp_code, code)) {
+    const a = otpAttempts.get(req.user.id) || { count: 0 };
+    a.count++;
+    otpAttempts.set(req.user.id, a);
+    if (a.count >= MAX_OTP_ATTEMPTS) {
+      await clearOtp();
+      otpAttempts.delete(req.user.id);
+      return res.status(401).json({ error: 'Too many incorrect codes. Toggle 2FA again to restart.' });
+    }
+    return res.status(401).json({ error: 'Incorrect code.' });
+  }
+
+  otpAttempts.delete(req.user.id);
+  await clearOtp();
   await supabase.from('profiles').update({ two_fa_enabled: true }).eq('id', req.user.id);
   res.json({ ok: true });
 });
 
-// ── DISABLE 2FA ───────────────────────────────────────────────────────────────
-router.post('/disable-2fa', authMiddleware, async (req, res) => {
-  await supabase.from('profiles').update({
-    two_fa_enabled: false,
-    otp_code: null,
-    otp_expires_at: null,
-    pending_token: null,
-    pending_refresh_token: null,
-  }).eq('id', req.user.id);
-  res.json({ ok: true });
-});
-
-// ── GET 2FA STATUS ────────────────────────────────────────────────────────────
-router.get('/2fa-status', authMiddleware, async (req, res) => {
-  const { data } = await supabase.from('profiles').select('two_fa_enabled').eq('id', req.user.id).single();
-  res.json({ two_fa_enabled: data?.two_fa_enabled || false });
-});
-
-// ── DELETE ACCOUNT ────────────────────────────────────────────────────────────
-router.delete('/account', authMiddleware, async (req, res) => {
-  const userId = req.user.id;
-
-  // Delete all user vault files
-  await supabase.from('files').delete().eq('user_id', userId);
-
-  // Cancel Stripe subscription if active
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('stripe_subscription_id')
-    .eq('id', userId)
-    .single();
-
-  if (profile?.stripe_subscription_id) {
-    try {
-      const Stripe = require('stripe');
-      const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-      await stripe.subscriptions.cancel(profile.stripe_subscription_id);
-    } catch (err) {
-      console.error('[delete-account] Stripe cancel error:', err.message);
-    }
-  }
-
-  // Delete profile row
-  await supabase.from('profiles').delete().eq('id', userId);
-
-  // Delete auth user (must be last)
-  const { error } = await supabase.auth.admin.deleteUser(userId);
-  if (error) {
-    console.error('[delete-account] Auth delete error:', error.message);
-    return res.status(500).json({ error: 'Could not delete account. Please contact support.' });
-  }
-
-  res.json({ ok: true });
-});
-
-module.exports = router;
+// ── SIGN IN WITH GOOGLE (Supabase OAuth) ─────────────────────────────────────
+// Requires the Google provider
