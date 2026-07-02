@@ -345,14 +345,14 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   <section class="sec-hero">
     <span class="section-eyebrow">Secondary AI · Texas Schools</span>
     <h1 class="sec-hero-h">Your essay outlines,<br><em>built from your record.</em></h1>
-    <p class="sec-hero-sub">Select a school, pick a prompt — Scrubbed reads your Vault and writes a personalized outline grounded in what you've actually done.</p>
+    <p class="sec-hero-sub">Select a school, pick a prompt — Scrubbed organizes your Vault material into a school-specific framework built from what you've actually done.</p>
   </section>
 
   <!-- PRO GATE BANNER -->
   <div id="pro-gate-banner" class="hidden">
     <div class="pro-gate-text">
       <strong>Secondary AI is a Pro feature.</strong>
-      Upgrade to generate school-specific essay outlines from your Vault data.
+      Upgrade to structure your Vault experiences into school-specific essay frameworks.
     </div>
     <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">
       <button class="btn-primary btn-sm" onclick="window.startCheckout('monthly')">Upgrade — $25/mo</button>
@@ -424,6 +424,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       </button>
     </div>
     <div class="outline-modal-body" id="modal-outline-body"></div>
+    <p style="padding:10px 26px 0;margin:0;font-size:12px;color:var(--stone);line-height:1.5;border-top:1px solid var(--rule)">This tool never writes your sentences — it shows you what to write about and why, so your final essay stays fully your own words. AMCAS, CASPA, and TMDSAS certification requires your essays to be entirely your own work.</p>
     <div class="outline-modal-foot">
       <button class="btn-primary btn-sm" id="modal-regen-btn" onclick="regenerateOutline()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -1608,13 +1609,4 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   if (new URLSearchParams(location.search).get('upgraded') === '1') {
     history.replaceState({}, '', '/secondaries');
     const banner = document.getElementById('pro-gate-banner');
-    banner.innerHTML = `<div class="pro-gate-text" style="color:var(--moss)"><strong style="color:var(--moss)">Welcome to Pro!</strong>You now have full access to Secondary AI. Generate your first outline below.</div>`;
-    banner.style.background = 'var(--moss-s)';
-    banner.style.borderColor = 'rgba(90,110,74,0.2)';
-    banner.classList.remove('hidden');
-    setTimeout(() => banner.classList.add('hidden'), 6000);
-  }
-})();
-</script>
-</body>
-</html>
+    banner.innerHTML = `<div class="pro-gate-text" style="color:var(--moss)"><stro

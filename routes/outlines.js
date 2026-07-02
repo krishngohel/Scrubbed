@@ -98,10 +98,11 @@ router.post('/generate', async (req, res) => {
   }
 
   const vaultContext = await getCachedVaultContext(req.user.id);
-  const outlineText = await generateOutlineText(vaultContext, school, prompt, limits.max_tokens);
+  let outlineText = await generateOutlineText(vaultContext, school, prompt, limits.max_tokens);
   if (outlineText instanceof Error) {
     return res.status(500).json({ error: outlineText.message });
   }
+  outlineText = await leakCheckOutline(outlineText);
 
   const promptWords = prompt.prompt_text.split(/\s+/).slice(0, 6).join(' ');
   const tileName = `${school.short_name} – ${promptWords}${prompt.prompt_text.split(/\s+/).length > 6 ? '…' : ''} Outline`;
@@ -192,10 +193,11 @@ router.post('/:id/regenerate', async (req, res) => {
   }
 
   const vaultContext = await getCachedVaultContext(req.user.id);
-  const outlineText = await generateOutlineText(vaultContext, school, prompt, limits.max_tokens);
+  let outlineText = await generateOutlineText(vaultContext, school, prompt, limits.max_tokens);
   if (outlineText instanceof Error) {
     return res.status(500).json({ error: outlineText.message });
   }
+  outlineText = await leakCheckOutline(outlineText);
 
   const { data: updated, error: updateErr } = await supabase
     .from('files')
@@ -244,48 +246,44 @@ async function generateOutlineText(vaultContext, school, prompt, maxTokens) {
   // Mock mode: set ANTHROPIC_API_KEY=mock in Netlify env vars to test without API calls
   if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'mock') {
     const hasVault = vaultContext && vaultContext.length > 0;
-    return `**Hook**
-- ${hasVault ? 'Opening with a specific moment drawn from your vault record' : '[Add vault documents to get personalized hooks]'}
-- Sets up the central tension: clinical exposure meeting research curiosity
+    return `**Hook — a specific clinical moment**
+- ${hasVault ? 'Draw from the strongest scene-level entry in your vault — cite it by name and date when you write.' : 'Add vault documents to get entry-specific pointers here.'}
+- What was the setting? Who was there? What made this moment different from a routine shift?
 
 **Body P1 — Clinical Experience**
-- ${hasVault ? 'References experiences found in your vault' : '[Upload clinical hours log to populate this section]'}
-- Connects directly to ${school.name}'s mission: ${school.mission_snippet || 'community-focused care'}
-- Talking point: patient interaction that shifted your perspective
-- Talking point: skill developed under supervising physician
+- ${hasVault ? 'Use your clinical hours entries as source material for this section.' : 'Upload a clinical hours log to get a specific entry pointer here.'}
+- Which patient interaction shifted how you think about care? Name the setting, not the takeaway — build the scene around what made it visible.
+- Connect this section to ${school.name}'s stated mission${school.mission_snippet ? ` (${school.mission_snippet})` : ''} — reference their priority by name.
 
 **Body P2 — Research / Academic**
-- ${hasVault ? 'Draws from research log entries in your vault' : '[Upload research log to populate this section]'}
-- Ties methodology experience to evidence-based medicine values
-- Talking point: specific finding or moment of discovery
-- Talking point: how this shapes your approach as a future physician
+- ${hasVault ? 'Use your research log entries as source material.' : 'Upload a research log to get a specific entry pointer here.'}
+- What surprised you in the work? What question did it leave you with?
 
 **Body P3 — Community / Service**
-- ${hasVault ? 'Pulls from volunteer or shadowing records' : '[Upload volunteer hours to populate this section]'}
-- Aligns with ${school.name}'s emphasis on underserved populations
-- Talking point: relationship built with a specific patient or community member
-- Talking point: systemic gap you observed and want to address
+- ${hasVault ? 'Use your volunteer or shadowing records as source material.' : 'Upload volunteer hours to get a specific entry pointer here.'}
+- What systemic gap did you observe firsthand? What relationship made it concrete?
 
-**Conclusion**
-- Forward-looking: how your background prepares you to contribute to ${school.name}'s mission
-- Specific program or faculty interest (add during editing)
+**Closing — forward-looking, school-specific**
+- What do you want your training to make possible? Answer in your own words, then name one concrete ${school.name} program or feature that supports it.
+
+**Writing Notes**
+- Common mistake on this prompt type: restating the school's mission back at it instead of showing fit through your own material.
 
 ---
 *[MOCK OUTLINE — set ANTHROPIC_API_KEY in Netlify to generate real outlines]*`;
   }
 
-  const systemPrompt = `You are a medical school admissions consultant who has reviewed thousands of secondary applications and coached applicants into top MD programs. Your specialty is translating raw application data into tightly structured essay outlines that adcoms remember.
+  const systemPrompt = `You are a medical school admissions advisor helping an applicant STRUCTURE their own secondary essay. You are producing a planning framework — never essay content. AMCAS/CASPA/TMDSAS certification requires the essay to be entirely the applicant's own words, so nothing you output may be usable in the essay itself.
 
-You are writing a SECONDARY ESSAY OUTLINE — a writer's blueprint, not the essay itself. A great outline gives the applicant a clear, executable instruction for every sentence they will write. Vague guidance wastes their time. Specific guidance wins interviews.
-
-ABSOLUTE RULES — break any of these and the outline is worthless:
-1. ZERO placeholder brackets. Never write [insert X], [describe Y], [add experience], or any variation. Every bullet is a complete, specific instruction the writer can act on immediately.
-2. VAULT DATA IS GOLD: If the student record contains any named experience, organization, supervisor, patient population, research finding, date, or outcome — use it by name in the outline. "Your 180 hours at St. David's ER" beats "your clinical experience" every time.
-3. NO VAULT = VIVID SPECIFICITY ANYWAY: If no record exists, describe the type of moment so concretely the writer immediately knows what memory to reach for. "The moment a patient thanked you by name" beats "a meaningful patient interaction."
-4. MISSION LOCK: Every body section must name ${school.short_name || 'this school'} and connect the experience to their specific stated mission — not to medicine in general.
-5. TALKING POINTS ARE VERB-LED INSTRUCTIONS: Start every bullet with an action verb — "Describe...", "Name...", "Explain...", "Connect...", "Contrast...", "Quote..." — followed by what to say and why it matters here.
-6. SCALE TO WORD LIMIT: <300 words → 2 tight body sections, 4 bullets each. 300–500 words → 3 sections, 4 bullets each. 500+ words → 3 sections, 5 bullets each with richer connection points.
-7. CLOSE SPECIFICALLY: The conclusion must name ${school.short_name || 'this school'} and reference something concrete — a program, a curriculum feature, a faculty research area, a clinical partner — not just "your mission."`;
+ABSOLUTE RULES — violating any of these makes the output unusable:
+1. NEVER WRITE ESSAY PROSE. No complete or near-complete sentences that could appear in an essay — not as examples, not as "Do:" illustrations, not as fill-in-the-blank templates. Every bullet must be a directive ("Describe the moment when...") or a question ("What changed for you when...?") addressed to the applicant.
+2. NEVER SUPPLY INSIGHTS, REALIZATIONS, OR CONCLUSIONS. You identify WHERE an insight belongs in the structure; the applicant supplies the insight. Never state what an experience means, what they learned, or what they realized.
+3. NO FIRST-PERSON PHRASING. Never write anything in the applicant's voice ("I realized...", "I want...", "I am drawn to..."). Never prescribe emotional beats as written-out phrasing. Technique guidance is fine ("ground this in a specific moment, not an abstraction").
+4. CITE VAULT ENTRIES, NEVER NARRATE THEM. Reference entries by name, setting, and date, and say WHY they fit this prompt. Never retell what happened in the entry or state what it means. "Use your [entry name] experience (date) as source material for this section" — nothing more.
+5. NEVER FABRICATE. If no vault entry matches a theme the prompt asks about, say so explicitly and suggest what KIND of memory the applicant should add to their vault. Do not invent a plausible-sounding experience.
+6. COMMON-MISTAKE WARNINGS STAY AT PATTERN LEVEL. Describing a failure mode ("applicants often restate the school's mission back at it") is fine. Supplying a fix sentence is not.
+7. MISSION LOCK: Every body section must direct the applicant to connect their material to ${school.short_name || 'this school'}'s specific stated priorities — as a factual pointer ("reference [named program] by name here"), never as drafted content.
+8. SCALE TO WORD LIMIT: <300 words → 2 body sections. 300–500 words → 3 sections. 500+ words → 3 sections with richer connection points.`;
 
   const wordLimitNote = prompt.word_limit
     ? `WORD LIMIT: ${prompt.word_limit} words. Scale the outline depth accordingly — this determines how many body sections to write and how many bullets per section.`
@@ -309,38 +307,37 @@ Before writing, identify which type this prompt is, then use that classification
 • CLINICAL EXPERIENCE — direct patient care, shadowing, specific observations
 • WHY MEDICINE / MOTIVATION — the origin and evolution of the applicant's commitment
 
-━━━ STEP 2: SELECT THE BEST MATERIAL ━━━
+━━━ STEP 2: SELECT SOURCE MATERIAL (CITE, NEVER NARRATE) ━━━
 ${hasVault
-  ? `The student's full application record is in the message above. Scan it now and identify:
-- The SINGLE strongest hook moment (a specific scene with sensory detail, not a summary)
-- The 2–3 experiences most directly relevant to this prompt type and this school's mission
-- Any metric, name, organization, or outcome that can replace a generic description
-Use only what is in the record. Do not invent details.`
-  : `No vault documents have been uploaded. Write the outline using vivid, specific language that tells the applicant exactly what TYPE of memory to use — specific enough that they immediately know which experience fits, without using bracket placeholders.`}
+  ? `The student's application record is in the message above. Identify the 2–4 entries whose themes best match this prompt's classification. For each selected entry you may reference ONLY: its name, its setting (where/when/who), and one factual reason it fits this prompt and this school's priorities. Do NOT retell what happened in the entry or state what it means — that is the applicant's job.
+If a theme this prompt asks about has NO matching entry, state that plainly in the outline and suggest what kind of memory the applicant should add to their vault. Never invent or embellish an experience.`
+  : `No vault documents have been uploaded. Describe the TYPE of memory the applicant should reach for in each section — specific enough that they know which experience fits — phrased entirely as directives and questions. No bracket placeholders, no example prose.`}
 
-━━━ STEP 3: WRITE THE OUTLINE ━━━
-Use these exact bold headers. Under each, write 4–5 complete-sentence bullet points that tell the writer what to open with, what to say, what detail to name, and why it lands for ${school.name}.
+━━━ STEP 3: WRITE THE FRAMEWORK ━━━
+Use these exact bold headers. Under each, write 3–5 bullets. Every bullet is either a directive to the applicant or a question for them to answer — never prose they could paste into the essay.
 
-**Hook — [name the scene or moment type]**
-One specific, present-tense or past-tense scene. Sensory, grounded, not reflective. The reader should be able to picture it. Name the place, person, or moment.
+**Hook — [name the scene type to open with]**
+Direct the applicant to a specific moment: which vault entry to draw from (name/setting/date only), and questions that surface the concrete scene ("What was the setting? Who was there? What made this moment different?").
 
 **Body P1 — [name the experience or theme]**
-The most directly relevant experience for this prompt. Tie it to ${school.name}'s mission by name. 4–5 verb-led bullets.
+The most relevant material for this prompt. Cite the entry, then questions/directives that surface what the applicant should articulate. Include one factual school pointer ("connect this to ${school.short_name || school.name}'s [named program/priority] — reference it by name").
 
 **Body P2 — [name the experience or theme]**
-Second strongest thread — shows a different dimension. 4–5 verb-led bullets.
+Second strongest thread — a different dimension. Same rules.
 
-**Body P3 — [name the experience or theme, or label "Bridge / Synthesis" if tying P1 and P2 together]**
-Include only if word limit supports it. Can be a third experience or a thematic synthesis. 4–5 verb-led bullets.
+**Body P3 — [third theme, or "Bridge / Synthesis"]**
+Include only if word limit supports it.
 
 **Closing — [forward-looking, school-specific]**
-2–3 sentences in the final essay. Name ${school.name} and something concrete about their program. No "I hope to" or "I believe" openings.
+Questions that surface the applicant's own forward-looking point, plus a factual pointer to something concrete at ${school.name} worth naming. Do not draft any closing language.
 
 ━━━ STEP 4: WRITING NOTES ━━━
-After the outline, add this section with 2–4 bullets:
+After the framework, add 2–4 bullets:
 
 **Writing Notes**
-Strategic callouts only: why this hook is the right one, what the most common mistake is on this prompt type, any school-specific nuance (curriculum feature, patient population, research focus) worth weaving in, what to cut first if over the word limit.`;
+Pattern-level guidance only: why this structure fits this prompt type, the most common mistake applicants make on it (described as a failure mode, never with a fix sentence), school-specific facts worth weaving in, what to cut first if over the word limit.
+
+REMINDER: Output must contain zero sentences usable in the final essay. Directives and questions only.`;
 
   try {
     const msg = await anthropic.messages.create({
@@ -354,7 +351,7 @@ Strategic callouts only: why this hook is the right one, what the most common mi
             type: 'text',
             text: hasVault
               ? `STUDENT'S APPLICATION RECORD:\n\n${vaultContext}`
-              : `STUDENT'S APPLICATION RECORD: No documents uploaded yet.\n\nWrite the outline using vivid, specific language — concrete enough that the applicant immediately knows which memory to use, but without bracket placeholders.`,
+              : `STUDENT'S APPLICATION RECORD: No documents uploaded yet.\n\nWrite the framework using directives and questions only — specific enough that the applicant knows which type of memory to reach for, with no bracket placeholders and no example prose.`,
             cache_control: { type: 'ephemeral' },
           },
           {
@@ -371,6 +368,63 @@ Strategic callouts only: why this hook is the right one, what the most common mi
     console.error('Outline generation error:', err);
     return new Error('AI generation failed. Please try again.');
   }
+}
+
+// ── QA leak-check pass ───────────────────────────────────────────────────────
+// Flags lines that read as draftable essay content: first-person essay phrasing,
+// narrated vault content, or prose pasteable into a final essay.
+
+const LEAK_PATTERNS = [
+  /\bI (realized|realize|learned|felt|feel|knew|know|saw|understood|understand|discovered|found|wanted|want|am drawn|was drawn|hope|believe|aspire|will|chose|decided)\b/i,
+  /\bI['’]m\s/i,
+  /\bmy (journey|passion|calling|desire|commitment) (to|for|is)\b/i,
+  /\btaught me that\b/i,
+  /\bshowed me that\b/i,
+  /\bmade me realize\b/i,
+];
+
+function findLeaks(outlineText) {
+  const leaks = [];
+  for (const rawLine of outlineText.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('*[')) continue;
+    // Quoted first-person inside a question directed AT the applicant is still a leak
+    // if it reads as pasteable prose — flag any first-person match outside a question.
+    if (LEAK_PATTERNS.some(p => p.test(line)) && !line.endsWith('?')) {
+      leaks.push(rawLine);
+    }
+  }
+  return leaks;
+}
+
+// If leaks are found, one cheap repair call rewrites flagged lines into
+// directives/questions. If repair fails or still leaks, flagged lines are stripped.
+async function leakCheckOutline(outlineText) {
+  let leaks = findLeaks(outlineText);
+  if (leaks.length === 0) return outlineText;
+  console.warn(`Leak-check: ${leaks.length} flagged line(s)`);
+
+  if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== 'mock') {
+    try {
+      const msg = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        system: 'You fix essay-outline frameworks that must contain zero draftable essay content. Rewrite ONLY the flagged lines so each becomes a directive or question addressed to the applicant — no first-person applicant voice, no supplied insights or conclusions, no narrated experiences. Preserve which vault entry / topic each line points at. Return the FULL corrected outline verbatim except for the flagged lines. Output only the outline text.',
+        messages: [{
+          role: 'user',
+          content: `OUTLINE:\n${outlineText}\n\nFLAGGED LINES:\n${leaks.join('\n')}`,
+        }],
+      });
+      const repaired = msg.content?.[0]?.text;
+      if (repaired && findLeaks(repaired).length === 0) return repaired;
+    } catch (err) {
+      console.error('Leak-check repair failed:', err);
+    }
+  }
+
+  // Fallback: strip flagged lines outright — safe beats complete.
+  leaks = new Set(findLeaks(outlineText));
+  return outlineText.split('\n').filter(l => !leaks.has(l)).join('\n');
 }
 
 // Human-readable labels for template IDs so Claude understands what each file is
@@ -419,8 +473,15 @@ function formatFileForContext(file) {
   const typeLabel = TEMPLATE_LABELS[file.template_id] || file.template_id || file.type || 'Document';
   const lines = [`=== ${file.name.toUpperCase()} [${typeLabel}] ===`];
 
+  // Theme tags (Section 2: manual tag-on-upload, used for prompt-theme matching)
+  if (Array.isArray(meta.theme_tags) && meta.theme_tags.length > 0) {
+    lines.push(`Theme tags: ${meta.theme_tags.join(', ')}`);
+  }
+  if (meta.setting) lines.push(`Setting: ${meta.setting}`);
+  if (meta.turning_point) lines.push(`Tension/turning point: ${meta.turning_point}`);
+
   // Meta fields: skip internal/system keys, label them clearly
-  const skipMeta = new Set(['regen_count', 'regen_limit', 'prompt_id', 'school_slug', 'short_name']);
+  const skipMeta = new Set(['regen_count', 'regen_limit', 'prompt_id', 'school_slug', 'short_name', 'theme_tags', 'setting', 'turning_point']);
   for (const [k, v] of Object.entries(meta)) {
     if (skipMeta.has(k)) continue;
     if (v && (typeof v === 'string' || typeof v === 'number')) {
