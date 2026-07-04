@@ -20,11 +20,17 @@
 </div>
 <script>
 (function(){
+  var qs = new URLSearchParams(window.location.search);
+  var code = qs.get('code');
+  if (code) {
+    window.location.replace('/auth/oauth-callback' + window.location.search);
+    return;
+  }
+
   var params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   var access = params.get('access_token');
   var refresh = params.get('refresh_token');
   var error = params.get('error_description') || params.get('error');
-  // Clear tokens from the URL immediately
   history.replaceState(null, '', window.location.pathname);
   if (access) {
     localStorage.setItem('scrubbed_token', access);

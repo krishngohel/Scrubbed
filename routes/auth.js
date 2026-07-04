@@ -301,14 +301,264 @@ router.post('/enable-2fa/confirm', authMiddleware, confirmLimiter, async (req, r
   res.json({ ok: true });
 });
 
-// ── SIGN IN WITH GOOGLE (Supabase OAuth) ─────────────────────────────────────
-// Requires the Google provider to be configured in the Supabase dashboard
-// (Authentication → Providers → Google) with APP_URL/auth-callback.html added
-// to the allowed redirect URLs.
-router.get('/google', (req, res) => {
-  const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
-  const url = `${process.env.SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(`${appUrl}/auth-callback.html`)}`;
-  res.redirect(url);
+// ── SIGN IN WITH GOOGLE ───────────────────────────────────────────────────────
+// Prefer direct Google OAuth when GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET are set
+// (use the same credentials from Google Cloud / Supabase Google provider setup).
+// Otherwise uses Supabase OAuth (enable Google under Authentication → Providers).
+
+function appBaseUrl(req) {
+  return (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+}
+
+function readCookie(req, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = (req.headers.cookie || '').match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function setOAuthCookie(res, req, name, value) {
+  res.cookie(name, value, {
+    httpOnly: true,
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+    sameSite: 'lax',
+    maxAge: 10 * 60 * 1000,
+    path: '/',
+  });
+}
+
+function clearOAuthCookie(res, name) {
+  res.clearCookie(name, { path: '/' });
+}
+
+function base64Url(buf) {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function pkcePair() {
+  const verifier = base64Url(crypto.randomBytes(32));
+  const challenge = base64Url(crypto.createHash('sha256').update(verifier).digest());
+  return { verifier, challenge };
+}
+
+function oauthResultPage({ ok, access, refresh, error, redirectPath = '/vault.html' }) {
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/'/g, '\\u0027');
+  if (!ok) {
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Sign-in failed</title>
+<style>body{background:#F6F1E8;color:#1F1B16;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{max-width:420px;text-align:center;padding:24px}p{font-size:14.5px;color:#5A544B;line-height:1.5}a{color:#B5563A}</style></head><body>
+<div class="box"><p>${esc(error || 'Sign-in failed.')}</p><p><a href="/">Back to home</a></p></div></body></html>`;
+  }
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Signing you in…</title>
+<style>body{background:#F6F1E8;color:#1F1B16;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.spin{width:28px;height:28px;border:3px solid rgba(31,27,22,0.15);border-top-color:#B5563A;border-radius:50%;margin:0 auto 16px;animation:s 0.8s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}p{font-size:14.5px;color:#5A544B}</style></head><body>
+<div class="box"><div class="spin"></div><p>Signing you in…</p></div>
+<script>
+(function(){
+  localStorage.setItem('scrubbed_token', ${JSON.stringify(access)});
+  ${refresh ? `localStorage.setItem('scrubbed_refresh', ${JSON.stringify(refresh)});` : ''}
+  var pending = sessionStorage.getItem('pending_checkout_plan');
+  window.location.replace(pending ? '/#pricing' : ${JSON.stringify(redirectPath)});
+})();
+</script></body></html>`;
+}
+
+async function exchangeSupabasePkce(code, verifier) {
+  const r = await fetch(`${process.env.SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: process.env.SUPABASE_ANON_KEY },
+    body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
+  });
+  const session = await r.json();
+  if (!r.ok || !session.access_token) {
+    const msg = session.error_description || session.msg || session.error || 'Could not complete sign-in.';
+    throw new Error(msg);
+  }
+  return session;
+}
+
+async function signInWithGoogleIdToken(idToken) {
+  const r = await fetch(`${process.env.SUPABASE_URL}/auth/v1/token?grant_type=id_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: process.env.SUPABASE_ANON_KEY },
+    body: JSON.stringify({ provider: 'google', id_token: idToken }),
+  });
+  const session = await r.json();
+  if (!r.ok || !session.access_token) return null;
+  return session;
+}
+
+async function sessionForEmail(email) {
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: 'magiclink',
+    email: email.trim().toLowerCase(),
+  });
+  if (error) throw error;
+
+  const r = await fetch(`${process.env.SUPABASE_URL}/auth/v1/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: process.env.SUPABASE_ANON_KEY },
+    body: JSON.stringify({ type: 'magiclink', token_hash: data.properties.hashed_token }),
+  });
+  const session = await r.json();
+  if (!r.ok || !session.access_token) {
+    throw new Error(session.error_description || session.msg || session.error || 'Could not create session.');
+  }
+  return session;
+}
+
+async function ensureGoogleUser(email, name) {
+  const normalized = email.trim().toLowerCase();
+  const { error } = await supabase.auth.admin.createUser({
+    email: normalized,
+    email_confirm: true,
+    user_metadata: { full_name: name || '', auth_provider: 'google' },
+  });
+  if (!error) {
+    await sendWelcomeEmail(normalized);
+    return;
+  }
+  const msg = error.message?.toLowerCase() || '';
+  if (msg.includes('already') || msg.includes('registered')) return;
+  throw error;
+}
+
+function startSupabaseGoogleOAuth(req, res) {
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  if (!process.env.SUPABASE_URL || !anonKey) {
+    return res.status(503).send(oauthResultPage({ ok: false, error: 'Google sign-in is not configured on the server.' }));
+  }
+
+  const appUrl = appBaseUrl(req);
+  const callbackUrl = `${appUrl}/auth/oauth-callback`;
+  const { verifier, challenge } = pkcePair();
+  setOAuthCookie(res, req, 'oauth_pkce', verifier);
+  setOAuthCookie(res, req, 'oauth_state', crypto.randomBytes(16).toString('hex'));
+
+  const params = new URLSearchParams({
+    provider: 'google',
+    redirect_to: callbackUrl,
+    code_challenge: challenge,
+    code_challenge_method: 's256',
+  });
+  res.redirect(`${process.env.SUPABASE_URL}/auth/v1/authorize?${params}&apikey=${encodeURIComponent(anonKey)}`);
+}
+
+function startDirectGoogleOAuth(req, res) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return startSupabaseGoogleOAuth(req, res);
+
+  const appUrl = appBaseUrl(req);
+  const state = crypto.randomBytes(16).toString('hex');
+  setOAuthCookie(res, req, 'oauth_state', state);
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: `${appUrl}/auth/google/callback`,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    prompt: 'select_account',
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+}
+
+router.get('/google', startDirectGoogleOAuth);
+
+router.get('/oauth-callback', async (req, res) => {
+  const { code, error, error_description } = req.query;
+  const verifier = readCookie(req, 'oauth_pkce');
+  clearOAuthCookie(res, 'oauth_pkce');
+  clearOAuthCookie(res, 'oauth_state');
+
+  if (error) {
+    return res.status(400).send(oauthResultPage({ ok: false, error: String(error_description || error) }));
+  }
+  if (!code || !verifier) {
+    return res.status(400).send(oauthResultPage({ ok: false, error: 'Missing authorization code. Please try signing in again.' }));
+  }
+
+  try {
+    const session = await exchangeSupabasePkce(String(code), verifier);
+    res.send(oauthResultPage({
+      ok: true,
+      access: session.access_token,
+      refresh: session.refresh_token,
+      redirectPath: '/vault.html',
+    }));
+  } catch (err) {
+    console.error('Supabase OAuth callback error:', err.message);
+    let message = err.message;
+    if (/not enabled/i.test(message)) {
+      message = 'Google sign-in is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment (same Google Cloud OAuth credentials used for Supabase), or enable the Google provider in Supabase and add ' + appBaseUrl(req) + '/auth/oauth-callback to allowed redirect URLs.';
+    }
+    res.status(400).send(oauthResultPage({ ok: false, error: message }));
+  }
+});
+
+router.get('/google/callback', async (req, res) => {
+  const { code, error, state } = req.query;
+  const savedState = readCookie(req, 'oauth_state');
+  clearOAuthCookie(res, 'oauth_state');
+
+  if (error) {
+    return res.status(400).send(oauthResultPage({ ok: false, error: String(error) }));
+  }
+  if (!code || !state || !savedState || state !== savedState) {
+    return res.status(400).send(oauthResultPage({ ok: false, error: 'Invalid sign-in state. Please try again.' }));
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    return res.status(503).send(oauthResultPage({ ok: false, error: 'Google sign-in is not configured.' }));
+  }
+
+  const appUrl = appBaseUrl(req);
+  const redirectUri = `${appUrl}/auth/google/callback`;
+
+  try {
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code: String(code),
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    });
+    const tokens = await tokenRes.json();
+    if (!tokenRes.ok || !tokens.id_token) {
+      console.error('Google token exchange failed:', tokens);
+      return res.status(400).send(oauthResultPage({ ok: false, error: tokens.error_description || 'Google sign-in failed.' }));
+    }
+
+    const payload = JSON.parse(Buffer.from(tokens.id_token.split('.')[1], 'base64url').toString('utf8'));
+    const email = payload.email;
+    const name = payload.name || payload.given_name || '';
+    if (!email) {
+      return res.status(400).send(oauthResultPage({ ok: false, error: 'Google did not return an email address.' }));
+    }
+
+    let session = await signInWithGoogleIdToken(tokens.id_token);
+    if (!session) {
+      await ensureGoogleUser(email, name);
+      session = await sessionForEmail(email);
+    }
+
+    res.send(oauthResultPage({
+      ok: true,
+      access: session.access_token,
+      refresh: session.refresh_token,
+      redirectPath: '/vault.html',
+    }));
+  } catch (err) {
+    console.error('Google OAuth callback error:', err.message);
+    res.status(500).send(oauthResultPage({ ok: false, error: err.message || 'Server error during sign-in.' }));
+  }
 });
 
 // ── DISABLE 2FA ───────────────────────────────────────────────────────────────
