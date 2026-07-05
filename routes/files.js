@@ -57,12 +57,14 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { name, content, meta } = req.body;
+  const { name, content, meta, template_id, type } = req.body;
   // Only update fields that were actually sent — a missing name no longer nulls it out
   const updates = {};
   if (typeof name === 'string' && name.trim()) updates.name = name.trim();
   if (content !== undefined) updates.content = content || {};
   if (meta !== undefined) updates.meta = meta || {};
+  if (template_id !== undefined) updates.template_id = template_id || null;
+  if (typeof type === 'string' && type.trim()) updates.type = type.trim();
   if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Nothing to update.' });
   const { error } = await supabase
     .from('files')

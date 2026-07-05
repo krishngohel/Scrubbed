@@ -143,6 +143,18 @@ strong{font-weight:600}
 .cn-item-name{font-size:13.5px;font-weight:500;color:var(--ink);margin-bottom:2px}
 .cn-item-desc{font-size:11px;color:var(--graphite);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cn-item-badge{font-size:9px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;border-radius:4px;padding:2px 7px;flex-shrink:0}
+.cn-back{background:none;border:none;cursor:pointer;padding:4px 8px 4px 0;border-radius:6px;color:var(--stone);display:flex;align-items:center;gap:4px;font:inherit;font-size:12px;margin-right:8px}
+.cn-back:hover{color:var(--ink)}
+.cn-action-body{padding:18px 22px 22px;overflow-y:auto}
+.cn-action-name{font-family:var(--font-display);font-size:22px;font-weight:400;color:var(--ink);margin-bottom:6px}
+.cn-action-desc{font-size:13px;color:var(--graphite);line-height:1.55;margin-bottom:18px}
+.cn-action-btns{display:flex;flex-direction:column;gap:10px}
+.cn-action-btn{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--rule);border-radius:12px;background:var(--paper);cursor:pointer;text-align:left;transition:border-color 0.18s,background 0.18s,box-shadow 0.18s;font:inherit;width:100%}
+.cn-action-btn:hover{border-color:rgba(181,86,58,0.35);background:var(--clay-s);box-shadow:0 2px 10px rgba(31,27,22,0.05)}
+.cn-action-btn-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cn-action-btn-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px}
+.cn-action-btn-sub{font-size:12px;color:var(--graphite);line-height:1.45}
+.cn-action-formats{margin-top:14px;font-size:11px;font-family:var(--font-mono);color:var(--stone);text-align:center;letter-spacing:0.03em}
 /* ── HERO RIGHT STACK ── */
 .hero-right-stack{display:flex;flex-direction:column;gap:14px;animation:fadeUp 0.9s ease 0.28s both}
 .hrc{background:var(--cream);border:1px solid var(--rule);border-radius:14px;overflow:hidden;box-shadow:0 4px 8px rgba(31,27,22,0.04),0 14px 36px rgba(31,27,22,0.08)}
@@ -213,17 +225,6 @@ strong{font-weight:600}
 .ves-title{font-family:var(--font-display);font-size:clamp(24px,2.4vw,32px);font-weight:400;color:var(--ink);margin-bottom:10px;letter-spacing:-0.01em}
 .ves-sub{font-size:14px;color:var(--graphite);line-height:1.65;max-width:380px;margin:0 auto 28px}
 .ves-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-
-/* ── UPLOAD DROP ZONE ── */
-.vault-upload-zone{position:relative;margin-bottom:24px;border:1.5px dashed var(--rule);border-radius:14px;background:var(--cream);transition:border-color 0.2s,background 0.2s,box-shadow 0.2s}
-.vault-upload-zone.drag-over{border-color:var(--clay);background:var(--clay-s);box-shadow:0 0 0 4px rgba(181,86,58,0.08)}
-.upload-drop-inner{padding:28px 24px;text-align:center;pointer-events:none}
-.upload-drop-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px}
-.upload-drop-sub{font-size:13.5px;color:var(--graphite);line-height:1.5}
-.upload-drop-sub label{color:var(--clay);font-weight:500;text-decoration:underline;text-underline-offset:2px;cursor:pointer;pointer-events:auto}
-.upload-drop-formats{margin-top:10px;font-size:11px;font-family:var(--font-mono);color:var(--stone);letter-spacing:0.04em}
-.upload-drop-hint{margin-top:8px;font-size:12px;color:var(--stone);line-height:1.45;max-width:520px;margin-left:auto;margin-right:auto}
-.vault-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
 /* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(31,27,22,0.52);backdrop-filter:blur(7px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.3s ease}
@@ -418,8 +419,6 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 .vault-files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;margin-bottom:32px}
 .vf-card{background:var(--cream);border:1px solid var(--rule);border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(31,27,22,0.04),0 4px 12px rgba(31,27,22,0.04);transition:box-shadow 0.22s,transform 0.22s}
 .vf-card:hover{box-shadow:0 8px 28px rgba(31,27,22,0.1);transform:translateY(-2px)}
-.vf-card-pending{opacity:0.7;pointer-events:none}
-.vf-card-pending .vf-card-updated{color:var(--clay)}
 .vf-card-accent{height:3px;width:100%}
 .vf-card-body{padding:20px 22px 18px}
 .vf-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
@@ -519,11 +518,10 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         </div>
       </div>
       <button class="btn-ghost btn-sm" id="login-btn">Sign in</button>
-      <label for="vault-file-input-nav" class="btn-secondary btn-sm" style="cursor:pointer">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Upload
-      </label>
-      <input type="file" id="vault-file-input-nav" style="display:none" multiple accept=".xlsx,.xls,.csv,.tsv,.docx,.pdf"/>
+      <button class="btn-secondary btn-sm" onclick="openCreateNew()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create new
+      </button>
     </div>
   </div>
 </nav>
@@ -550,9 +548,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
       <p class="vault-sub">Every clinical hour, every recommender, every activity — stored in one structured profile that never forgets what you've done. The Vault is what Scrubbed draws from to build every outline, so nothing gets left behind when it matters most.</p>
       <div class="vault-ctas">
         <button class="btn-hp" onclick="openCreateNew()">Create new</button>
-        <label for="vault-file-input-nav" class="btn-ho" style="cursor:pointer" title="Upload Excel, CSV, Word, or PDF files">Upload existing file →</label>
       </div>
-      <p style="font-size:11px;font-weight:300;color:var(--ink-faint);margin-top:10px;letter-spacing:0.02em">Excel, CSV, Word, or PDF — drag &amp; drop in My Vault</p>
     </div>
 
     <!-- RIGHT: Two stacked cards -->
@@ -613,21 +609,10 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:7px;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export All
         </button>
-        <label for="vault-file-input-nav" class="btn-hp" style="cursor:pointer">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="margin-right:7px;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload
-        </label>
-      </div>
-    </div>
-    <!-- Upload drop zone (shown when logged in) -->
-    <div id="vault-upload-zone" class="vault-upload-zone" style="display:none">
-      <input type="file" id="vault-file-input" multiple accept=".xlsx,.xls,.csv,.tsv,.docx,.pdf"/>
-      <div class="upload-drop-inner">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="1.6" stroke-linecap="round" style="margin:0 auto 12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <div class="upload-drop-title">Upload files</div>
-        <div class="upload-drop-sub">Drop files here, or <label for="vault-file-input">browse</label></div>
-        <div class="upload-drop-formats">.xlsx · .csv · .xls · .docx · .pdf</div>
-        <div class="upload-drop-hint">Spreadsheets open with your column names and rows. Word docs and PDFs convert into the Scrubbed document editor.</div>
+        <button class="btn-hp" onclick="openCreateNew()" style="height:44px;padding:0 18px;font-size:14px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="margin-right:7px;flex-shrink:0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create new
+        </button>
       </div>
     </div>
     <!-- Login wall (shown when not logged in) -->
@@ -650,10 +635,9 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         </svg>
       </div>
       <h3 class="ves-title">Your vault is empty</h3>
-      <p class="ves-sub">Upload an existing spreadsheet, document, or PDF — or start fresh with a Scrubbed template.</p>
+      <p class="ves-sub">Pick a template to start from scratch or import an existing file into the Scrubbed editor.</p>
       <div class="ves-actions">
-        <label for="vault-file-input" class="btn-hp" style="cursor:pointer">Upload file</label>
-        <button class="btn-ho" onclick="openCreateNew()">Create new file</button>
+        <button class="btn-hp" onclick="openCreateNew()">Create new file</button>
       </div>
     </div>
   </div>
@@ -1002,20 +986,21 @@ function renderRecentFiles(files){
   const body=document.getElementById('rf-body');
   if(!body)return;
   if(!files||!files.length){
-    body.innerHTML='<div class="hrc-empty">No files yet — upload a file or create new</div>';
+    body.innerHTML='<div class="hrc-empty">No files yet — create a new file to start</div>';
     return;
   }
   const recent=files.slice(0,3);
   body.innerHTML='<div class="rf-list">'+recent.map(f=>{
-    const isSheet=f.type==='spreadsheet';
-    const isPdf=f.content&&f.content.pdf;
-    const accent=isSheet?'#3d7a35':isPdf?'#c0392b':'#d4621a';
+    const tpl=f.template_id?TEMPLATES.find(x=>x.id===f.template_id):null;
+    const isSheet=tpl?tpl.type==='spreadsheet':f.type==='spreadsheet';
+    const isPdf=!tpl&&f.content&&f.content.pdf;
+    const accent=tpl?(tpl.accent||'#3d7a35'):isSheet?'#3d7a35':isPdf?'#c0392b':'#d4621a';
     const icon=isPdf
       ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`
       :isSheet
         ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`
         :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
-    const typeLabel=isPdf?'PDF':isSheet?'SHEET':'DOC';
+    const typeLabel=tpl?(tpl.type==='spreadsheet'?'LOG':'DOC'):isPdf?'PDF':isSheet?'SHEET':'DOC';
     return`<div class="rf-item" onclick="openFileForEdit('${escHtml(String(f.id))}')">
       <div class="rf-icon" style="background:${accent}18">${icon}</div>
       <span class="rf-name">${escHtml(f.name)}</span>
@@ -1028,12 +1013,31 @@ function renderRecentFiles(files){
 }
 
 /* ── CREATE NEW POPUP ── */
+let _cnTemplateId=null;
+
+function showCnStep(step){
+  const pick=document.getElementById('cn-step-pick');
+  const action=document.getElementById('cn-step-action');
+  if(pick)pick.style.display=step==='pick'?'':'none';
+  if(action)action.style.display=step==='action'?'':'none';
+}
+
 function openCreateNew(){
   if(!getToken()){window._openAuthModal&&window._openAuthModal('login');return}
+  _cnTemplateId=null;
+  showCnStep('pick');
   document.getElementById('cn-overlay').classList.add('open');
   renderCnList('all');
 }
-function closeCreateNew(){document.getElementById('cn-overlay').classList.remove('open')}
+function closeCreateNew(){
+  document.getElementById('cn-overlay').classList.remove('open');
+  _cnTemplateId=null;
+  showCnStep('pick');
+}
+function cnBackToPick(){
+  _cnTemplateId=null;
+  showCnStep('pick');
+}
 
 function renderCnList(filter){
   document.querySelectorAll('.cn-tab').forEach(t=>t.classList.toggle('active',t.dataset.cntype===filter));
@@ -1056,7 +1060,46 @@ function renderCnList(filter){
   }).join('');
 }
 
-function pickTemplate(id){closeCreateNew();openModal(id)}
+function pickTemplate(id){
+  const t=TEMPLATES.find(x=>x.id===id);
+  if(!t)return;
+  _cnTemplateId=id;
+  document.getElementById('cn-action-name').textContent=t.name;
+  document.getElementById('cn-action-desc').textContent=t.desc;
+  const input=document.getElementById('cn-file-input');
+  if(input){
+    input.accept=t.type==='spreadsheet'?'.xlsx,.xls,.csv,.tsv,.pdf':'.docx,.pdf';
+    input.value='';
+  }
+  document.getElementById('cn-action-formats').textContent=t.type==='spreadsheet'
+    ?'Accepts .xlsx · .csv · .xls · .pdf'
+    :'Accepts .docx · .pdf';
+  showCnStep('action');
+}
+
+function startBlankTemplate(){
+  const id=_cnTemplateId;
+  closeCreateNew();
+  if(id)openModal(id);
+}
+
+async function handleCnFileUpload(file){
+  if(!_cnTemplateId||!file)return;
+  const tid=_cnTemplateId;
+  closeCreateNew();
+  showToast('Importing into '+(TEMPLATES.find(x=>x.id===tid)||{name:'file'}).name+'…');
+  try{
+    const created=await importTemplateFile(file,tid);
+    showToast('Imported to Vault');
+    await loadFilesFromServer();
+    openFileForEdit(created.id);
+  }catch(e){
+    showToast(e.message||'Could not import file');
+    _cnTemplateId=tid;
+    document.getElementById('cn-overlay').classList.add('open');
+    pickTemplate(tid);
+  }
+}
 
 var _vf=[];/* vault files cache — var so it's hoisted and always initialized */
 
@@ -1086,29 +1129,24 @@ function refreshVaultDisplay(){
   const loginWall=document.getElementById('vault-login-wall');
   const grid=document.getElementById('vault-files-grid');
   const empty=document.getElementById('vault-empty');
-  const uploadZone=document.getElementById('vault-upload-zone');
   if(!getToken())return;
-  if(uploadZone)uploadZone.style.display='';
   if(loginWall)loginWall.style.display='none';
-  const ready=_vf.filter(f=>!f._failed);
-  if(!ready.length){
+  if(!_vf.length){
     if(grid)grid.style.display='none';
     if(empty){empty.style.display='';empty.classList.add('sr-visible')}
   }else{
     if(empty)empty.style.display='none';
-    if(grid){grid.style.display='';renderVaultFiles(ready,grid)}
+    if(grid){grid.style.display='';renderVaultFiles(_vf,grid)}
   }
-  renderRecentFiles(_vf.filter(f=>!f._pending&&!f._failed));
-  renderProgress(_vf.filter(f=>!f._pending&&!f._failed));
+  renderRecentFiles(_vf);
+  renderProgress(_vf);
 }
 
 async function loadFilesFromServer(){
   const loginWall=document.getElementById('vault-login-wall');
   const grid=document.getElementById('vault-files-grid');
   const empty=document.getElementById('vault-empty');
-  const uploadZone=document.getElementById('vault-upload-zone');
   if(!getToken()){
-    if(uploadZone)uploadZone.style.display='none';
     if(loginWall)loginWall.style.display='';
     if(grid)grid.style.display='none';
     if(empty)empty.style.display='none';
@@ -1124,6 +1162,11 @@ async function loadFilesFromServer(){
     if(!resp.ok)throw new Error();
     const files=await resp.json();
     _vf=files;
+    const migrated=await runVaultMigrationOnce();
+    if(migrated){
+      const again=await fetch('/files',{headers:authHeaders()});
+      if(again.ok)_vf=await again.json();
+    }
     refreshVaultDisplay();
   }catch(e){
     if(loginWall)loginWall.style.display='';
@@ -1135,11 +1178,11 @@ async function loadFilesFromServer(){
 function renderVaultFiles(files,grid){
   grid.innerHTML='';
   files.forEach(f=>{
-    const pending=!!f._pending;
-    const isSheet=f.type==='spreadsheet';
-    const isPdf=!pending&&f.content&&f.content.pdf;
-    const accent=isSheet?'var(--forest)':isPdf?'#c0392b':'var(--orange)';
-    const typeLabel=pending?'Uploading…':isPdf?'PDF':isSheet?'Spreadsheet':'Document';
+    const tpl=f.template_id?TEMPLATES.find(x=>x.id===f.template_id):null;
+    const isSheet=tpl?tpl.type==='spreadsheet':f.type==='spreadsheet';
+    const isPdf=!tpl&&f.content&&f.content.pdf;
+    const accent=tpl?(tpl.accent||'var(--forest)'):isSheet?'var(--forest)':isPdf?'#c0392b':'var(--orange)';
+    const typeLabel=tpl?tpl.name:isPdf?'PDF':isSheet?'Spreadsheet':'Document';
     const iconSvg=isSheet
       ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>'
       :isPdf
@@ -1147,16 +1190,15 @@ function renderVaultFiles(files,grid){
         :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
     /* Build expand-panel detail rows */
     const metaRows=f.meta?Object.entries(f.meta).filter(([k,v])=>v&&String(v).trim()).slice(0,2).map(([k,v])=>`<div class="vf-detail-row"><span class="vf-detail-key">${escHtml(k)}</span><span class="vf-detail-val">${escHtml(String(v))}</span></div>`).join(''):'';
-    const rowsWithData=!pending&&isSheet&&f.content&&f.content.rows?f.content.rows.filter(r=>r.some(v=>v&&String(v).trim())).length:null;
-    const colInfoRow=!pending&&isSheet&&f.content&&f.content.cols&&f.content.cols.length?`<div class="vf-detail-row"><span class="vf-detail-key">Columns</span><span class="vf-detail-val">${escHtml(f.content.cols.slice(0,4).join(', '))}${f.content.cols.length>4?'…':''}</span></div>`:'';
+    const rowsWithData=isSheet&&f.content&&f.content.rows?f.content.rows.filter(r=>r.some(v=>v&&String(v).trim())).length:null;
     const rowInfoRow=rowsWithData!==null?`<div class="vf-detail-row"><span class="vf-detail-key">Rows</span><span class="vf-detail-val">${rowsWithData} filled</span></div>`:'';
-    const typeRow=`<div class="vf-detail-row"><span class="vf-detail-key">Type</span><span class="vf-detail-val">${typeLabel}</span></div>`;
-    const detailsContent=typeRow+colInfoRow+metaRows+rowInfoRow;
+    const typeRow=`<div class="vf-detail-row"><span class="vf-detail-key">Type</span><span class="vf-detail-val">${escHtml(typeLabel)}</span></div>`;
+    const detailsContent=typeRow+metaRows+rowInfoRow;
 
-    const addRowHtml=!pending&&isSheet&&!isPdf?`<button class="vf-btn vf-btn-addrow" onclick="openQuickEntry('${f.id}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>`:'';
+    const addRowHtml=isSheet&&tpl&&!isPdf?`<button class="vf-btn vf-btn-addrow" onclick="openQuickEntry('${f.id}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>`:'';
 
     const card=document.createElement('div');
-    card.className='vf-card'+(pending?' vf-card-pending':'');
+    card.className='vf-card';
     card.innerHTML=`
       <div class="vf-card-accent" style="background:${accent}"></div>
       <div class="vf-card-body">
@@ -1170,7 +1212,7 @@ function renderVaultFiles(files,grid){
           </div>
         </div>
         <div class="vf-card-name">${escHtml(f.name)}</div>
-        <div class="vf-card-updated">${pending?'Converting…':`Updated ${timeAgo(f.updated_at)}`}</div>
+        <div class="vf-card-updated">Updated ${timeAgo(f.updated_at)}</div>
         <div class="vf-card-details"><div class="vf-card-details-pad">${detailsContent}</div></div>
         <div class="vf-card-actions">
           ${addRowHtml}
@@ -1189,26 +1231,25 @@ function escHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt
 
 window.openFileForEdit=async function openFileForEdit(fileId){
   if(!getToken())return;
-  const cached=_vf.find(x=>String(x.id)===String(fileId));
-  if(cached&&cached._pending){showToast('Still uploading — hang tight');return}
   try{
     /* Fetch just this file — the list endpoint strips PDF payloads */
     const resp=await fetch('/files/'+encodeURIComponent(fileId),{headers:authHeaders()});
     if(!resp.ok)throw new Error();
     const f=await resp.json();
     if(!f||!f.id)return;
-    const sheetCols=f.type==='spreadsheet'?sheetColsFromContent(f.content):null;
-    /* Build synthetic template for uploaded files (no template_id) */
-    const t=TEMPLATES.find(x=>x.id===f.template_id)||{
+    const tpl=TEMPLATES.find(x=>x.id===f.template_id);
+    const sheetCols=!tpl&&f.type==='spreadsheet'?sheetColsFromContent(f.content):null;
+    /* Legacy uploads without template_id fall back to raw columns */
+    const t=tpl||{
       id:null,name:f.name,type:f.type,meta:[],
       cols:sheetCols||['A','B','C','D','E'],
-      rows:Math.max((f.content&&f.content.rows||[]).length,5),
+      rows:Math.max((f.content&&f.content.rows||[]).length,tpl?tpl.rows:5),
       sections:[]
     };
     currentTemplate=t;
     currentFileId=f.id;
     const isSheet=t.type==='spreadsheet';
-    document.getElementById('modal-title').textContent=f.name;
+    document.getElementById('modal-title').textContent=tpl?t.name:f.name;
     const badge=document.getElementById('modal-badge');
     /* PDF files get a special viewer, not the sheet/doc editor */
     if(f.content&&f.content.pdf){
@@ -1238,22 +1279,27 @@ window.openFileForEdit=async function openFileForEdit(fileId){
 }
 
 function loadSheetContent(f){
-  const cols=sheetColsFromContent(f.content||{});
-  if(currentTemplate&&!currentTemplate.id)currentTemplate.cols=cols;
+  if(currentTemplate&&!currentTemplate.id&&!f.template_id){
+    currentTemplate.cols=sheetColsFromContent(f.content||{});
+  }
   const rows=f.content&&f.content.rows?f.content.rows:[];
   const tbody=document.getElementById('sheet-body');
   if(!tbody)return;
-  while(tbody.querySelectorAll('tr').length<Math.max(rows.length,currentTemplate.rows||5))appendSheetRow();
+  const minRows=currentTemplate?Math.max(rows.length,currentTemplate.rows||5):rows.length;
+  while(tbody.querySelectorAll('tr').length<minRows)appendSheetRow();
+  const colCount=currentTemplate?currentTemplate.cols.length:rows[0]?.length||0;
   rows.forEach((row,ri)=>{
     const tr=tbody.querySelectorAll('tr')[ri];
     if(!tr)return;
     const cells=tr.querySelectorAll('.sheet-cell');
-    cols.forEach((_,ci)=>{if(cells[ci])cells[ci].innerText=row[ci]||''});
+    for(let ci=0;ci<colCount;ci++){if(cells[ci])cells[ci].innerText=row[ci]||''}
   });
   const metaInputs=[...document.querySelectorAll('.smt-input')];
   if(f.meta&&currentTemplate&&currentTemplate.meta){
     currentTemplate.meta.forEach((m,i)=>{if(metaInputs[i])metaInputs[i].value=f.meta[m.label]||''});
   }
+  const rowCountEl=document.getElementById('row-count');
+  if(rowCountEl&&tbody)rowCountEl.textContent=`${tbody.querySelectorAll('tr').length} rows`;
 }
 
 function loadDocContent(f){
@@ -1440,40 +1486,226 @@ window.makeDocBlank=function(){
   });
 };
 
-/* ── UPLOAD ── */
-function fileToDataUrl(file){
-  return new Promise((resolve,reject)=>{
-    const r=new FileReader();
-    r.onload=()=>resolve(r.result);
-    r.onerror=()=>reject(r.error||new Error('Could not read file'));
-    r.readAsDataURL(file);
+/* ── TEMPLATE FILE IMPORT ── */
+const MAX_PDF_SIZE=4*1024*1024;
+const MAX_FILE_SIZE=20*1024*1024;
+
+function normColLabel(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+
+function buildColumnMap(uploadedCols,templateCols){
+  const map=Array(templateCols.length).fill(-1);
+  const used=new Set();
+  templateCols.forEach((tc,ti)=>{
+    const target=normColLabel(tc);
+    let best=-1,bestScore=0;
+    uploadedCols.forEach((uc,ui)=>{
+      if(used.has(ui))return;
+      const c=normColLabel(uc);
+      if(!c)return;
+      let s=0;
+      if(c===target)s=10;
+      else if(c.includes(target)||target.includes(c))s=7;
+      else{
+        const tw=target.split(' ').filter(w=>w.length>2);
+        const cw=c.split(' ').filter(Boolean);
+        if(tw.some(w=>cw.includes(w)||c.includes(w)))s=4;
+      }
+      if(s>bestScore){bestScore=s;best=ui}
+    });
+    if(bestScore>=4){map[ti]=best;used.add(best)}
   });
+  return map;
 }
 
-function sheetColsFromContent(content){
-  const stored=(content&&content.cols)||[];
-  const rows=(content&&content.rows)||[];
-  const width=Math.max(stored.length,...rows.map(r=>r.length),1);
-  const cols=[...stored];
-  while(cols.length<width)cols.push(`Column ${cols.length+1}`);
-  if(!cols.length)cols.push('Column A');
-  return cols.map((c,i)=>String(c||'').trim()||`Column ${i+1}`);
+function scoreHeaderRow(cells,templateCols){
+  const labels=(cells||[]).map(c=>normColLabel(c));
+  let score=0;
+  templateCols.forEach(tc=>{
+    const target=normColLabel(tc);
+    labels.forEach(l=>{
+      if(!l)return;
+      if(l===target)score+=10;
+      else if(l.includes(target)||target.includes(l))score+=6;
+      else if(target.split(' ').filter(w=>w.length>2).some(w=>l.includes(w)))score+=3;
+    });
+  });
+  const filled=(cells||[]).filter(c=>String(c||'').trim());
+  if(filled.length===1&&String(filled[0]).length>80)score-=5;
+  return score;
 }
 
-function looksLikeDataCell(s){
-  const v=String(s||'').trim();
-  if(!v)return false;
-  if(/^\d+([./]\d+)?$/.test(v))return true;
-  if(/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}$/.test(v))return true;
-  if(/^\d{4}[\/\-.]\d{1,2}[\/\-.]\d{1,2}$/.test(v))return true;
+function findHeaderRowIndex(data,templateCols){
+  let best=0,bestScore=-999;
+  for(let i=0;i<Math.min(data.length,12);i++){
+    const s=scoreHeaderRow(data[i],templateCols);
+    if(s>bestScore){bestScore=s;best=i}
+  }
+  if(bestScore>2)return best;
+  let maxFilled=0;
+  for(let i=0;i<Math.min(data.length,12);i++){
+    const filled=(data[i]||[]).filter(c=>String(c||'').trim()).length;
+    if(filled>maxFilled){maxFilled=filled;best=i}
+  }
+  return best;
+}
+
+function isInstructionRow(row){
+  const filled=(row||[]).filter(c=>String(c||'').trim());
+  if(!filled.length)return true;
+  if(filled.length===1&&String(filled[0]).length>80)return true;
   return false;
 }
 
-function normalizeSheetRows(cols,rows){
-  return rows.map(r=>cols.map((_,ci)=>String((r&&r[ci])||'')));
+function mapSheetDataToTemplate(data,template){
+  if(!data.length)return{rows:[],meta:{}};
+  const hi=findHeaderRowIndex(data,template.cols);
+  const uploadedCols=(data[hi]||[]).map((c,i)=>String(c||'').trim()||`Col ${i+1}`);
+  let map=buildColumnMap(uploadedCols,template.cols);
+  if(map.filter(i=>i>=0).length<Math.ceil(template.cols.length/2)){
+    map=template.cols.map((_,i)=>i<uploadedCols.length?i:-1);
+  }
+  const rows=[];
+  for(let ri=hi+1;ri<data.length;ri++){
+    const raw=data[ri];
+    if(isInstructionRow(raw))continue;
+    const out=template.cols.map((_,ti)=>{
+      const src=map[ti];
+      return src>=0?String(raw[src]||'').trim():'';
+    });
+    if(out.some(v=>v))rows.push(out);
+  }
+  const meta=extractImportMeta(data,hi,template,rows);
+  return{rows,meta};
 }
 
-async function parseSpreadsheet(file,ext){
+function parseFlexibleDate(s){
+  const v=String(s??'').trim();
+  if(!v)return null;
+  if(/^\d+(\.\d+)?$/.test(v)){
+    const n=Number(v);
+    if(n>30000&&n<60000){
+      const d=new Date((n-25569)*86400000);
+      if(!isNaN(d.getTime())&&d.getFullYear()>1980)return d;
+    }
+  }
+  const iso=new Date(v);
+  if(!isNaN(iso.getTime())&&iso.getFullYear()>1980)return iso;
+  const m=v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(m){
+    let y=parseInt(m[3],10);
+    if(y<100)y+=2000;
+    const d=new Date(y,parseInt(m[1],10)-1,parseInt(m[2],10));
+    if(!isNaN(d.getTime()))return d;
+  }
+  const m2=v.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+  if(m2){
+    const d=new Date(parseInt(m2[1],10),parseInt(m2[2],10)-1,parseInt(m2[3],10));
+    if(!isNaN(d.getTime()))return d;
+  }
+  return null;
+}
+
+function fmtMetaMonthYear(d){
+  return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear();
+}
+
+function formatDateRangeFromRows(rows,dateColIdx){
+  if(dateColIdx<0)return'';
+  const dates=rows.map(r=>parseFlexibleDate(r[dateColIdx])).filter(Boolean).sort((a,b)=>a-b);
+  if(!dates.length)return'';
+  if(dates.length===1)return fmtMetaMonthYear(dates[0]);
+  const first=dates[0],last=dates[dates.length-1];
+  const now=new Date();
+  const daysSinceLast=(now-last)/(86400000);
+  if(daysSinceLast<=45)return fmtMetaMonthYear(first)+' – Present';
+  return fmtMetaMonthYear(first)+' – '+fmtMetaMonthYear(last);
+}
+
+function modeCellValue(values){
+  const counts={};
+  values.filter(v=>String(v||'').trim()).forEach(v=>{
+    const k=String(v).trim();
+    counts[k]=(counts[k]||0)+1;
+  });
+  let best='',bestN=0;
+  Object.entries(counts).forEach(([k,n])=>{if(n>bestN){bestN=n;best=k}});
+  return best;
+}
+
+function metaSourceColIndex(template,metaLabel){
+  const hints={
+    'Institution / Program':['institution','department','program','facility','hospital','site'],
+    'Primary Organization':['organization','org'],
+    'Primary Physician':['physician','doctor'],
+    'PI / Lab':['pi','lab'],
+    'Project':['project'],
+    'Employer':['employer','company'],
+    'Position':['position','title'],
+  };
+  const words=hints[metaLabel];
+  if(!words)return-1;
+  return template.cols.findIndex(c=>{
+    const n=normColLabel(c);
+    return words.some(w=>n.includes(w));
+  });
+}
+
+function scanMetaFromHeaderRows(data,headerIdx,template){
+  const found={};
+  if(!template.meta||!template.meta.length)return found;
+  for(let ri=0;ri<headerIdx;ri++){
+    const row=data[ri]||[];
+    for(let ci=0;ci<row.length;ci++){
+      const cell=String(row[ci]||'').trim();
+      if(!cell)continue;
+      template.meta.forEach(m=>{
+        if(found[m.label])return;
+        const labelNorm=normColLabel(m.label);
+        const cellNorm=normColLabel(cell);
+        const labelMatch=cellNorm.includes(labelNorm)||labelNorm.split(' ').filter(w=>w.length>3).every(w=>cellNorm.includes(w));
+        if(!labelMatch)return;
+        const afterColon=cell.includes(':')?cell.split(':').slice(1).join(':').trim():'';
+        if(afterColon){found[m.label]=afterColon;return}
+        for(let j=ci+1;j<row.length;j++){
+          const next=String(row[j]||'').trim();
+          if(next){found[m.label]=next;return}
+        }
+        if(ri+1<headerIdx){
+          const below=String((data[ri+1]||[])[ci]||'').trim();
+          if(below&&!normColLabel(below).includes(labelNorm))found[m.label]=below;
+        }
+      });
+    }
+  }
+  return found;
+}
+
+function extractMetaFromMappedRows(template,rows,existingMeta){
+  const meta={...(existingMeta||{})};
+  if(!template.meta)return meta;
+  template.meta.forEach(m=>{
+    if(meta[m.label]&&String(meta[m.label]).trim())return;
+    if(normColLabel(m.label).includes('date range')||m.label==='Date Range'){
+      const dateIdx=template.cols.findIndex(c=>normColLabel(c).includes('date'));
+      const range=formatDateRangeFromRows(rows,dateIdx);
+      if(range)meta[m.label]=range;
+      return;
+    }
+    const colIdx=metaSourceColIndex(template,m.label);
+    if(colIdx>=0){
+      const val=modeCellValue(rows.map(r=>r[colIdx]));
+      if(val)meta[m.label]=val;
+    }
+  });
+  return meta;
+}
+
+function extractImportMeta(data,headerIdx,template,rows){
+  const meta=scanMetaFromHeaderRows(data,headerIdx,template);
+  return extractMetaFromMappedRows(template,rows,meta);
+}
+
+async function parseSpreadsheetRaw(file,ext){
   if(typeof XLSX==='undefined')throw new Error('Spreadsheet library not loaded');
   let data;
   if(ext==='csv'||ext==='tsv'){
@@ -1487,22 +1719,17 @@ async function parseSpreadsheet(file,ext){
     const ws=wb.Sheets[wb.SheetNames[0]];
     data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
   }
-  if(!data.length)return{cols:['Column A'],rows:[]};
-  const first=data[0].map(c=>String(c??'').trim());
-  const hasHeader=first.some(c=>c)&&!first.every(looksLikeDataCell);
-  let cols,rows;
-  if(hasHeader){
-    cols=first.map((c,i)=>c||`Column ${i+1}`);
-    rows=data.slice(1);
-  }else{
-    const width=Math.max(...data.map(r=>r.length),1);
-    cols=Array.from({length:width},(_,i)=>String.fromCharCode(65+i));
-    rows=data;
-  }
-  const maxWidth=Math.max(cols.length,...rows.map(r=>r.length),1);
-  while(cols.length<maxWidth)cols.push(`Column ${cols.length+1}`);
-  rows=normalizeSheetRows(cols,rows);
-  return{cols,rows};
+  return data;
+}
+
+function sheetColsFromContent(content){
+  const stored=(content&&content.cols)||[];
+  const rows=(content&&content.rows)||[];
+  const width=Math.max(stored.length,...rows.map(r=>r.length),1);
+  const cols=[...stored];
+  while(cols.length<width)cols.push(`Column ${cols.length+1}`);
+  if(!cols.length)cols.push('Column A');
+  return cols.map((c,i)=>String(c||'').trim()||`Column ${i+1}`);
 }
 
 function docContentFromLines(lines){
@@ -1523,15 +1750,15 @@ function tableFromLines(lines){
   const split=line=>line.split(best[0]).map(c=>c.trim());
   const parsed=lines.map(split);
   const cols=parsed[0].map((c,i)=>c||`Column ${i+1}`);
-  const rows=normalizeSheetRows(cols,parsed.slice(1)).filter(r=>r.some(v=>v.trim()));
+  const rows=parsed.slice(1).filter(r=>r.some(v=>String(v||'').trim()));
   if(rows.length<1)return null;
   return{cols,rows};
 }
 
-async function parsePdf(file){
+async function parsePdfLinesFromBuffer(buf){
   if(typeof pdfjsLib==='undefined')throw new Error('PDF library not loaded');
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
   const lines=[];
   for(let p=1;p<=pdf.numPages;p++){
     const page=await pdf.getPage(p);
@@ -1548,130 +1775,245 @@ async function parsePdf(file){
     });
     if(line.trim())lines.push(line.trim());
   }
-  const table=tableFromLines(lines);
-  if(table)return{type:'spreadsheet',content:table};
-  return{type:'document',content:docContentFromLines(lines)};
+  return lines;
 }
 
-async function convertFileToNative(file){
-  const name=file.name.replace(/\.[^.]+$/,'');
+async function parsePdfRaw(file){
+  return parsePdfLinesFromBuffer(new Uint8Array(await file.arrayBuffer()));
+}
+
+function validateImportFile(file){
   const ext=file.name.split('.').pop().toLowerCase();
-  if(['xlsx','xls','csv','tsv'].includes(ext)){
-    return{name,type:'spreadsheet',content:await parseSpreadsheet(file,ext)};
+  if(ext==='pdf'&&file.size>MAX_PDF_SIZE)throw new Error(file.name+' is too large — PDFs must be under 4 MB');
+  if(file.size>MAX_FILE_SIZE)throw new Error(file.name+' is too large (max 20 MB)');
+  return ext;
+}
+
+async function convertFileToTemplate(file,template){
+  const ext=validateImportFile(file);
+  if(template.type==='spreadsheet'){
+    if(!['xlsx','xls','csv','tsv','pdf'].includes(ext))throw new Error('Use .xlsx, .csv, or .pdf for this log');
+    let data;
+    if(ext==='pdf'){
+      const table=tableFromLines(await parsePdfRaw(file));
+      if(!table)throw new Error('No table found in PDF');
+      data=[table.cols,...table.rows];
+    }else{
+      data=await parseSpreadsheetRaw(file,ext);
+    }
+    const mapped=mapSheetDataToTemplate(data,template);
+    return{type:'spreadsheet',content:{rows:mapped.rows},meta:mapped.meta||{}};
   }
+  if(!['docx','pdf'].includes(ext))throw new Error('Use .docx or .pdf for this document');
+  let html='';
   if(ext==='docx'){
     if(typeof mammoth==='undefined')throw new Error('DOCX library not loaded');
-    const buf=await file.arrayBuffer();
-    const result=await mammoth.convertToHtml({arrayBuffer:buf});
-    return{name,type:'document',content:{blank:true,html:result.value||'<p></p>'}};
+    const result=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
+    html=result.value||'<p></p>';
+  }else{
+    const table=tableFromLines(await parsePdfRaw(file));
+    if(table)throw new Error('This PDF looks like a spreadsheet — pick an hour log template');
+    html=docContentFromLines(await parsePdfRaw(file)).html;
   }
-  if(ext==='pdf')return{name,...await parsePdf(file)};
-  throw new Error('unsupported');
+  if(template.sections&&template.sections.length){
+    return{type:'document',content:{sections:template.sections.map((s,i)=>({label:s.label,content:i===0?html:''}))}};
+  }
+  return{type:'document',content:{blank:true,html}};
 }
 
-async function uploadFile(file){
-  const converted=await convertFileToNative(file);
+async function importTemplateFile(file,templateId){
+  const template=TEMPLATES.find(x=>x.id===templateId);
+  if(!template)throw new Error('Unknown template');
+  const converted=await convertFileToTemplate(file,template);
   const resp=await fetch('/files',{method:'POST',headers:authHeaders(),body:JSON.stringify({
-    name:converted.name,
+    name:template.name,
     type:converted.type,
+    template_id:templateId,
     content:converted.content,
-    meta:{},
+    meta:converted.meta||{},
   })});
-  if(!resp.ok)throw new Error('Upload failed');
-  const created=await resp.json();
+  if(!resp.ok)throw new Error('Could not save to Vault');
+  return resp.json();
+}
+
+/* ── ONE-TIME VAULT MIGRATION (re-parse legacy uploads) ── */
+const VAULT_MIGRATION_KEY='scrubbed_vault_native_v1';
+let _vaultMigrating=false;
+
+const TEMPLATE_NAME_HINTS={
+  'clinical-hours':['clinical','patient','hospital','scribe','emt','cna'],
+  'volunteer-hours':['volunteer','service','community','outreach'],
+  'shadowing-log':['shadow','shadowing','observe'],
+  'research-log':['research','lab'],
+  'employment-record':['employment','employ','work','job','intern'],
+  'recommendation-letter':['recommend','letter','lor'],
+  'personal-statement':['personal','statement'],
+  'activity-description':['activity','amcas'],
+  'secondary-essay':['secondary','essay'],
+};
+
+function contentToRawSheetData(content){
+  if(!content)return[];
+  const cols=content.cols||[];
+  const rows=content.rows||[];
+  if(cols.length)return[cols.map(c=>String(c||'')),...rows];
+  return rows.length?rows:[];
+}
+
+function scoreTemplateMatch(file,template,data){
+  let score=0;
+  const fn=String(file.name||'').toLowerCase();
+  (TEMPLATE_NAME_HINTS[template.id]||[]).forEach(h=>{if(fn.includes(h))score+=3});
+  if(template.type==='spreadsheet'){
+    if(!data.length)return score;
+    const hi=findHeaderRowIndex(data,template.cols);
+    score+=scoreHeaderRow(data[hi],template.cols);
+    const uploadedCols=(data[hi]||[]).map(c=>String(c||''));
+    score+=buildColumnMap(uploadedCols,template.cols).filter(i=>i>=0).length*2;
+  }else{
+    template.name.toLowerCase().split(/\s+/).forEach(w=>{
+      if(w.length>3&&fn.includes(w))score+=2;
+    });
+  }
+  return score;
+}
+
+function detectTemplateForFile(file){
+  const isSheet=file.type==='spreadsheet'||(file.content&&file.content.rows&&!file.content.pdf);
+  const pool=TEMPLATES.filter(t=>isSheet?t.type==='spreadsheet':t.type==='document');
+  const data=isSheet?contentToRawSheetData(file.content):[];
+  let best=null,bestScore=0;
+  pool.forEach(t=>{
+    const s=scoreTemplateMatch(file,t,data);
+    if(s>bestScore){bestScore=s;best=t}
+  });
+  return bestScore>=5?best:null;
+}
+
+function remigrateSpreadsheet(file,template){
+  const content=file.content||{};
+  const existingMeta=file.meta||{};
+  if(content.cols&&content.cols.length){
+    const mapped=mapSheetDataToTemplate([content.cols,... (content.rows||[])],template);
+    return{
+      type:'spreadsheet',template_id:template.id,name:template.name,
+      content:{rows:mapped.rows},meta:extractMetaFromMappedRows(template,mapped.rows,{...existingMeta,...mapped.meta}),
+    };
+  }
+  const rows=(content.rows||[]).map(r=>template.cols.map((_,i)=>String((r&&r[i])||'').trim()));
   return{
-    id:created.id,
-    name:created.name||converted.name,
-    type:created.type||converted.type,
-    template_id:null,
-    content:converted.content,
-    meta:{},
-    updated_at:new Date().toISOString(),
+    type:'spreadsheet',template_id:template.id,name:template.name,
+    content:{rows},meta:extractMetaFromMappedRows(template,rows,existingMeta),
   };
 }
 
-async function handleFiles(files){
-  if(!files||!files.length)return;
-  if(!getToken()){showToast('Sign in to upload files');return}
-  const ALLOWED=['xlsx','xls','csv','tsv','docx','pdf'];
-  const MAX_PDF=4*1024*1024;
-  const MAX_OTHER=20*1024*1024;
-  const list=[...files];
-  const valid=[];
-  for(const file of list){
-    const ext=file.name.split('.').pop().toLowerCase();
-    if(!ALLOWED.includes(ext)){showToast(`${ext.toUpperCase()} not supported — use .xlsx, .csv, .docx, or .pdf`);continue}
-    if(ext==='pdf'&&file.size>MAX_PDF){showToast(`${file.name} is too large — PDFs must be under 4 MB`);continue}
-    if(file.size>MAX_OTHER){showToast(`${file.name} is too large (max 20 MB)`);continue}
-    valid.push(file);
+function remigrateDocument(file,template){
+  const content=file.content||{};
+  const existingMeta=file.meta||{};
+  if(content.sections&&content.sections.length){
+    return{type:'document',template_id:template.id,name:template.name,content:{sections:content.sections},meta:existingMeta};
   }
-  if(!valid.length)return;
-
-  const pendingIds=[];
-  valid.forEach((file,i)=>{
-    const id='upload-'+Date.now()+'-'+i;
-    pendingIds.push(id);
-    _vf.unshift({
-      id,
-      name:file.name.replace(/\.[^.]+$/,''),
-      type:'document',
-      content:{},
-      meta:{},
-      updated_at:new Date().toISOString(),
-      _pending:true,
-    });
-  });
-  refreshVaultDisplay();
-  showToast(valid.length===1?'Uploading…':`Uploading ${valid.length} files…`);
-
-  let ok=0;
-  await Promise.all(valid.map(async(file,i)=>{
-    try{
-      const saved=await uploadFile(file);
-      const idx=_vf.findIndex(x=>x.id===pendingIds[i]);
-      if(idx>=0)_vf[idx]=saved;
-      else _vf.unshift(saved);
-      ok++;
-      refreshVaultDisplay();
-    }catch(e){
-      const idx=_vf.findIndex(x=>x.id===pendingIds[i]);
-      if(idx>=0)_vf.splice(idx,1);
-      refreshVaultDisplay();
-      showToast('Error uploading '+file.name);
+  const html=content.html||'';
+  if(content.blank&&html){
+    if(template.sections&&template.sections.length){
+      return{
+        type:'document',template_id:template.id,name:template.name,
+        content:{sections:template.sections.map((s,i)=>({label:s.label,content:i===0?html:''}))},
+        meta:existingMeta,
+      };
     }
-  }));
-
-  if(ok>0){
-    showToast(ok===1?`"${valid[0].name.replace(/\.[^.]+$/,'')}" ready in Vault`:`${ok} files ready in Vault`);
-    loadFilesFromServer();
+    return{type:'document',template_id:template.id,name:template.name,content:{blank:true,html},meta:existingMeta};
   }
+  return null;
 }
 
-function bindFileInputs(){
-  ['vault-file-input','vault-file-input-nav'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.addEventListener('change',function(){handleFiles(this.files);this.value=''});
-  });
+async function migrateLegacyPdf(file){
+  const resp=await fetch('/files/'+encodeURIComponent(file.id),{headers:authHeaders()});
+  if(!resp.ok)return null;
+  const full=await resp.json();
+  const dataUrl=full.content&&full.content.dataUrl;
+  if(!dataUrl||!String(dataUrl).startsWith('data:application/pdf;base64,'))return null;
+  const b64=String(dataUrl).split(',')[1];
+  if(!b64)return null;
+  const buf=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  const lines=await parsePdfLinesFromBuffer(buf);
+  const table=tableFromLines(lines);
+  if(table){
+    let template=file.template_id?TEMPLATES.find(x=>x.id===file.template_id):detectTemplateForFile({...file,type:'spreadsheet',content:table});
+    if(!template||template.type!=='spreadsheet')template=detectTemplateForFile({...file,type:'spreadsheet',content:table,name:file.name});
+    if(!template)return null;
+    const mapped=mapSheetDataToTemplate([table.cols,...table.rows],template);
+    return{type:'spreadsheet',template_id:template.id,name:template.name,content:{rows:mapped.rows},meta:mapped.meta||{}};
+  }
+  let template=file.template_id?TEMPLATES.find(x=>x.id===file.template_id):detectTemplateForFile({...file,type:'document'});
+  if(!template||template.type!=='document')return null;
+  return remigrateDocument({...file,content:{blank:true,html:docContentFromLines(lines).html}},template);
 }
-bindFileInputs();
 
-(function bindUploadDropZone(){
-  const zone=document.getElementById('vault-upload-zone');
-  if(!zone)return;
-  let dragDepth=0;
-  const onDrag=p=>{p.preventDefault();p.stopPropagation()};
-  ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{onDrag(e);dragDepth++;zone.classList.add('drag-over')}));
-  ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{
-    onDrag(e);
-    if(ev==='dragleave'){dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)zone.classList.remove('drag-over')}
-    if(ev==='drop'){dragDepth=0;zone.classList.remove('drag-over');handleFiles(e.dataTransfer&&e.dataTransfer.files)}
-  }));
-  document.addEventListener('dragover',e=>{if(getToken())e.preventDefault()});
-  document.addEventListener('drop',e=>{
-    if(!getToken()||e.target.closest('#vault-upload-zone'))return;
-    if(e.target.closest('#my-vault')){e.preventDefault();handleFiles(e.dataTransfer&&e.dataTransfer.files)}
-  });
-})();
+function migrationPatchChanged(file,patch){
+  if(!patch)return false;
+  if(file.template_id!==patch.template_id)return true;
+  if(file.type!==patch.type)return true;
+  if(file.name!==patch.name)return true;
+  if(JSON.stringify(file.content||{})!==JSON.stringify(patch.content||{}))return true;
+  if(JSON.stringify(file.meta||{})!==JSON.stringify(patch.meta||{}))return true;
+  return false;
+}
+
+async function buildMigrationPatch(file){
+  if(file.content&&file.content.pdf)return migrateLegacyPdf(file);
+  const isSheet=file.type==='spreadsheet'||(file.content&&file.content.rows);
+  if(isSheet){
+    const template=(file.template_id?TEMPLATES.find(x=>x.id===file.template_id):null)||detectTemplateForFile(file);
+    if(!template||template.type!=='spreadsheet')return null;
+    return remigrateSpreadsheet(file,template);
+  }
+  if(file.type==='document'){
+    const template=(file.template_id?TEMPLATES.find(x=>x.id===file.template_id):null)||detectTemplateForFile(file);
+    if(!template)return null;
+    return remigrateDocument(file,template);
+  }
+  return null;
+}
+
+async function runVaultMigrationOnce(){
+  if(localStorage.getItem(VAULT_MIGRATION_KEY)||_vaultMigrating||!getToken())return false;
+  _vaultMigrating=true;
+  let updated=0;
+  try{
+    if(_vf.length)showToast('Updating your vault files…');
+    for(const file of [..._vf]){
+      try{
+        const patch=await buildMigrationPatch(file);
+        if(!patch||!migrationPatchChanged(file,patch))continue;
+        const resp=await fetch('/files/'+encodeURIComponent(file.id),{
+          method:'PUT',headers:authHeaders(),
+          body:JSON.stringify({
+            name:patch.name,
+            type:patch.type,
+            template_id:patch.template_id,
+            content:patch.content,
+            meta:patch.meta||{},
+          }),
+        });
+        if(resp.ok)updated++;
+      }catch(e){console.warn('Vault migration skipped file',file&&file.id,e)}
+    }
+    localStorage.setItem(VAULT_MIGRATION_KEY,String(Date.now()));
+    if(updated>0)showToast(updated===1?'1 file updated':'Updated '+updated+' vault files');
+  }finally{
+    _vaultMigrating=false;
+  }
+  return updated>0;
+}
+
+document.addEventListener('change',function(e){
+  if(e.target&&e.target.id==='cn-file-input'){
+    const file=e.target.files&&e.target.files[0];
+    e.target.value='';
+    if(file)handleCnFileUpload(file);
+  }
+});
 
 /* ── TOAST ── */
 var toastTimer=null;
@@ -1930,18 +2272,60 @@ async function exportVault(){
 <!-- ══ CREATE NEW POPUP ══ -->
 <div class="cn-overlay" id="cn-overlay">
   <div class="cn-popup">
-    <div class="cn-head">
-      <span class="cn-title">Create new file</span>
-      <button class="cn-close" onclick="closeCreateNew()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+    <div id="cn-step-pick">
+      <div class="cn-head">
+        <span class="cn-title">Create new file</span>
+        <button class="cn-close" type="button" onclick="closeCreateNew()" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="cn-tabs" id="cn-tabs">
+        <button class="cn-tab active" data-cntype="all">All</button>
+        <button class="cn-tab" data-cntype="spreadsheet">Hour Logs</button>
+        <button class="cn-tab" data-cntype="document">Documents</button>
+      </div>
+      <div class="cn-list" id="cn-list"><!-- populated by JS --></div>
     </div>
-    <div class="cn-tabs" id="cn-tabs">
-      <button class="cn-tab active" data-cntype="all">All</button>
-      <button class="cn-tab" data-cntype="spreadsheet">Hour Logs</button>
-      <button class="cn-tab" data-cntype="document">Documents</button>
+    <div id="cn-step-action" style="display:none">
+      <div class="cn-head">
+        <div style="display:flex;align-items:center;flex:1;min-width:0">
+          <button class="cn-back" type="button" onclick="cnBackToPick()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <span class="cn-title">How to start</span>
+        </div>
+        <button class="cn-close" type="button" onclick="closeCreateNew()" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="cn-action-body">
+        <div class="cn-action-name" id="cn-action-name">Template</div>
+        <div class="cn-action-desc" id="cn-action-desc"></div>
+        <div class="cn-action-btns">
+          <button class="cn-action-btn" type="button" onclick="startBlankTemplate()">
+            <div class="cn-action-btn-icon" style="background:rgba(90,110,74,0.12);color:var(--moss)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            </div>
+            <div>
+              <div class="cn-action-btn-title">Start blank</div>
+              <div class="cn-action-btn-sub">Open the Scrubbed editor and fill it in from scratch.</div>
+            </div>
+          </button>
+          <label class="cn-action-btn" style="cursor:pointer">
+            <div class="cn-action-btn-icon" style="background:rgba(181,86,58,0.12);color:var(--clay)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div>
+              <div class="cn-action-btn-title">Upload existing file</div>
+              <div class="cn-action-btn-sub">Import your spreadsheet or document into this template.</div>
+            </div>
+            <input type="file" id="cn-file-input" style="display:none"/>
+          </label>
+        </div>
+        <div class="cn-action-formats" id="cn-action-formats">Accepts .xlsx · .csv · .docx · .pdf</div>
+      </div>
     </div>
-    <div class="cn-list" id="cn-list"><!-- populated by JS --></div>
   </div>
 </div>
 
