@@ -922,7 +922,10 @@ function stripHtml(html){
 }
 
 function parseHours(val){
-  const n=parseFloat(String(val||'').replace(/[^\d.]/g,''));
+  const s=String(val||'').trim();
+  const hm=s.match(/^(\d+):(\d{1,2})$/);
+  if(hm)return parseInt(hm[1],10)+parseInt(hm[2],10)/60;
+  const n=parseFloat(s.replace(/[^\d.]/g,''));
   return isNaN(n)?0:n;
 }
 
@@ -1326,7 +1329,8 @@ async function loadFilesFromServer(){
     const files=await resp.json();
     _vf=files;
     const migrated=await runVaultMigrationOnce();
-    if(migrated){
+    const cellFixed=await runCellFormatMigrationOnce();
+    if(migrated||cellFixed){
       const again=await fetch('/files',{headers:authHeaders()});
       if(again.ok)_vf=await again.json();
     }
@@ -1651,7 +1655,9 @@ function bindSheetKeyboardOnce(){
 }
 
 function getColPh(col,idx){
-  const phs={'Date':'MM/DD/YYYY','Hours':'0.0','Notes':'Optional notes...'};
+  const phs={'Date':'MM/DD/YYYY','Hours':'0:00','Notes':'Optional notes...'};
+  const n=normColLabel(col);
+  if(/hour|duration|time|hrs/.test(n)&&!phs[col])return'0:00';
   return phs[col]||'—';
 }
 
@@ -1736,6 +1742,163 @@ const MAX_FILE_SIZE=20*1024*1024;
 
 function normColLabel(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
 
+/* ── Spreadsheet cell format normalization (Excel / Google Sheets serials) ── */
+const EXCEL_EPOCH_UTC=Date.UTC(1899,11,30);
+
+function excelSerialToDate(serial){
+  const n=typeof serial==='number'?serial:parseFloat(String(serial));
+  if(isNaN(n))return null;
+  const whole=Math.floor(n);
+  const ms=EXCEL_EPOCH_UTC+whole*86400000;
+  const d=new Date(ms);
+  return isNaN(d.getTime())?null:d;
+}
+
+function formatDisplayDate(d){
+  if(!(d instanceof Date)||isNaN(d.getTime()))return'';
+  return`${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
+}
+
+function formatDurationHMM(totalMinutes){
+  const mins=Math.max(0,Math.round(totalMinutes));
+  const h=Math.floor(mins/60);
+  const m=mins%60;
+  return`${h}:${String(m).padStart(2,'0')}`;
+}
+
+function getFormattedCellText(cell){
+  if(!cell||cell.v==null)return null;
+  if(cell.w!=null&&String(cell.w).trim()!=='')return String(cell.w).trim();
+  if(cell.z&&typeof XLSX!=='undefined'&&XLSX.SSF){
+    try{return XLSX.SSF.format(cell.z,cell.v)}catch(e){}
+  }
+  return null;
+}
+
+function isDateNumberFormat(fmt){
+  if(!fmt)return false;
+  const f=String(fmt).toLowerCase();
+  return(/y/.test(f)||/d/.test(f))&&(/m/.test(f)||/d/.test(f));
+}
+
+function isTimeNumberFormat(fmt){
+  if(!fmt)return false;
+  const f=String(fmt).toLowerCase();
+  return/[hs]/.test(f)&&!/y/.test(f);
+}
+
+function looksLikeExcelDateSerial(v){
+  if(v instanceof Date)return true;
+  if(typeof v==='number')return v>=20000&&v<=80000;
+  const s=String(v??'').trim();
+  if(!/^-?\d+(\.\d+)?$/.test(s))return false;
+  const n=Number(s);
+  return n>=20000&&n<=80000;
+}
+
+function looksLikeExcelTimeFraction(v){
+  if(v instanceof Date)return false;
+  if(typeof v==='number')return v>=0&&v<1;
+  const s=String(v??'').trim();
+  if(!/^\d*\.\d+$/.test(s))return false;
+  const n=parseFloat(s);
+  return n>=0&&n<1;
+}
+
+function columnKindFromLabel(colName){
+  const n=normColLabel(colName);
+  if(/date range|daterange/.test(n))return'text';
+  if(/\bdate\b|session date|start date|end date|when/.test(n))return'date';
+  if(/hour|duration|time spent|\btime\b|hrs|\bhr\b|avg.*hr|min/.test(n))return'duration';
+  return'text';
+}
+
+function inferColumnKinds(template,rawRows){
+  return template.cols.map((colName,ti)=>{
+    const fromLabel=columnKindFromLabel(colName);
+    if(fromLabel!=='text')return fromLabel;
+    const samples=rawRows.map(r=>r[ti]).filter(v=>v!==''&&v!=null);
+    if(!samples.length)return'text';
+    const dateLike=samples.filter(looksLikeExcelDateSerial).length;
+    const timeLike=samples.filter(v=>looksLikeExcelTimeFraction(v)&&!looksLikeExcelDateSerial(v)).length;
+    if(dateLike/samples.length>=0.5)return'date';
+    if(timeLike/samples.length>=0.5)return'duration';
+    return'text';
+  });
+}
+
+function formatImportDate(val,wsCell){
+  if(val instanceof Date)return formatDisplayDate(val);
+  const formatted=wsCell?getFormattedCellText(wsCell):null;
+  if(formatted){
+    if(isTimeNumberFormat(wsCell&&wsCell.z)&&looksLikeExcelTimeFraction(val))return formatted;
+    const parsed=parseFlexibleDate(formatted);
+    if(parsed)return formatDisplayDate(parsed);
+    if(!looksLikeExcelDateSerial(formatted))return formatted;
+  }
+  if(looksLikeExcelDateSerial(val)){
+    const d=excelSerialToDate(val);
+    if(d)return formatDisplayDate(d);
+  }
+  const parsed=parseFlexibleDate(val);
+  if(parsed)return formatDisplayDate(parsed);
+  return String(val??'').trim();
+}
+
+function formatImportDuration(val,wsCell){
+  if(val===''||val==null)return'';
+  const formatted=wsCell?getFormattedCellText(wsCell):null;
+  if(formatted&&/^\d+:\d{1,2}$/.test(formatted))return formatted;
+  if(formatted&&!looksLikeExcelTimeFraction(formatted)){
+    const n=parseFloat(formatted.replace(/[^\d.]/g,''));
+    if(!isNaN(n)&&n>=1)return formatted;
+  }
+  const s=String(val).trim();
+  if(/^\d+:\d{1,2}$/.test(s))return s;
+  const n=typeof val==='number'?val:parseFloat(s);
+  if(isNaN(n))return s;
+  if(n>=0&&n<1)return formatDurationHMM(n*24*60);
+  if(n>=0)return String(Number(n.toFixed(2).replace(/\.?0+$/,''))||n);
+  return s;
+}
+
+function normalizeImportedCell(raw,kind,wsCell,colName){
+  if(raw===''||raw==null)return'';
+  const k=kind||columnKindFromLabel(colName);
+  if(wsCell&&wsCell.t==='d'||(wsCell&&wsCell.v instanceof Date))return formatImportDate(wsCell.v,wsCell);
+  if(wsCell&&wsCell.z&&typeof wsCell.v==='number'){
+    if(isDateNumberFormat(wsCell.z))return formatImportDate(wsCell.v,wsCell);
+    if(isTimeNumberFormat(wsCell.z))return formatImportDuration(wsCell.v,wsCell);
+  }
+  if(k==='date')return formatImportDate(raw,wsCell);
+  if(k==='duration')return formatImportDuration(raw,wsCell);
+  if(raw instanceof Date)return formatDisplayDate(raw);
+  return String(raw).trim();
+}
+
+function normalizeStoredSheetRows(rows,template){
+  if(!rows||!rows.length||!template)return rows||[];
+  const kinds=inferColumnKinds(template,rows);
+  return rows.map(row=>template.cols.map((col,ti)=>normalizeImportedCell(row[ti],kinds[ti],null,col)));
+}
+
+function sheetRowsNeedFormatFix(rows,template){
+  if(!rows||!template)return false;
+  const kinds=inferColumnKinds(template,rows);
+  return rows.some(row=>template.cols.some((col,ti)=>{
+    const v=row[ti];
+    if(v===''||v==null)return false;
+    const k=kinds[ti];
+    if(k==='date'&&looksLikeExcelDateSerial(v))return true;
+    if(k==='duration'&&looksLikeExcelTimeFraction(v))return true;
+    return false;
+  }));
+}
+
+function sanitizeImportedHtml(html){
+  return String(html||'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim()||'<p></p>';
+}
+
 function buildColumnMap(uploadedCols,templateCols){
   const map=Array(templateCols.length).fill(-1);
   const used=new Set();
@@ -1800,7 +1963,7 @@ function isInstructionRow(row){
   return false;
 }
 
-function mapSheetDataToTemplate(data,template){
+function mapSheetDataToTemplate(data,template,ws){
   if(!data.length)return{rows:[],meta:{}};
   const hi=findHeaderRowIndex(data,template.cols);
   const uploadedCols=(data[hi]||[]).map((c,i)=>String(c||'').trim()||`Col ${i+1}`);
@@ -1808,29 +1971,37 @@ function mapSheetDataToTemplate(data,template){
   if(map.filter(i=>i>=0).length<Math.ceil(template.cols.length/2)){
     map=template.cols.map((_,i)=>i<uploadedCols.length?i:-1);
   }
-  const rows=[];
+  const rawEntries=[];
   for(let ri=hi+1;ri<data.length;ri++){
     const raw=data[ri];
     if(isInstructionRow(raw))continue;
-    const out=template.cols.map((_,ti)=>{
+    const row=template.cols.map((_,ti)=>{
       const src=map[ti];
-      return src>=0?String(raw[src]||'').trim():'';
+      return src>=0?(raw[src]??''):'';
     });
-    if(out.some(v=>v))rows.push(out);
+    if(row.some(v=>v!==''&&v!=null))rawEntries.push({ri,row});
   }
+  const kinds=inferColumnKinds(template,rawEntries.map(e=>e.row));
+  const rows=rawEntries.map(({ri,row})=>
+    template.cols.map((colName,ti)=>{
+      const src=map[ti];
+      const wsCell=ws&&src>=0&&typeof XLSX!=='undefined'
+        ?ws[XLSX.utils.encode_cell({r:ri,c:src})]
+        :null;
+      return normalizeImportedCell(row[ti],kinds[ti],wsCell,colName);
+    })
+  );
   const meta=extractImportMeta(data,hi,template,rows);
   return{rows,meta};
 }
 
 function parseFlexibleDate(s){
+  if(s instanceof Date)return isNaN(s.getTime())?null:s;
   const v=String(s??'').trim();
   if(!v)return null;
-  if(/^\d+(\.\d+)?$/.test(v)){
-    const n=Number(v);
-    if(n>30000&&n<60000){
-      const d=new Date((n-25569)*86400000);
-      if(!isNaN(d.getTime())&&d.getFullYear()>1980)return d;
-    }
+  if(looksLikeExcelDateSerial(v)){
+    const d=excelSerialToDate(v);
+    if(d&&d.getFullYear()>1980)return d;
   }
   const iso=new Date(v);
   if(!isNaN(iso.getTime())&&iso.getFullYear()>1980)return iso;
@@ -1949,21 +2120,21 @@ function extractImportMeta(data,headerIdx,template,rows){
   return extractMetaFromMappedRows(template,rows,meta);
 }
 
-async function parseSpreadsheetRaw(file,ext){
+async function parseSpreadsheetWorkbook(file,ext){
   if(typeof XLSX==='undefined')throw new Error('Spreadsheet library not loaded');
-  let data;
+  let wb;
   if(ext==='csv'||ext==='tsv'){
     const text=await file.text();
-    const wb=XLSX.read(text,{type:'string',raw:false});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    wb=XLSX.read(text,{type:'string',raw:false,cellDates:true});
   }else{
     const buf=await file.arrayBuffer();
-    const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true,cellNF:true});
   }
-  return data;
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  if(!ws)return{data:[],ws:null};
+  /* Keep raw values for serial detection; use ws cell metadata for formatted display (Excel/Sheets) */
+  const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+  return{data,ws};
 }
 
 function sheetColsFromContent(content){
@@ -1987,14 +2158,14 @@ async function convertFileToTemplate(file,template){
   const ext=validateImportFile(file);
   if(template.type==='spreadsheet'){
     if(!['xlsx','xls','csv','tsv'].includes(ext))throw new Error('Use .xlsx, .csv, or .xls for this log');
-    const data=await parseSpreadsheetRaw(file,ext);
-    const mapped=mapSheetDataToTemplate(data,template);
+    const {data,ws}=await parseSpreadsheetWorkbook(file,ext);
+    const mapped=mapSheetDataToTemplate(data,template,ws);
     return{type:'spreadsheet',content:{rows:mapped.rows},meta:mapped.meta||{}};
   }
   if(ext!=='docx')throw new Error('Use .docx for this document');
   if(typeof mammoth==='undefined')throw new Error('DOCX library not loaded');
   const result=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
-  const html=result.value||'<p></p>';
+  const html=sanitizeImportedHtml(result.value);
   if(template.sections&&template.sections.length){
     return{type:'document',content:{sections:template.sections.map((s,i)=>({label:s.label,content:i===0?html:''}))},meta:{}};
   }
@@ -2018,6 +2189,7 @@ async function importTemplateFile(file,templateId){
 
 /* ── ONE-TIME VAULT MIGRATION (re-parse legacy uploads) ── */
 const VAULT_MIGRATION_KEY='scrubbed_vault_native_v1';
+const VAULT_CELL_FORMAT_MIGRATION_KEY='scrubbed_vault_cell_format_v2';
 let _vaultMigrating=false;
 
 const TEMPLATE_NAME_HINTS={
@@ -2075,12 +2247,16 @@ function remigrateSpreadsheet(file,template){
   const existingMeta=file.meta||{};
   if(content.cols&&content.cols.length){
     const mapped=mapSheetDataToTemplate([content.cols,... (content.rows||[])],template);
+    const rows=normalizeStoredSheetRows(mapped.rows,template);
     return{
       type:'spreadsheet',template_id:template.id,name:template.name,
-      content:{rows:mapped.rows},meta:extractMetaFromMappedRows(template,mapped.rows,{...existingMeta,...mapped.meta}),
+      content:{rows},meta:extractMetaFromMappedRows(template,rows,{...existingMeta,...mapped.meta}),
     };
   }
-  const rows=(content.rows||[]).map(r=>template.cols.map((_,i)=>String((r&&r[i])||'').trim()));
+  const rows=normalizeStoredSheetRows(
+    (content.rows||[]).map(r=>template.cols.map((_,i)=>String((r&&r[i])||'').trim())),
+    template
+  );
   return{
     type:'spreadsheet',template_id:template.id,name:template.name,
     content:{rows},meta:extractMetaFromMappedRows(template,rows,existingMeta),
@@ -2131,6 +2307,40 @@ async function buildMigrationPatch(file){
     return remigrateDocument(file,template);
   }
   return null;
+}
+
+async function runCellFormatMigrationOnce(){
+  if(localStorage.getItem(VAULT_CELL_FORMAT_MIGRATION_KEY)||_vaultMigrating||!getToken())return false;
+  _vaultMigrating=true;
+  let updated=0;
+  try{
+    for(const file of [..._vf]){
+      try{
+        if(!file.content||!file.content.rows||file.content.pdf)continue;
+        const template=(file.template_id?TEMPLATES.find(x=>x.id===file.template_id):null)||detectTemplateForFile(file);
+        if(!template||template.type!=='spreadsheet')continue;
+        if(!sheetRowsNeedFormatFix(file.content.rows,template))continue;
+        const rows=normalizeStoredSheetRows(file.content.rows,template);
+        const meta=extractMetaFromMappedRows(template,rows,file.meta||{});
+        const resp=await fetch('/files/'+encodeURIComponent(file.id),{
+          method:'PUT',headers:authHeaders(),
+          body:JSON.stringify({
+            name:file.name,
+            type:'spreadsheet',
+            template_id:template.id,
+            content:{rows},
+            meta,
+          }),
+        });
+        if(resp.ok)updated++;
+      }catch(e){console.warn('Cell format migration skipped file',file&&file.id,e)}
+    }
+    localStorage.setItem(VAULT_CELL_FORMAT_MIGRATION_KEY,String(Date.now()));
+    if(updated>0)showToast(updated===1?'1 file reformatted':'Reformatted '+updated+' vault files');
+  }finally{
+    _vaultMigrating=false;
+  }
+  return updated>0;
 }
 
 async function runVaultMigrationOnce(){
