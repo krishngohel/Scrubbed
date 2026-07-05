@@ -15,8 +15,8 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;scroll-behavior:smooth}
-body{background:var(--paper);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html{font-size:16px;scroll-behavior:smooth;overflow-x:clip}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased;overflow-x:clip;max-width:100%}
 button{font:inherit;cursor:pointer;border:none;background:none}
 a{color:inherit;text-decoration:none;cursor:pointer}
 input,textarea{font:inherit;color:inherit}
@@ -83,7 +83,7 @@ strong{font-weight:600}
 .wash-2{width:540px;height:540px;bottom:-10%;left:0%;background:radial-gradient(circle,rgba(90,110,74,0.16) 0%,rgba(90,110,74,0.06) 45%,transparent 70%);animation-duration:18s;animation-delay:-7s;opacity:0.65}
 .wash-3{width:380px;height:380px;top:35%;left:42%;background:radial-gradient(circle,rgba(168,156,138,0.2) 0%,rgba(31,27,22,0.04) 50%,transparent 70%);animation-duration:26s;animation-delay:-13s;opacity:0.6}
 @keyframes wash-drift{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(18px,-24px) scale(1.04)}50%{transform:translate(-13px,17px) scale(0.96)}75%{transform:translate(21px,11px) scale(1.02)}}
-.vault-hero-inner{max-width:1200px;width:100%;display:grid;grid-template-columns:1fr clamp(300px,34%,440px);gap:clamp(48px,5vw,72px);align-items:center;position:relative;z-index:2;margin:0 auto}
+.vault-hero-inner{max-width:1200px;width:100%;min-width:0;display:grid;grid-template-columns:1fr clamp(300px,34%,440px);gap:clamp(48px,5vw,72px);align-items:center;position:relative;z-index:2;margin:0 auto}
 .vault-hero-text{animation:fadeUp 0.9s ease 0.1s both}
 .vault-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(181,86,58,0.07);border:1px solid rgba(181,86,58,0.18);border-radius:100px;padding:5px 14px 5px 10px;margin-bottom:28px}
 .eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--clay);animation:pulse-dot 2.5s ease-in-out infinite}
@@ -155,7 +155,7 @@ strong{font-weight:600}
 .cn-action-btn-sub{font-size:12px;color:var(--graphite);line-height:1.45}
 .cn-action-formats{margin-top:14px;font-size:11px;font-family:var(--font-mono);color:var(--stone);text-align:center;letter-spacing:0.03em}
 /* ── HERO RIGHT STACK ── */
-.hero-right-stack{display:flex;flex-direction:column;gap:14px;animation:fadeUp 0.9s ease 0.28s both}
+.hero-right-stack{display:flex;flex-direction:column;gap:14px;animation:fadeUp 0.9s ease 0.28s both;min-width:0;width:100%}
 .hrc{background:var(--cream);border:1px solid var(--rule);border-radius:14px;overflow:hidden;box-shadow:0 4px 8px rgba(31,27,22,0.04),0 14px 36px rgba(31,27,22,0.08)}
 .hrc-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px 11px;border-bottom:1px solid var(--rule)}
 .hrc-title{font-size:11px;font-weight:600;color:var(--ink);letter-spacing:0.08em;text-transform:uppercase}
@@ -247,7 +247,7 @@ strong{font-weight:600}
 .sheet-meta-bar{padding:12px 26px;border-bottom:1px solid var(--rule);display:flex;gap:14px;flex-wrap:wrap;background:var(--paper);flex-shrink:0}
 .smt-field{display:flex;flex-direction:column;gap:3px}
 .smt-label{font-size:9.5px;font-family:var(--font-mono);color:var(--stone);letter-spacing:0.09em;text-transform:uppercase}
-.smt-input{font-size:13px;font-family:var(--font-body);color:var(--ink);border:1px solid var(--rule);border-radius:7px;padding:6px 12px;background:var(--cream);outline:none;min-width:190px;transition:border-color 0.2s}
+.smt-input{font-size:13px;font-family:var(--font-body);color:var(--ink);border:1px solid var(--rule);border-radius:7px;padding:6px 12px;background:var(--cream);outline:none;min-width:0;width:100%;max-width:100%;transition:border-color 0.2s}
 .smt-input:focus{border-color:var(--clay)}
 .sheet-scroll{flex:1;overflow:auto;min-height:0}
 .sheet-table{width:100%;border-collapse:collapse;font-size:13px}
@@ -343,6 +343,36 @@ footer{padding:40px 32px;border-top:1px solid var(--rule);background:var(--paper
 /* KEYFRAMES */
 @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.65)}}
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width:1024px){
+  .vault-hero-inner{grid-template-columns:1fr;gap:36px}
+  .template-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+}
+@media (max-width:767px){
+  .nav-inner{padding:0 16px;gap:10px}
+  .nav-links{display:none}
+  .nav-user{display:none}
+  #vault-hero{min-height:auto;padding:36px 16px 28px}
+  .vault-headline{font-size:clamp(2.4rem,11vw,3.5rem)}
+  .vault-sub{max-width:none}
+  .vault-ctas{flex-direction:column;align-items:stretch}
+  .vault-ctas .btn-hp,.vault-ctas .btn-ho{justify-content:center;width:100%}
+  .hero-right-stack{gap:12px}
+  .prog-top{gap:16px}
+  .prog-ring-wrap{width:96px;height:96px}
+  .prog-ring-svg{width:96px;height:96px}
+  .prog-ring-pct{font-size:24px}
+  .prog-bars{padding:2px 14px 14px}
+  .my-vault-inner{padding:0 16px}
+  .vault-header-row{flex-direction:column;align-items:flex-start;gap:12px}
+  .template-grid,.vault-files-grid{grid-template-columns:1fr}
+  .sheet-meta-bar{padding:12px 16px}
+  .modal-panel{max-width:100%;border-radius:12px}
+  .modal-overlay{padding:12px}
+  .footer-inner{flex-direction:column;align-items:flex-start;gap:14px;padding:0 16px}
+  .footer-links{flex-wrap:wrap;gap:14px}
+}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}
   html{scroll-behavior:auto}
@@ -900,22 +930,35 @@ const PROGRESS_CATS=[
   {id:'secondaries',label:'Secondaries', templateIds:['secondary-essay'],       weight:5,  color:'#f0a060'},
 ];
 
-/* Realistic completion targets per template — 100% requires substantive, app-ready content */
+/*
+ * Progress targets — bar set ABOVE competitive unless a hard cap exists.
+ * Competitive baselines (2024–2026): clinical 150–300 hrs, volunteer 200, shadowing 60–80,
+ * research 400–800, employment ~10 roles. Hard caps: PS 5,300 chars, activity 700 chars,
+ * AMCAS 15 work entries, secondary drafts often 250–500 words (we target upper end).
+ */
 const TEMPLATE_PROGRESS={
-  'clinical-hours':      {targetRows:50,targetHours:200, weights:{rows:38,cells:27,hours:25,meta:10}},
-  'volunteer-hours':     {targetRows:40,targetHours:150, weights:{rows:35,cells:28,hours:27,meta:10}},
-  'shadowing-log':       {targetRows:20,targetHours:40,  weights:{rows:30,cells:25,hours:35,meta:10}},
-  'research-log':        {targetRows:70,targetHours:500, weights:{rows:22,cells:18,hours:50,meta:10}},
-  'employment-record':   {targetRows:8, targetHours:800, weights:{rows:45,cells:30,hours:15,meta:10}},
-  'personal-statement':  {targetChars:5300,sectionMinChars:400, docWeights:{body:75,sections:15,meta:10}},
-  'recommendation-letter':{sectionMinChars:150,sectionFullChars:450, docWeights:{sections:80,meta:20}},
-  'activity-description':{targetChars:700,sectionMinChars:100, docWeights:{desc:55,other:25,meta:20}},
-  'secondary-essay':     {outlineChars:150,draftChars:400, docWeights:{outline:8,draft:55,prompt:8,meta:15}},
+  'clinical-hours':      {targetRows:90, targetHours:450, curve:1.35, weights:{rows:38,cells:24,hours:28,meta:5}},  /* competitive ~250; 450 = strong/experienced */
+  'volunteer-hours':     {targetRows:70, targetHours:350, curve:1.35, weights:{rows:36,cells:26,hours:28,meta:5}},  /* competitive ~200; 350 = standout service */
+  'shadowing-log':       {targetRows:40, targetHours:120, curve:1.4,  weights:{rows:40,cells:22,hours:28,meta:5}},  /* competitive ~80; 120 = well-rounded exposure */
+  'research-log':        {targetRows:80, targetHours:1000,curve:1.35, weights:{rows:28,cells:20,hours:42,meta:5}},  /* competitive ~500; 1k = strong MD research */
+  'employment-record':   {targetRows:15, targetHours:3500,curve:1.3,  weights:{rows:50,cells:28,hours:12,meta:5}},  /* 15 = AMCAS entry cap; 3.5k hrs ≈ multi-year depth */
+  'personal-statement':  {targetChars:5300,sectionMinChars:1000,curve:1.35,docWeights:{body:72,sections:18,meta:5}}, /* HARD CAP: AMCAS 5,300 chars */
+  'recommendation-letter':{sectionMinChars:250,sectionFullChars:700, curve:1.35, docWeights:{sections:85,meta:5}},
+  'activity-description':{targetChars:700,sectionMinChars:150, curve:1.35, docWeights:{desc:58,other:22,meta:5}},    /* HARD CAP: AMCAS 700-char description */
+  'secondary-essay':     {outlineChars:1200,draftChars:3000,curve:1.4, docWeights:{outline:10,draft:50,prompt:10,meta:5}}, /* draft 3k ≈ 500-word upper limit */
 };
 
-const DEFAULT_SHEET_WEIGHTS={rows:40,cells:25,hours:25,meta:10};
+const DEFAULT_SHEET_WEIGHTS={rows:40,cells:25,hours:25,meta:5};
+const DEFAULT_PROGRESS_CURVE=1.35; /* sublinear — early rows/chars count less toward 100% */
 
-const CAT_COMPLETE_PCT=75; /* category counts toward badge once it reaches this */
+const CAT_COMPLETE_PCT=80; /* category counts toward badge once it reaches this */
+
+/* Slow early progress; full credit only near target (14/45 rows ≈ 18% of row credit, not 31%) */
+function progressFraction(actual,target,curve){
+  if(!target||target<=0)return 0;
+  const c=curve!=null?curve:DEFAULT_PROGRESS_CURVE;
+  return Math.pow(Math.min(actual/target,1),c);
+}
 
 function stripHtml(html){
   return String(html||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
@@ -947,28 +990,29 @@ function spreadsheetProgress(file,cfg){
 
   const colCount=cols.length||Math.max(...rows.map(r=>r.length),1);
   const w=cfg.weights||DEFAULT_SHEET_WEIGHTS;
+  const curve=cfg.curve;
 
-  /* Row depth — need many entries, not just a few */
-  const rowScore=Math.min(rows.length/(cfg.targetRows||30),1)*w.rows;
+  /* Row depth — sublinear; many sessions needed for high % */
+  const rowScore=progressFraction(rows.length,cfg.targetRows||30,curve)*w.rows;
 
-  /* Cell completeness — each row should be filled out, not just date */
+  /* Cell completeness — quality gate, stays linear but lower weight */
   const cellFill=rows.reduce((sum,r)=>{
     const filled=r.slice(0,colCount).filter(v=>String(v||'').trim()).length;
     return sum+filled/colCount;
   },0)/rows.length;
   const cellScore=cellFill*w.cells;
 
-  /* Hours logged — total hours toward competitive benchmarks */
+  /* Hours logged — sublinear toward competitive totals */
   let hoursScore=0;
   if(cfg.targetHours&&cols.length){
     const hIdx=cols.findIndex(col=>normColLabel(col).includes('hour'));
     if(hIdx>=0){
       const total=rows.reduce((s,r)=>s+parseHours(r[hIdx]),0);
-      hoursScore=Math.min(total/cfg.targetHours,1)*w.hours;
+      hoursScore=progressFraction(total,cfg.targetHours,curve)*w.hours;
     }
   }
 
-  /* Meta fields (institution, date range, etc.) */
+  /* Meta fields — small bonus only */
   const metaScore=metaFillRatio(file,tpl)*w.meta;
 
   return Math.min(Math.round(rowScore+cellScore+hoursScore+metaScore),100);
@@ -983,62 +1027,64 @@ function documentProgress(file,cfg){
   if(c.blank){
     const len=stripHtml(c.html).length;
     const target=cfg.targetChars||2000;
-    const dw=cfg.docWeights||{body:88,meta:12};
-    return Math.min(Math.round(Math.min(len/target,1)*dw.body+metaFillRatio(file,tpl)*dw.meta),100);
+    const dw=cfg.docWeights||{body:88,meta:5};
+    const curve=cfg.curve;
+    return Math.min(Math.round(progressFraction(len,target,curve)*dw.body+metaFillRatio(file,tpl)*dw.meta),100);
   }
 
   const secs=c.sections||[];
   const tplSecs=(tpl&&tpl.sections)||[];
   if(!secs.length&&!tplSecs.length)return 0;
+  const curve=cfg.curve;
 
   if(tid==='personal-statement'){
-    const dw=cfg.docWeights||{body:72,sections:18,meta:10};
+    const dw=cfg.docWeights||{body:68,sections:22,meta:5};
     const totalChars=secs.reduce((n,s)=>n+stripHtml(s.content).length,0);
-    const charScore=Math.min(totalChars/(cfg.targetChars||5300),1)*dw.body;
-    const filledSecs=secs.filter(s=>stripHtml(s.content).length>=(cfg.sectionMinChars||300)).length;
-    const secScore=tplSecs.length?(filledSecs/tplSecs.length)*dw.sections:0;
+    const charScore=progressFraction(totalChars,cfg.targetChars||5300,curve)*dw.body;
+    const filledSecs=secs.filter(s=>stripHtml(s.content).length>=(cfg.sectionMinChars||1000)).length;
+    const secScore=tplSecs.length?progressFraction(filledSecs,tplSecs.length,1.2)*dw.sections:0;
     return Math.min(Math.round(charScore+secScore+metaFillRatio(file,tpl)*dw.meta),100);
   }
 
   if(tid==='secondary-essay'){
-    const dw=cfg.docWeights||{outline:8,draft:55,prompt:8,meta:15};
+    const dw=cfg.docWeights||{outline:10,draft:50,prompt:10,meta:5};
     let score=0;
     secs.forEach((s,i)=>{
       const len=stripHtml(s.content).length;
       const label=String(s.label||tplSecs[i]?.label||'').toLowerCase();
       if(len<15)return;
-      if(label.includes('prompt'))score+=Math.min(len/100,1)*dw.prompt;
-      else if(label.includes('outline'))score+=Math.min(len/(cfg.outlineChars||150),1)*dw.outline;
-      else if(label.includes('draft'))score+=Math.min(len/(cfg.draftChars||400),1)*dw.draft;
-      else score+=Math.min(len/200,1)*8;
+      if(label.includes('prompt'))score+=progressFraction(len,300,curve)*dw.prompt;
+      else if(label.includes('outline'))score+=progressFraction(len,cfg.outlineChars||1200,curve)*dw.outline;
+      else if(label.includes('draft'))score+=progressFraction(len,cfg.draftChars||3000,curve)*dw.draft;
+      else score+=progressFraction(len,300,curve)*8;
     });
     return Math.min(Math.round(score+metaFillRatio(file,tpl)*dw.meta),100);
   }
 
   if(tid==='activity-description'){
-    const dw=cfg.docWeights||{desc:55,other:25,meta:20};
+    const dw=cfg.docWeights||{desc:52,other:28,meta:5};
     const descSec=secs.find(s=>/description|impact/i.test(s.label||''))||secs[2]||secs[0];
     const descLen=stripHtml(descSec&&descSec.content).length;
-    const descScore=Math.min(descLen/(cfg.targetChars||700),1)*dw.desc;
+    const descScore=progressFraction(descLen,cfg.targetChars||700,curve)*dw.desc;
     const otherScore=secs.reduce((n,s)=>{
       const len=stripHtml(s.content).length;
-      return n+(len>=40?Math.min(len/(cfg.sectionMinChars||120),1):0);
+      return n+(len>=50?progressFraction(len,cfg.sectionMinChars||150,curve):0);
     },0)/Math.max(secs.length,1)*dw.other;
     return Math.min(Math.round(descScore+otherScore+metaFillRatio(file,tpl)*dw.meta),100);
   }
 
   /* Recommendation letter & generic sectioned docs */
-  const dw=cfg.docWeights||{sections:80,meta:20};
+  const dw=cfg.docWeights||{sections:85,meta:5};
   const n=Math.max(tplSecs.length,secs.length,1);
-  const min=cfg.sectionMinChars||120;
-  const full=cfg.sectionFullChars||400;
+  const min=cfg.sectionMinChars||200;
+  const full=cfg.sectionFullChars||700;
   let sectionSum=0;
   secs.forEach(s=>{
     const len=stripHtml(s.content).length;
-    if(len<25)return;
-    sectionSum+=Math.min((len-min)/Math.max(full-min,1),1);
+    if(len<30)return;
+    sectionSum+=progressFraction(len-min,Math.max(full-min,1),curve);
   });
-  return Math.min(Math.round((sectionSum/n)*dw.sections+metaFillRatio(file,tpl)*dw.meta),100);
+  return Math.min(Math.round(progressFraction(sectionSum,n,1.1)*dw.sections+metaFillRatio(file,tpl)*dw.meta),100);
 }
 
 function fileProgressPct(file){

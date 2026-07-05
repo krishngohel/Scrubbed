@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+html,body{height:100%;overflow-x:clip;max-width:100%}
 html{font-size:16px}
 body{
   background:#F6F1E8;
@@ -38,6 +38,8 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
   align-items:center;
   justify-content:center;
   padding:56px 24px 40px;
+  width:100%;
+  min-width:0;
 }
 .hero{
   max-width:580px;
@@ -365,6 +367,14 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
   transition:background 160ms;
 }
 .btn-go:hover{background:var(--clay-d)}
+
+@media (max-width:767px){
+  .landing-main{padding:40px 16px 32px}
+  .hero-p{font-size:0.95rem;padding:0 4px}
+  .btn-cta{padding:14px 24px;font-size:0.95rem}
+  .landing-footer{padding:18px 16px}
+  .modal{padding:24px 20px}
+}
 </style>
 </head>
 <body>
