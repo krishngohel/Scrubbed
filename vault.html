@@ -13,7 +13,6 @@
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
@@ -241,6 +240,7 @@ strong{font-weight:600}
 .modal-cancel{background:transparent;border:1px solid var(--rule);border-radius:8px;padding:7px 16px;font-size:13px;font-family:var(--font-body);color:var(--graphite);cursor:pointer;transition:all 0.2s}
 .modal-cancel:hover{border-color:rgba(31,27,22,0.3);color:var(--ink)}
 .modal-body{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.modal-loading{display:flex;align-items:center;justify-content:center;flex:1;min-height:240px;color:var(--graphite);font-size:14px}
 
 /* Spreadsheet editor */
 .sheet-editor{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -814,8 +814,8 @@ function openModal(id){
   badge.textContent=isSheet?'SPREADSHEET':'DOCUMENT';
   badge.style.background=isSheet?'rgba(181,86,58,0.1)':'rgba(90,110,74,0.1)';
   badge.style.color=isSheet?'var(--clay)':'var(--moss)';
-  document.getElementById('modal-body').innerHTML=isSheet?buildSheet(t):buildDoc(t);
-  if(isSheet)initSheet(t);
+  document.getElementById('modal-body').innerHTML=isSheet?buildSheetShell(t):buildDoc(t);
+  if(isSheet)mountSheetEditor(t,[]);
   else initDoc(t);
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -850,8 +850,9 @@ function collectContent(){
     const rows=[...document.querySelectorAll('#sheet-body tr')].map(tr=>
       [...tr.querySelectorAll('.sheet-cell')].map(c=>c.innerText||'')
     );
-    if(!currentTemplate.id)return{cols:currentTemplate.cols.slice(),rows};
-    return{rows};
+    const trimmed=trimTrailingEmptySheetRows(rows);
+    if(!currentTemplate.id)return{cols:currentTemplate.cols.slice(),rows:trimmed};
+    return{rows:trimmed};
   }else{
     const blankArea=document.querySelector('.doc-blank-area');
     if(blankArea)return{blank:true,html:blankArea.innerHTML};
@@ -899,6 +900,197 @@ const PROGRESS_CATS=[
   {id:'secondaries',label:'Secondaries', templateIds:['secondary-essay'],       weight:5,  color:'#f0a060'},
 ];
 
+/* Realistic completion targets per template — 100% requires substantive, app-ready content */
+const TEMPLATE_PROGRESS={
+  'clinical-hours':      {targetRows:50,targetHours:200, weights:{rows:38,cells:27,hours:25,meta:10}},
+  'volunteer-hours':     {targetRows:40,targetHours:150, weights:{rows:35,cells:28,hours:27,meta:10}},
+  'shadowing-log':       {targetRows:20,targetHours:40,  weights:{rows:30,cells:25,hours:35,meta:10}},
+  'research-log':        {targetRows:70,targetHours:500, weights:{rows:22,cells:18,hours:50,meta:10}},
+  'employment-record':   {targetRows:8, targetHours:800, weights:{rows:45,cells:30,hours:15,meta:10}},
+  'personal-statement':  {targetChars:5300,sectionMinChars:400, docWeights:{body:75,sections:15,meta:10}},
+  'recommendation-letter':{sectionMinChars:150,sectionFullChars:450, docWeights:{sections:80,meta:20}},
+  'activity-description':{targetChars:700,sectionMinChars:100, docWeights:{desc:55,other:25,meta:20}},
+  'secondary-essay':     {outlineChars:150,draftChars:400, docWeights:{outline:8,draft:55,prompt:8,meta:15}},
+};
+
+const DEFAULT_SHEET_WEIGHTS={rows:40,cells:25,hours:25,meta:10};
+
+const CAT_COMPLETE_PCT=75; /* category counts toward badge once it reaches this */
+
+function stripHtml(html){
+  return String(html||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function parseHours(val){
+  const n=parseFloat(String(val||'').replace(/[^\d.]/g,''));
+  return isNaN(n)?0:n;
+}
+
+function metaFillRatio(file,template){
+  if(!template||!template.meta||!template.meta.length)return 0;
+  const m=file.meta||{};
+  const n=template.meta.filter(x=>m[x.label]&&String(m[x.label]).trim()).length;
+  return n/template.meta.length;
+}
+
+function spreadsheetProgress(file,cfg){
+  const c=file.content||{};
+  if(c.pdf)return 0;
+  const tid=resolveTemplateId(file);
+  const tpl=TEMPLATES.find(t=>t.id===tid);
+  const cols=tpl?tpl.cols:[];
+  const rows=(c.rows||[]).filter(r=>r.some(v=>v&&String(v).trim()));
+  if(!rows.length)return 0;
+
+  const colCount=cols.length||Math.max(...rows.map(r=>r.length),1);
+  const w=cfg.weights||DEFAULT_SHEET_WEIGHTS;
+
+  /* Row depth — need many entries, not just a few */
+  const rowScore=Math.min(rows.length/(cfg.targetRows||30),1)*w.rows;
+
+  /* Cell completeness — each row should be filled out, not just date */
+  const cellFill=rows.reduce((sum,r)=>{
+    const filled=r.slice(0,colCount).filter(v=>String(v||'').trim()).length;
+    return sum+filled/colCount;
+  },0)/rows.length;
+  const cellScore=cellFill*w.cells;
+
+  /* Hours logged — total hours toward competitive benchmarks */
+  let hoursScore=0;
+  if(cfg.targetHours&&cols.length){
+    const hIdx=cols.findIndex(col=>normColLabel(col).includes('hour'));
+    if(hIdx>=0){
+      const total=rows.reduce((s,r)=>s+parseHours(r[hIdx]),0);
+      hoursScore=Math.min(total/cfg.targetHours,1)*w.hours;
+    }
+  }
+
+  /* Meta fields (institution, date range, etc.) */
+  const metaScore=metaFillRatio(file,tpl)*w.meta;
+
+  return Math.min(Math.round(rowScore+cellScore+hoursScore+metaScore),100);
+}
+
+function documentProgress(file,cfg){
+  const c=file.content||{};
+  if(c.pdf)return 0;
+  const tid=resolveTemplateId(file);
+  const tpl=TEMPLATES.find(t=>t.id===tid);
+
+  if(c.blank){
+    const len=stripHtml(c.html).length;
+    const target=cfg.targetChars||2000;
+    const dw=cfg.docWeights||{body:88,meta:12};
+    return Math.min(Math.round(Math.min(len/target,1)*dw.body+metaFillRatio(file,tpl)*dw.meta),100);
+  }
+
+  const secs=c.sections||[];
+  const tplSecs=(tpl&&tpl.sections)||[];
+  if(!secs.length&&!tplSecs.length)return 0;
+
+  if(tid==='personal-statement'){
+    const dw=cfg.docWeights||{body:72,sections:18,meta:10};
+    const totalChars=secs.reduce((n,s)=>n+stripHtml(s.content).length,0);
+    const charScore=Math.min(totalChars/(cfg.targetChars||5300),1)*dw.body;
+    const filledSecs=secs.filter(s=>stripHtml(s.content).length>=(cfg.sectionMinChars||300)).length;
+    const secScore=tplSecs.length?(filledSecs/tplSecs.length)*dw.sections:0;
+    return Math.min(Math.round(charScore+secScore+metaFillRatio(file,tpl)*dw.meta),100);
+  }
+
+  if(tid==='secondary-essay'){
+    const dw=cfg.docWeights||{outline:8,draft:55,prompt:8,meta:15};
+    let score=0;
+    secs.forEach((s,i)=>{
+      const len=stripHtml(s.content).length;
+      const label=String(s.label||tplSecs[i]?.label||'').toLowerCase();
+      if(len<15)return;
+      if(label.includes('prompt'))score+=Math.min(len/100,1)*dw.prompt;
+      else if(label.includes('outline'))score+=Math.min(len/(cfg.outlineChars||150),1)*dw.outline;
+      else if(label.includes('draft'))score+=Math.min(len/(cfg.draftChars||400),1)*dw.draft;
+      else score+=Math.min(len/200,1)*8;
+    });
+    return Math.min(Math.round(score+metaFillRatio(file,tpl)*dw.meta),100);
+  }
+
+  if(tid==='activity-description'){
+    const dw=cfg.docWeights||{desc:55,other:25,meta:20};
+    const descSec=secs.find(s=>/description|impact/i.test(s.label||''))||secs[2]||secs[0];
+    const descLen=stripHtml(descSec&&descSec.content).length;
+    const descScore=Math.min(descLen/(cfg.targetChars||700),1)*dw.desc;
+    const otherScore=secs.reduce((n,s)=>{
+      const len=stripHtml(s.content).length;
+      return n+(len>=40?Math.min(len/(cfg.sectionMinChars||120),1):0);
+    },0)/Math.max(secs.length,1)*dw.other;
+    return Math.min(Math.round(descScore+otherScore+metaFillRatio(file,tpl)*dw.meta),100);
+  }
+
+  /* Recommendation letter & generic sectioned docs */
+  const dw=cfg.docWeights||{sections:80,meta:20};
+  const n=Math.max(tplSecs.length,secs.length,1);
+  const min=cfg.sectionMinChars||120;
+  const full=cfg.sectionFullChars||400;
+  let sectionSum=0;
+  secs.forEach(s=>{
+    const len=stripHtml(s.content).length;
+    if(len<25)return;
+    sectionSum+=Math.min((len-min)/Math.max(full-min,1),1);
+  });
+  return Math.min(Math.round((sectionSum/n)*dw.sections+metaFillRatio(file,tpl)*dw.meta),100);
+}
+
+function fileProgressPct(file){
+  if(!file)return 0;
+  const tid=resolveTemplateId(file);
+  if(!tid)return 0;
+  const cfg=TEMPLATE_PROGRESS[tid];
+  const tpl=TEMPLATES.find(t=>t.id===tid);
+  if(!cfg||!tpl)return 0;
+  if(tpl.type==='spreadsheet')return spreadsheetProgress(file,cfg);
+  return documentProgress(file,cfg);
+}
+
+function resolveTemplateId(file){
+  if(!file)return null;
+  if(file.template_id)return file.template_id;
+  if(_templateIdCache.has(file))return _templateIdCache.get(file);
+  const det=detectTemplateForFile(file);
+  const tid=det?det.id:null;
+  _templateIdCache.set(file,tid);
+  return tid;
+}
+
+function filesForCategory(cat,files){
+  return files.filter(f=>{
+    const tid=resolveTemplateId(f);
+    return tid&&cat.templateIds.includes(tid);
+  });
+}
+
+function calcCatPct(cat,files){
+  const hits=filesForCategory(cat,files);
+  if(!hits.length)return 0;
+  const scores=hits.map(f=>fileProgressPct(f));
+  /* Secondaries: average across essays; hour logs / single docs: best file counts */
+  if(cat.templateIds[0]==='secondary-essay'){
+    return Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  }
+  return Math.max(...scores);
+}
+
+function calcOverallProgress(files){
+  const catPcts=PROGRESS_CATS.map(cat=>calcCatPct(cat,files));
+  let totalW=0,earnedW=0;
+  catPcts.forEach((p,i)=>{
+    totalW+=PROGRESS_CATS[i].weight;
+    earnedW+=(p/100)*PROGRESS_CATS[i].weight;
+  });
+  return{
+    catPcts,
+    totalPct:totalW?Math.round((earnedW/totalW)*100):0,
+    filledCats:catPcts.filter(p=>p>=CAT_COMPLETE_PCT).length,
+  };
+}
+
 const CAT_ICONS={
   clinical:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
   research:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
@@ -911,40 +1103,9 @@ const CAT_ICONS={
   secondaries:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
 };
 
-function calcCatPct(cat,files){
-  const hits=files.filter(f=>cat.templateIds.includes(f.template_id));
-  if(!hits.length)return 0;
-  const f=hits[0];const c=f.content||{};
-  if(c.pdf)return 100;
-  if(f.type==='spreadsheet'){
-    const rows=c.rows||[];
-    const filled=rows.filter(r=>r.some(v=>v&&String(v).trim())).length;
-    if(filled===0)return 0;
-    return Math.min(Math.round((filled/5)*100),100);
-  }else{
-    if(c.blank){
-      const text=(c.html||'').replace(/<[^>]*>/g,'').trim();
-      if(!text.length)return 0;
-      return Math.min(Math.round((text.length/500)*100),100);
-    }
-    const secs=c.sections||[];
-    if(!secs.length)return 0;
-    const scores=secs.map(s=>{
-      const text=(s.content||'').replace(/<[^>]*>/g,'').trim();
-      if(text.length<20)return 0;
-      return Math.min(text.length/200,1);
-    });
-    const avg=scores.reduce((a,b)=>a+b,0)/scores.length;
-    return avg===0?0:Math.round(avg*100);
-  }
-}
-
 function renderProgress(files){
   const f2=files||[];
-  let totalW=0,earnedW=0;
-  PROGRESS_CATS.forEach(cat=>{const p=calcCatPct(cat,f2);totalW+=cat.weight;earnedW+=(p/100)*cat.weight});
-  const totalPct=Math.round((earnedW/totalW)*100);
-  const filledCats=PROGRESS_CATS.filter(cat=>calcCatPct(cat,f2)>0).length;
+  const {totalPct,filledCats,catPcts}=calcOverallProgress(f2);
 
   /* SVG ring: r=33, circ=2π*33≈207.3 */
   const circ=2*Math.PI*33;
@@ -957,7 +1118,6 @@ function renderProgress(files){
 
   const barsEl=document.getElementById('prog-bars');
   if(!barsEl)return;
-  const catPcts=PROGRESS_CATS.map(cat=>calcCatPct(cat,f2));
   /* Render bars at 0% width so transition fires on next paint */
   barsEl.innerHTML=PROGRESS_CATS.map((cat,i)=>{
     const p=catPcts[i];
@@ -1068,12 +1228,12 @@ function pickTemplate(id){
   document.getElementById('cn-action-desc').textContent=t.desc;
   const input=document.getElementById('cn-file-input');
   if(input){
-    input.accept=t.type==='spreadsheet'?'.xlsx,.xls,.csv,.tsv,.pdf':'.docx,.pdf';
+    input.accept=t.type==='spreadsheet'?'.xlsx,.xls,.csv,.tsv':'.docx';
     input.value='';
   }
   document.getElementById('cn-action-formats').textContent=t.type==='spreadsheet'
-    ?'Accepts .xlsx · .csv · .xls · .pdf'
-    :'Accepts .docx · .pdf';
+    ?'Accepts .xlsx · .csv · .xls'
+    :'Accepts .docx only';
   showCnStep('action');
 }
 
@@ -1102,6 +1262,7 @@ async function handleCnFileUpload(file){
 }
 
 var _vf=[];/* vault files cache — var so it's hoisted and always initialized */
+const _templateIdCache=new WeakMap();
 
 /* Attach after DOM is ready via delegation so null elements never crash the script */
 document.addEventListener('click',function(e){
@@ -1139,7 +1300,9 @@ function refreshVaultDisplay(){
     if(grid){grid.style.display='';renderVaultFiles(_vf,grid)}
   }
   renderRecentFiles(_vf);
-  renderProgress(_vf);
+  const runProgress=()=>renderProgress(_vf);
+  if(typeof requestIdleCallback==='function')requestIdleCallback(runProgress,{timeout:400});
+  else setTimeout(runProgress,0);
 }
 
 async function loadFilesFromServer(){
@@ -1231,75 +1394,86 @@ function escHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt
 
 window.openFileForEdit=async function openFileForEdit(fileId){
   if(!getToken())return;
+  showModalLoading('Opening…');
   try{
-    /* Fetch just this file — the list endpoint strips PDF payloads */
-    const resp=await fetch('/files/'+encodeURIComponent(fileId),{headers:authHeaders()});
-    if(!resp.ok)throw new Error();
-    const f=await resp.json();
-    if(!f||!f.id)return;
-    const tpl=TEMPLATES.find(x=>x.id===f.template_id);
-    const sheetCols=!tpl&&f.type==='spreadsheet'?sheetColsFromContent(f.content):null;
-    /* Legacy uploads without template_id fall back to raw columns */
-    const t=tpl||{
-      id:null,name:f.name,type:f.type,meta:[],
-      cols:sheetCols||['A','B','C','D','E'],
-      rows:Math.max((f.content&&f.content.rows||[]).length,tpl?tpl.rows:5),
-      sections:[]
-    };
-    currentTemplate=t;
-    currentFileId=f.id;
-    const isSheet=t.type==='spreadsheet';
-    document.getElementById('modal-title').textContent=tpl?t.name:f.name;
-    const badge=document.getElementById('modal-badge');
-    /* PDF files get a special viewer, not the sheet/doc editor */
-    if(f.content&&f.content.pdf){
-      badge.textContent='PDF';
-      badge.style.background='rgba(90,110,74,0.1)';
-      badge.style.color='var(--moss)';
-      /* Only render genuine PDF data URLs — never arbitrary stored strings */
-      const pdfSrc=String(f.content.dataUrl||'');
-      document.getElementById('modal-body').innerHTML=pdfSrc.startsWith('data:application/pdf;base64,')
-        ?`<div style="flex:1;display:flex;flex-direction:column;min-height:0;background:#525659">
-          <iframe src="${pdfSrc}" style="flex:1;width:100%;border:none;min-height:500px" title="${escHtml(f.name)}"></iframe>
-        </div>`
-        :'<p style="padding:24px;color:var(--graphite)">This PDF could not be displayed.</p>';
-      document.getElementById('modal-overlay').classList.add('open');
-      document.body.style.overflow='hidden';
-      return;
+    let f=_vf.find(x=>String(x.id)===String(fileId));
+    const needsFetch=!f||(f.content&&f.content.pdf&&f.content.has_data&&!f.content.dataUrl);
+    if(needsFetch){
+      const resp=await fetch('/files/'+encodeURIComponent(fileId),{headers:authHeaders()});
+      if(!resp.ok)throw new Error();
+      f=await resp.json();
+      const idx=_vf.findIndex(x=>String(x.id)===String(fileId));
+      if(idx>=0)_vf[idx]=f;
     }
-    badge.textContent=isSheet?'SPREADSHEET':'DOCUMENT';
-    badge.style.background=isSheet?'rgba(181,86,58,0.1)':'rgba(90,110,74,0.1)';
-    badge.style.color=isSheet?'var(--clay)':'var(--moss)';
-    document.getElementById('modal-body').innerHTML=isSheet?buildSheet(t):buildDoc(t);
-    if(isSheet){initSheet(t);loadSheetContent(f)}
-    else{initDoc(t);loadDocContent(f)}
-    document.getElementById('modal-overlay').classList.add('open');
-    document.body.style.overflow='hidden';
-  }catch(e){showToast('Could not open file')}
+    if(!f||!f.id)return;
+    await new Promise(r=>requestAnimationFrame(r));
+    await mountFileEditor(f);
+  }catch(e){
+    closeModal();
+    showToast('Could not open file');
+  }
+};
+
+function showModalLoading(title){
+  document.getElementById('modal-title').textContent=title||'Loading…';
+  const badge=document.getElementById('modal-badge');
+  if(badge){badge.textContent='';badge.style.background='';badge.style.color=''}
+  document.getElementById('modal-body').innerHTML='<div class="modal-loading">Opening file…</div>';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
 }
 
-function loadSheetContent(f){
-  if(currentTemplate&&!currentTemplate.id&&!f.template_id){
-    currentTemplate.cols=sheetColsFromContent(f.content||{});
+async function mountFileEditor(f){
+  const tpl=TEMPLATES.find(x=>x.id===f.template_id);
+  const sheetCols=!tpl&&f.type==='spreadsheet'?sheetColsFromContent(f.content):null;
+  const dataRows=f.content&&f.content.rows?f.content.rows:[];
+  const editorRows=effectiveSheetRowCount(dataRows,tpl);
+  const t=tpl?Object.assign({},tpl,{rows:editorRows}):{
+    id:null,name:f.name,type:f.type,meta:[],
+    cols:sheetCols||['A','B','C','D','E'],
+    rows:editorRows,
+    sections:[],
+  };
+  currentTemplate=t;
+  currentFileId=f.id;
+
+  if(f.content&&f.content.pdf){
+    document.getElementById('modal-title').textContent=f.name;
+    const badge=document.getElementById('modal-badge');
+    badge.textContent='PDF';
+    badge.style.background='rgba(90,110,74,0.1)';
+    badge.style.color='var(--moss)';
+    const pdfSrc=String(f.content.dataUrl||'');
+    document.getElementById('modal-body').innerHTML=pdfSrc.startsWith('data:application/pdf;base64,')
+      ?`<div style="flex:1;display:flex;flex-direction:column;min-height:0;background:#525659">
+        <iframe src="${pdfSrc}" style="flex:1;width:100%;border:none;min-height:500px" title="${escHtml(f.name)}"></iframe>
+      </div>`
+      :'<p style="padding:24px;color:var(--graphite)">This PDF could not be displayed.</p>';
+    return;
   }
-  const rows=f.content&&f.content.rows?f.content.rows:[];
-  const tbody=document.getElementById('sheet-body');
-  if(!tbody)return;
-  const minRows=currentTemplate?Math.max(rows.length,currentTemplate.rows||5):rows.length;
-  while(tbody.querySelectorAll('tr').length<minRows)appendSheetRow();
-  const colCount=currentTemplate?currentTemplate.cols.length:rows[0]?.length||0;
-  rows.forEach((row,ri)=>{
-    const tr=tbody.querySelectorAll('tr')[ri];
-    if(!tr)return;
-    const cells=tr.querySelectorAll('.sheet-cell');
-    for(let ci=0;ci<colCount;ci++){if(cells[ci])cells[ci].innerText=row[ci]||''}
-  });
+
+  const isSheet=t.type==='spreadsheet';
+  document.getElementById('modal-title').textContent=tpl?t.name:f.name;
+  const badge=document.getElementById('modal-badge');
+  badge.textContent=isSheet?'SPREADSHEET':'DOCUMENT';
+  badge.style.background=isSheet?'rgba(181,86,58,0.1)':'rgba(90,110,74,0.1)';
+  badge.style.color=isSheet?'var(--clay)':'var(--moss)';
+  document.getElementById('modal-body').innerHTML=isSheet?buildSheetShell(t):buildDoc(t);
+  if(isSheet){
+    if(!tpl&&f.type==='spreadsheet')currentTemplate.cols=sheetColsFromContent(f.content||{});
+    await mountSheetEditor(t,dataRows);
+    applySheetMeta(f);
+  }else{
+    initDoc();
+    loadDocContent(f);
+  }
+}
+
+function applySheetMeta(f){
   const metaInputs=[...document.querySelectorAll('.smt-input')];
   if(f.meta&&currentTemplate&&currentTemplate.meta){
     currentTemplate.meta.forEach((m,i)=>{if(metaInputs[i])metaInputs[i].value=f.meta[m.label]||''});
   }
-  const rowCountEl=document.getElementById('row-count');
-  if(rowCountEl&&tbody)rowCountEl.textContent=`${tbody.querySelectorAll('tr').length} rows`;
 }
 
 function loadDocContent(f){
@@ -1356,25 +1530,91 @@ function vaultDeleteBtn(fileId,btn){
   },4000);
 }
 
-/* Sheet builder */
-function buildSheet(t){
+/* Sheet builder — DOM built in chunks; one delegated key handler instead of per-cell listeners */
+const SHEET_ROW_CHUNK=50;
+const SHEET_SPARE_ROWS=2;
+
+function rowHasData(row){
+  return row&&row.some(v=>String(v||'').trim());
+}
+
+function lastFilledRowIndex(rows){
+  for(let i=rows.length-1;i>=0;i--){if(rowHasData(rows[i]))return i}
+  return-1;
+}
+
+function effectiveSheetRowCount(rows,tpl){
+  const minDefault=(tpl&&tpl.rows)||5;
+  const last=lastFilledRowIndex(rows||[]);
+  if(last<0)return minDefault;
+  return Math.max(minDefault,last+1+SHEET_SPARE_ROWS);
+}
+
+function trimTrailingEmptySheetRows(rows){
+  let end=rows.length;
+  while(end>0&&!rowHasData(rows[end-1]))end--;
+  return end===rows.length?rows:rows.slice(0,end);
+}
+
+function updateSheetRowCount(){
+  const tbody=document.getElementById('sheet-body');
+  const rowCountEl=document.getElementById('row-count');
+  if(rowCountEl&&tbody)rowCountEl.textContent=`${tbody.querySelectorAll('tr').length} rows`;
+}
+
+function createSheetRowElement(r,t,dataRows){
+  const tr=document.createElement('tr');
+  const num=document.createElement('td');
+  num.className='row-num';
+  num.textContent=String(r+1);
+  tr.appendChild(num);
+  t.cols.forEach((c,ci)=>{
+    const td=document.createElement('td');
+    const div=document.createElement('div');
+    div.className='sheet-cell';
+    div.contentEditable='true';
+    div.spellcheck=false;
+    div.dataset.ph=getColPh(c,ci);
+    const val=(dataRows[r]&&dataRows[r][ci])||'';
+    if(val)div.textContent=val;
+    td.appendChild(div);
+    tr.appendChild(td);
+  });
+  return tr;
+}
+
+async function fillSheetBody(tbody,t,dataRows){
+  const rowCount=effectiveSheetRowCount(dataRows,t);
+  for(let start=0;start<rowCount;start+=SHEET_ROW_CHUNK){
+    const end=Math.min(start+SHEET_ROW_CHUNK,rowCount);
+    const frag=document.createDocumentFragment();
+    for(let r=start;r<end;r++)frag.appendChild(createSheetRowElement(r,t,dataRows));
+    tbody.appendChild(frag);
+    if(end<rowCount)await new Promise(r=>requestAnimationFrame(r));
+  }
+  updateSheetRowCount();
+}
+
+async function mountSheetEditor(t,dataRows){
+  const tbody=document.getElementById('sheet-body');
+  if(!tbody)return;
+  await fillSheetBody(tbody,t,dataRows||[]);
+  bindSheetKeyboardOnce();
+}
+
+function buildSheetShell(t){
   const metaFields=t.meta.map(m=>`
     <div class="smt-field">
       <span class="smt-label">${m.label}</span>
       <input class="smt-input" type="text" placeholder="${m.ph}"/>
     </div>`).join('');
   const headers=`<th class="row-num-head">#</th>`+t.cols.map(c=>`<th>${c}</th>`).join('');
-  let bodyRows='';
-  for(let r=1;r<=t.rows;r++){
-    const cells=t.cols.map((c,ci)=>`<td><div class="sheet-cell" contenteditable="true" data-ph="${getColPh(c,ci)}" spellcheck="false"></div></td>`).join('');
-    bodyRows+=`<tr><td class="row-num">${r}</td>${cells}</tr>`;
-  }
   return `<div class="sheet-editor">
     <div class="sheet-meta-bar">${metaFields}</div>
     <div class="sheet-scroll">
       <table class="sheet-table" id="active-sheet">
         <thead><tr>${headers}</tr></thead>
-        <tbody id="sheet-body">${bodyRows}</tbody>
+        <tbody id="sheet-body"></tbody>
       </table>
     </div>
     <div class="sheet-foot">
@@ -1387,36 +1627,41 @@ function buildSheet(t){
   </div>`;
 }
 
+function bindSheetKeyboardOnce(){
+  const tbody=document.getElementById('sheet-body');
+  if(!tbody||tbody._sheetKeysBound)return;
+  tbody._sheetKeysBound=true;
+  tbody.addEventListener('keydown',e=>{
+    if(e.key!=='Tab'||!e.target.classList.contains('sheet-cell'))return;
+    e.preventDefault();
+    const tr=e.target.closest('tr');
+    if(!tr||!currentTemplate)return;
+    const allRows=[...tbody.querySelectorAll('tr')];
+    const ri=allRows.indexOf(tr);
+    const cells=[...tr.querySelectorAll('.sheet-cell')];
+    const ci=cells.indexOf(e.target);
+    const colCount=currentTemplate.cols.length;
+    let nextRi=ri,nextCi=ci+(e.shiftKey?-1:1);
+    if(nextCi>=colCount){nextCi=0;nextRi++}
+    else if(nextCi<0){nextCi=colCount-1;nextRi--}
+    if(nextRi<0||nextRi>=allRows.length)return;
+    const nextCell=allRows[nextRi].querySelectorAll('.sheet-cell')[nextCi];
+    if(nextCell)nextCell.focus();
+  });
+}
+
 function getColPh(col,idx){
   const phs={'Date':'MM/DD/YYYY','Hours':'0.0','Notes':'Optional notes...'};
   return phs[col]||'—';
 }
 
-function initSheet(t){
-  document.querySelectorAll('.sheet-cell').forEach(cell=>{
-    cell.addEventListener('keydown',e=>{
-      if(e.key==='Tab'){
-        e.preventDefault();
-        const cells=[...document.querySelectorAll('.sheet-cell')];
-        const idx=cells.indexOf(cell);
-        const next=cells[e.shiftKey?idx-1:idx+1];
-        if(next)next.focus();
-      }
-    });
-  });
-}
-
 function appendSheetRow(){
   if(!currentTemplate)return null;
   const tbody=document.getElementById('sheet-body');
-  const rows=tbody.querySelectorAll('tr');
-  const n=rows.length+1;
-  const cells=currentTemplate.cols.map((c,ci)=>`<td><div class="sheet-cell" contenteditable="true" data-ph="${getColPh(c,ci)}" spellcheck="false"></div></td>`).join('');
-  const tr=document.createElement('tr');
-  tr.innerHTML=`<td class="row-num">${n}</td>${cells}`;
+  const n=tbody.querySelectorAll('tr').length;
+  const tr=createSheetRowElement(n,currentTemplate,[]);
   tbody.appendChild(tr);
-  initSheet(currentTemplate);
-  document.getElementById('row-count').textContent=`${n} rows`;
+  updateSheetRowCount();
   return tr;
 }
 
@@ -1487,7 +1732,6 @@ window.makeDocBlank=function(){
 };
 
 /* ── TEMPLATE FILE IMPORT ── */
-const MAX_PDF_SIZE=4*1024*1024;
 const MAX_FILE_SIZE=20*1024*1024;
 
 function normColLabel(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
@@ -1732,59 +1976,9 @@ function sheetColsFromContent(content){
   return cols.map((c,i)=>String(c||'').trim()||`Column ${i+1}`);
 }
 
-function docContentFromLines(lines){
-  const html=(lines.length?lines:['']).map(l=>`<p>${escHtml(l)}</p>`).join('');
-  return{blank:true,html};
-}
-
-function tableFromLines(lines){
-  const sample=lines.slice(0,Math.min(lines.length,24));
-  const scores={',':0,'\t':0,'|':0};
-  sample.forEach(line=>{
-    if((line.match(/,/g)||[]).length>=2)scores[',']++;
-    if((line.match(/\t/g)||[]).length>=2)scores['\t']++;
-    if((line.match(/\|/g)||[]).length>=2)scores['|']++;
-  });
-  const best=Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
-  if(!best||best[1]<Math.max(2,Math.floor(sample.length*0.4)))return null;
-  const split=line=>line.split(best[0]).map(c=>c.trim());
-  const parsed=lines.map(split);
-  const cols=parsed[0].map((c,i)=>c||`Column ${i+1}`);
-  const rows=parsed.slice(1).filter(r=>r.some(v=>String(v||'').trim()));
-  if(rows.length<1)return null;
-  return{cols,rows};
-}
-
-async function parsePdfLinesFromBuffer(buf){
-  if(typeof pdfjsLib==='undefined')throw new Error('PDF library not loaded');
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-  const lines=[];
-  for(let p=1;p<=pdf.numPages;p++){
-    const page=await pdf.getPage(p);
-    const tc=await page.getTextContent();
-    let line='',lastY=null;
-    tc.items.forEach(item=>{
-      const y=item.transform[5];
-      if(lastY!==null&&Math.abs(y-lastY)>4){
-        if(line.trim())lines.push(line.trim());
-        line='';
-      }
-      line+=(line?' ':'')+item.str;
-      lastY=y;
-    });
-    if(line.trim())lines.push(line.trim());
-  }
-  return lines;
-}
-
-async function parsePdfRaw(file){
-  return parsePdfLinesFromBuffer(new Uint8Array(await file.arrayBuffer()));
-}
-
 function validateImportFile(file){
   const ext=file.name.split('.').pop().toLowerCase();
-  if(ext==='pdf'&&file.size>MAX_PDF_SIZE)throw new Error(file.name+' is too large — PDFs must be under 4 MB');
+  if(ext==='pdf')throw new Error('PDF uploads are not supported — use .xlsx, .csv, or .docx');
   if(file.size>MAX_FILE_SIZE)throw new Error(file.name+' is too large (max 20 MB)');
   return ext;
 }
@@ -1792,33 +1986,19 @@ function validateImportFile(file){
 async function convertFileToTemplate(file,template){
   const ext=validateImportFile(file);
   if(template.type==='spreadsheet'){
-    if(!['xlsx','xls','csv','tsv','pdf'].includes(ext))throw new Error('Use .xlsx, .csv, or .pdf for this log');
-    let data;
-    if(ext==='pdf'){
-      const table=tableFromLines(await parsePdfRaw(file));
-      if(!table)throw new Error('No table found in PDF');
-      data=[table.cols,...table.rows];
-    }else{
-      data=await parseSpreadsheetRaw(file,ext);
-    }
+    if(!['xlsx','xls','csv','tsv'].includes(ext))throw new Error('Use .xlsx, .csv, or .xls for this log');
+    const data=await parseSpreadsheetRaw(file,ext);
     const mapped=mapSheetDataToTemplate(data,template);
     return{type:'spreadsheet',content:{rows:mapped.rows},meta:mapped.meta||{}};
   }
-  if(!['docx','pdf'].includes(ext))throw new Error('Use .docx or .pdf for this document');
-  let html='';
-  if(ext==='docx'){
-    if(typeof mammoth==='undefined')throw new Error('DOCX library not loaded');
-    const result=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
-    html=result.value||'<p></p>';
-  }else{
-    const table=tableFromLines(await parsePdfRaw(file));
-    if(table)throw new Error('This PDF looks like a spreadsheet — pick an hour log template');
-    html=docContentFromLines(await parsePdfRaw(file)).html;
-  }
+  if(ext!=='docx')throw new Error('Use .docx for this document');
+  if(typeof mammoth==='undefined')throw new Error('DOCX library not loaded');
+  const result=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
+  const html=result.value||'<p></p>';
   if(template.sections&&template.sections.length){
-    return{type:'document',content:{sections:template.sections.map((s,i)=>({label:s.label,content:i===0?html:''}))}};
+    return{type:'document',content:{sections:template.sections.map((s,i)=>({label:s.label,content:i===0?html:''}))},meta:{}};
   }
-  return{type:'document',content:{blank:true,html}};
+  return{type:'document',content:{blank:true,html},meta:{}};
 }
 
 async function importTemplateFile(file,templateId){
@@ -1927,29 +2107,6 @@ function remigrateDocument(file,template){
   return null;
 }
 
-async function migrateLegacyPdf(file){
-  const resp=await fetch('/files/'+encodeURIComponent(file.id),{headers:authHeaders()});
-  if(!resp.ok)return null;
-  const full=await resp.json();
-  const dataUrl=full.content&&full.content.dataUrl;
-  if(!dataUrl||!String(dataUrl).startsWith('data:application/pdf;base64,'))return null;
-  const b64=String(dataUrl).split(',')[1];
-  if(!b64)return null;
-  const buf=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
-  const lines=await parsePdfLinesFromBuffer(buf);
-  const table=tableFromLines(lines);
-  if(table){
-    let template=file.template_id?TEMPLATES.find(x=>x.id===file.template_id):detectTemplateForFile({...file,type:'spreadsheet',content:table});
-    if(!template||template.type!=='spreadsheet')template=detectTemplateForFile({...file,type:'spreadsheet',content:table,name:file.name});
-    if(!template)return null;
-    const mapped=mapSheetDataToTemplate([table.cols,...table.rows],template);
-    return{type:'spreadsheet',template_id:template.id,name:template.name,content:{rows:mapped.rows},meta:mapped.meta||{}};
-  }
-  let template=file.template_id?TEMPLATES.find(x=>x.id===file.template_id):detectTemplateForFile({...file,type:'document'});
-  if(!template||template.type!=='document')return null;
-  return remigrateDocument({...file,content:{blank:true,html:docContentFromLines(lines).html}},template);
-}
-
 function migrationPatchChanged(file,patch){
   if(!patch)return false;
   if(file.template_id!==patch.template_id)return true;
@@ -1961,7 +2118,7 @@ function migrationPatchChanged(file,patch){
 }
 
 async function buildMigrationPatch(file){
-  if(file.content&&file.content.pdf)return migrateLegacyPdf(file);
+  if(file.content&&file.content.pdf)return null;
   const isSheet=file.type==='spreadsheet'||(file.content&&file.content.rows);
   if(isSheet){
     const template=(file.template_id?TEMPLATES.find(x=>x.id===file.template_id):null)||detectTemplateForFile(file);
@@ -2323,7 +2480,7 @@ async function exportVault(){
             <input type="file" id="cn-file-input" style="display:none"/>
           </label>
         </div>
-        <div class="cn-action-formats" id="cn-action-formats">Accepts .xlsx · .csv · .docx · .pdf</div>
+        <div class="cn-action-formats" id="cn-action-formats">Accepts .xlsx · .csv · .docx</div>
       </div>
     </div>
   </div>
