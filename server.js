@@ -46,12 +46,18 @@ app.use(express.json({ limit: '30mb' }));
 
 app.get('/index.html', (req, res) => res.redirect(301, '/'));
 app.get('/landing.html', (req, res) => res.redirect(301, '/early-access'));
+app.get('/vault.html', (req, res) => res.redirect(301, '/vault'));
+app.get('/secondaries.html', (req, res) => res.redirect(301, '/secondaries'));
+app.get('/privacy.html', (req, res) => res.redirect(301, '/privacy'));
+app.get('/reset-password.html', (req, res) => res.redirect(301, '/reset-password'));
 app.get('/earlyaccess', (req, res) => res.redirect(301, '/early-access'));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/early-access', (req, res) => res.sendFile(path.join(__dirname, 'landing.html')));
 app.get('/secondaries', (req, res) => res.sendFile(path.join(__dirname, 'secondaries.html')));
 app.get('/vault', (req, res) => res.sendFile(path.join(__dirname, 'vault.html')));
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+app.get('/reset-password', (req, res) => res.sendFile(path.join(__dirname, 'reset-password.html')));
 
 // Secret early-access link (share /earlyaccess/SECRET with invited users)
 if (process.env.EARLY_ACCESS_SECRET) {

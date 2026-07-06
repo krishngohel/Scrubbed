@@ -36,7 +36,7 @@
     localStorage.setItem('scrubbed_token', access);
     if (refresh) localStorage.setItem('scrubbed_refresh', refresh);
     var pending = sessionStorage.getItem('pending_checkout_plan');
-    window.location.replace(pending ? '/#pricing' : '/vault.html');
+    window.location.replace(pending ? '/#pricing' : '/vault');
   } else {
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('msg').innerHTML =

@@ -220,7 +220,7 @@ router.post('/forgot-password', forgotLimiter, async (req, res) => {
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
   await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-    redirectTo: `${(process.env.APP_URL || '').replace(/\/$/, '')}/reset-password.html`,
+    redirectTo: `${(process.env.APP_URL || '').replace(/\/$/, '')}/reset-password`,
   });
 
   // Always return success to prevent email enumeration
@@ -340,7 +340,7 @@ function pkcePair() {
   return { verifier, challenge };
 }
 
-function oauthResultPage({ ok, access, refresh, error, redirectPath = '/vault.html' }) {
+function oauthResultPage({ ok, access, refresh, error, redirectPath = '/vault' }) {
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/'/g, '\\u0027');
   if (!ok) {
     return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Sign-in failed</title>
@@ -485,7 +485,7 @@ router.get('/oauth-callback', async (req, res) => {
       ok: true,
       access: session.access_token,
       refresh: session.refresh_token,
-      redirectPath: '/vault.html',
+      redirectPath: '/vault',
     }));
   } catch (err) {
     console.error('Supabase OAuth callback error:', err.message);
@@ -553,7 +553,7 @@ router.get('/google/callback', async (req, res) => {
       ok: true,
       access: session.access_token,
       refresh: session.refresh_token,
-      redirectPath: '/vault.html',
+      redirectPath: '/vault',
     }));
   } catch (err) {
     console.error('Google OAuth callback error:', err.message);

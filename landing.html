@@ -396,7 +396,7 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
 </main>
 
 <footer class="landing-footer">
-  <p>&copy; 2026 Scrubbed &middot; Built for the applicant who did the work. &middot; <a href="/privacy.html" style="color:var(--stone);text-underline-offset:2px">Privacy Policy</a></p>
+  <p>&copy; 2026 Scrubbed &middot; Built for the applicant who did the work. &middot; <a href="/privacy" style="color:var(--stone);text-underline-offset:2px">Privacy Policy</a></p>
 </footer>
 
 <!-- ── SIGNUP MODAL ───────────────────────────────────────── -->
@@ -440,7 +440,7 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
             <span id="submit-label">Create account</span>
           </button>
           <p style="font-size:0.72rem;color:var(--stone);text-align:center;margin-top:12px;line-height:1.5">
-            By creating an account you agree to our <a href="/privacy.html" target="_blank" style="color:var(--clay);text-decoration:underline;text-underline-offset:2px">Privacy Policy</a>.
+            By creating an account you agree to our <a href="/privacy" target="_blank" style="color:var(--clay);text-decoration:underline;text-underline-offset:2px">Privacy Policy</a>.
           </p>
         </form>
       </div>
@@ -633,7 +633,7 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
       localStorage.setItem('scrubbed_token', data.token);
       if (data.refresh_token) localStorage.setItem('scrubbed_refresh', data.refresh_token);
       loginLabel.textContent = 'Welcome back.';
-      setTimeout(function () { window.location.href = '/vault.html'; }, 800);
+      setTimeout(function () { window.location.href = '/vault'; }, 800);
     } catch (_) {
       showError('Network error. Check your connection and try again.');
       loginBtn.disabled = false;
@@ -663,7 +663,7 @@ em{font-family:"Newsreader",Georgia,serif;font-style:italic}
       if (data.refresh_token) localStorage.setItem('scrubbed_refresh', data.refresh_token);
       pending2faUserId = null;
       twofaLabel.textContent = 'Welcome back.';
-      setTimeout(function () { window.location.href = '/vault.html'; }, 800);
+      setTimeout(function () { window.location.href = '/vault'; }, 800);
     } catch (_) {
       showError('Network error. Check your connection and try again.');
       twofaBtn.disabled = false;

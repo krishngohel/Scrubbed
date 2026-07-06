@@ -9,22 +9,11 @@
 [functions]
   node_bundler = "esbuild"
 
-# Static URL aliases — served by Netlify CDN, no function needed
-[[redirects]]
-  from = "/index.html"
-  to = "/"
-  status = 301
-
+# Clean URLs — rewrite to static files (address bar stays extensionless)
 [[redirects]]
   from = "/early-access"
   to = "/landing.html"
   status = 200
-
-# Backward compat for old link
-[[redirects]]
-  from = "/earlyaccess"
-  to = "/early-access"
-  status = 301
 
 [[redirects]]
   from = "/secondaries"
@@ -35,6 +24,52 @@
   from = "/vault"
   to = "/vault.html"
   status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from = "/reset-password"
+  to = "/reset-password.html"
+  status = 200
+
+# Legacy .html URLs → canonical paths
+[[redirects]]
+  from = "/index.html"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/landing.html"
+  to = "/early-access"
+  status = 301
+
+[[redirects]]
+  from = "/vault.html"
+  to = "/vault"
+  status = 301
+
+[[redirects]]
+  from = "/secondaries.html"
+  to = "/secondaries"
+  status = 301
+
+[[redirects]]
+  from = "/privacy.html"
+  to = "/privacy"
+  status = 301
+
+[[redirects]]
+  from = "/reset-password.html"
+  to = "/reset-password"
+  status = 301
+
+[[redirects]]
+  from = "/earlyaccess"
+  to = "/early-access"
+  status = 301
 
 # API routes → Express function
 # Without force = true, Netlify serves real files directly and only

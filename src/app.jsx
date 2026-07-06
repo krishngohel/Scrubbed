@@ -45,7 +45,7 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
         <div className="nav-links">
           <a className="nav-link" href="#how-it-works">How it works</a>
           <a className="nav-link" href="#pricing">Pricing</a>
-          <a className="nav-link" href="/vault.html">The Vault</a>
+          <a className="nav-link" href="/vault">The Vault</a>
           <a className="nav-link" href="/secondaries">Secondary AI</a>
         </div>
         <div className="nav-right">
@@ -62,7 +62,7 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
                     <div className="user-dropdown-username">{user.username}</div>
                   </div>
                   <div className="user-dropdown-list">
-                    <a href="/vault.html" className="user-dropdown-item">{IC.vault} My Vault</a>
+                    <a href="/vault" className="user-dropdown-item">{IC.vault} My Vault</a>
                     <a href="/secondaries" className="user-dropdown-item">{IC.spark} Secondary AI</a>
                     <div className="plan-row">
                       <span className="plan-badge" id="plan-badge">—</span>
@@ -358,7 +358,7 @@ function Marketing({ onEnter, user, onLogout }) {
         <div className="footer-inner">
           <span className="wordmark">Scrubbed.</span>
           <div className="footer-links">
-            <a href="#how-it-works">How it works</a><a href="/vault.html">The Vault</a><a href="#pricing">Pricing</a><a href="/privacy.html">Privacy Policy</a>
+            <a href="#how-it-works">How it works</a><a href="/vault">The Vault</a><a href="#pricing">Pricing</a><a href="/privacy">Privacy Policy</a>
           </div>
           <div className="footer-legal">© 2026 Scrubbed</div>
         </div>
@@ -419,7 +419,7 @@ function AppNav({ view, setView, user, onLogout }) {
         <div className="nav-links">
           <a className={cx('nav-link', view==='record'&&'is-active')} onClick={()=>setView('record')}>Your record</a>
           <a className={cx('nav-link', view==='secondaries'&&'is-active')} onClick={()=>setView('secondaries')}>Secondaries</a>
-          <a className="nav-link" href="vault.html">The Vault</a>
+          <a className="nav-link" href="/vault">The Vault</a>
         </div>
         <div className="nav-right">
           {user && <span className="nav-user">{user.username}</span>}
@@ -431,7 +431,7 @@ function AppNav({ view, setView, user, onLogout }) {
                 <div className="user-dropdown-username">{user?.username}</div>
               </div>
               <div className="user-dropdown-list">
-                <a href="vault.html" className="user-dropdown-item">
+                <a href="/vault" className="user-dropdown-item">
                   {IC.vault} My Vault
                 </a>
                 <div className="theme-section">
@@ -625,7 +625,7 @@ function App() {
   }, []);
 
   const handleEnter = () => {
-    if (user) window.location.href = '/vault.html';
+    if (user) window.location.href = '/vault';
     else if (window._openAuthModal) window._openAuthModal('signup');
   };
 
