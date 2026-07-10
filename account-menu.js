@@ -19,6 +19,7 @@
   function closeDropdown() {
     const dd = document.getElementById('user-dropdown');
     if (dd) dd.classList.remove('open');
+    document.querySelectorAll('.user-dropdown.open').forEach((el) => el.classList.remove('open'));
   }
 
   function syncThemePicker(colors) {
@@ -130,12 +131,20 @@
       const btn = document.getElementById('plan-action-btn');
       if (!badge) return;
       const fmt = iso => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const planLabel = d.plan_type === 'starter' ? 'Starter'
+        : d.plan_type === 'annual' ? 'Pro Annual'
+        : d.plan_type === 'cycle' ? 'Cycle Pass'
+        : d.plan_type === 'monthly' ? 'Pro'
+        : 'Pro';
+      const usageSuffix = d.plan_type === 'starter' && d.outlines_limit != null
+        ? ` · ${d.outlines_used ?? 0}/${d.outlines_limit} outlines`
+        : (d.status === 'pro' ? ' · Unlimited' : '');
       if (d.status === 'pro' && d.cancel_at) {
-        badge.textContent = 'Pro · ends ' + fmt(d.cancel_at);
+        badge.textContent = planLabel + usageSuffix + ' · ends ' + fmt(d.cancel_at);
         badge.className = 'plan-badge is-canceling';
         if (btn) { btn.textContent = 'Reactivate'; btn.style.display = ''; btn.onclick = reactivatePlan; }
       } else if (d.status === 'pro') {
-        badge.textContent = 'Pro' + (d.renews_at ? ' · renews ' + fmt(d.renews_at) : '');
+        badge.textContent = planLabel + usageSuffix + (d.renews_at ? ' · renews ' + fmt(d.renews_at) : '');
         badge.className = 'plan-badge is-pro';
         if (btn) { btn.textContent = 'Manage plan'; btn.style.display = ''; btn.onclick = global.openBillingPortal; }
       } else {
@@ -243,6 +252,7 @@
   }
 
   function refresh() {
+    if (global.NavBar) global.NavBar.sync();
     initThemePicker();
     loadPlanStatus();
     load2FAStatus();

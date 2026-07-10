@@ -1,3 +1,6 @@
+// Legacy SQLite module — superseded by Supabase. Kept for reference only; not imported anywhere.
+'use strict';
+
 const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 

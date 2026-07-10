@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="theme.js"></script>
 <script src="account-menu.js"></script>
+<script src="navbar.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;scroll-behavior:smooth}
@@ -89,16 +90,48 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 .page-wrap{max-width:1200px;margin:0 auto;padding:0 32px}
 
 /* ── HERO ── */
-.sec-hero{padding:64px 0 40px;border-bottom:1px solid var(--rule)}
+.sec-hero{padding:48px 0 28px;border-bottom:1px solid var(--rule)}
 .section-eyebrow{display:block;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--graphite);font-family:var(--font-mono);margin-bottom:16px}
-.sec-hero-h{font-family:var(--font-display);font-size:48px;line-height:1.05;letter-spacing:-0.02em;color:var(--ink);margin-bottom:12px}
+.sec-hero-h{font-family:var(--font-display);font-size:40px;line-height:1.08;letter-spacing:-0.02em;color:var(--ink);margin-bottom:10px}
 .sec-hero-sub{font-size:16px;color:var(--graphite);max-width:560px;line-height:1.6}
 
+/* ── STATUS ROW (readiness + usage) ── */
+.status-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0 8px}
+@media(max-width:700px){.status-row{grid-template-columns:1fr}}
+.readiness-card,.usage-card{background:var(--cream);border-radius:12px;padding:16px 18px;box-shadow:0 2px 8px rgba(31,27,22,0.05)}
+.readiness-card.is-ready{border:1px solid var(--moss-s)}
+.readiness-card.is-warn{border:1px solid rgba(181,86,58,0.25)}
+.readiness-card-hd{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:8px}
+.readiness-card-hd svg{flex-shrink:0}
+.readiness-card.is-ready .readiness-card-hd{color:var(--moss)}
+.readiness-card.is-warn .readiness-card-hd{color:var(--clay-p)}
+.readiness-missing{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.readiness-missing li{font-size:12.5px;color:var(--graphite);line-height:1.45;padding-left:14px;position:relative}
+.readiness-missing li::before{content:'•';position:absolute;left:0;color:var(--clay)}
+.readiness-cta{display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:12.5px;font-weight:600;color:var(--clay)}
+.readiness-cta:hover{color:var(--clay-d)}
+.usage-card{border:1px solid var(--rule)}
+.usage-label{font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;color:var(--stone);margin-bottom:6px}
+.usage-value{font-family:var(--font-display);font-size:22px;color:var(--ink);letter-spacing:-0.01em}
+.usage-bar{height:6px;background:var(--rule);border-radius:999px;margin-top:10px;overflow:hidden}
+.usage-bar-fill{height:100%;background:var(--clay);border-radius:999px;transition:width 300ms var(--ease)}
+.usage-bar-fill.is-full{background:var(--rust)}
+.usage-sub{font-size:12px;color:var(--graphite);margin-top:8px;line-height:1.4}
+.hidden{display:none!important}
+
 /* ── PRO GATE BANNER ── */
-#pro-gate-banner{background:var(--clay-s);border:1px solid rgba(181,86,58,0.2);border-radius:12px;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:28px 0 0}
+#pro-gate-banner{background:var(--clay-s);border:1px solid rgba(181,86,58,0.2);border-radius:12px;padding:18px 24px;margin:16px 0 0}
 #pro-gate-banner.hidden{display:none}
-.pro-gate-text{font-size:14px;color:var(--clay-p);line-height:1.5}
+.pro-gate-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.pro-gate-text{font-size:14px;color:var(--clay-p);line-height:1.5;flex:1;min-width:200px}
 .pro-gate-text strong{font-weight:600;display:block;margin-bottom:2px;font-size:15px}
+.pro-gate-tiers{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0;min-width:280px}
+.tier-pick{background:var(--cream);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+.tier-pick-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--graphite);margin-bottom:4px}
+.tier-pick-price{font-family:var(--font-display);font-size:20px;color:var(--ink);margin-bottom:6px}
+.tier-pick-feats{font-size:11.5px;color:var(--graphite);line-height:1.45;margin-bottom:10px}
+.tier-pick-feats span{display:block;color:var(--moss);font-size:10.5px;font-family:var(--font-mono);margin-top:4px}
+@media(max-width:700px){.pro-gate-tiers{grid-template-columns:1fr;min-width:0;width:100%}}
 
 /* ── SECTION HEADER ── */
 .section-hd-row{display:flex;align-items:center;justify-content:space-between;margin:48px 0 20px}
@@ -108,8 +141,8 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 
 /* ── SCHOOLS GRID ── */
 #schools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start}
-.school-card{background:var(--cream);border:1px solid var(--rule);border-radius:14px;overflow:hidden;transition:box-shadow 180ms var(--ease)}
-.school-card:hover{box-shadow:0 4px 16px rgba(31,27,22,0.07)}
+.school-card{background:var(--cream);border-radius:14px;overflow:hidden;transition:box-shadow 180ms var(--ease);box-shadow:0 2px 8px rgba(31,27,22,0.04)}
+.school-card:hover{box-shadow:0 4px 16px rgba(31,27,22,0.08)}
 .school-card-head{padding:20px 22px 16px;cursor:pointer;user-select:none}
 .school-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
 .school-name{font-family:var(--font-display);font-size:18px;letter-spacing:-0.01em;color:var(--ink);line-height:1.2}
@@ -142,7 +175,10 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 .school-prompts-empty{font-size:13px;color:var(--stone);font-style:italic;padding:8px 0}
 .prompt-item{padding:12px 0;border-bottom:1px dashed var(--rule)}
 .prompt-item:last-child{border-bottom:none;padding-bottom:0}
-.prompt-text{font-size:14px;color:var(--ink);line-height:1.55;margin-bottom:8px}
+.prompt-text{font-size:14px;color:var(--ink);line-height:1.55;margin-bottom:6px}
+.prompt-text.is-collapsed{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.prompt-read-more{font-size:12px;color:var(--clay);font-weight:500;padding:0;margin-bottom:8px;display:inline-block}
+.prompt-read-more:hover{color:var(--clay-d)}
 .prompt-meta-row{display:flex;align-items:center;gap:12px}
 .prompt-wordlimit{font-size:11.5px;font-family:var(--font-mono);color:var(--stone)}
 .generate-btn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;background:var(--clay);color:var(--cream);border-radius:8px;font-size:12.5px;font-weight:600;transition:background 160ms var(--ease),opacity 160ms var(--ease)}
@@ -155,8 +191,8 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 #outlines-empty p{font-size:15px;margin-bottom:6px}
 #outlines-empty span{font-size:13px}
 #outlines-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.outline-tile{background:var(--cream);border:1px solid var(--rule);border-radius:12px;overflow:hidden;transition:box-shadow 180ms var(--ease);position:relative}
-.outline-tile:hover{box-shadow:0 4px 16px rgba(31,27,22,0.07)}
+.outline-tile{background:var(--cream);border-radius:12px;overflow:hidden;transition:box-shadow 180ms var(--ease);position:relative;box-shadow:0 2px 8px rgba(31,27,22,0.04)}
+.outline-tile:hover{box-shadow:0 4px 16px rgba(31,27,22,0.08)}
 .outline-tile-accent{height:3px;background:var(--clay)}
 .outline-tile-body{padding:16px 18px 14px}
 .outline-tile-school{font-size:11px;font-family:var(--font-mono);color:var(--stone);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px}
@@ -195,6 +231,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 .outline-modal-body li{margin-bottom:4px}
 .outline-modal-body p{margin-bottom:8px}
 .outline-modal-foot{padding:14px 26px;border-top:1px solid var(--rule);display:flex;gap:10px;justify-content:flex-end}
+.outline-modal-disclaimer{padding:12px 26px;margin:0;font-size:12px;color:var(--stone);line-height:1.5;border-top:1px solid var(--rule);background:rgba(181,86,58,0.04)}
 
 /* ── LOADING SKELETON ── */
 .skeleton{background:linear-gradient(90deg,var(--rule) 25%,var(--cream) 50%,var(--rule) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
@@ -283,10 +320,9 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   <div class="nav-inner">
     <a href="/" class="wordmark">Scrubbed.</a>
     <div class="nav-links">
-      <a class="nav-link" href="/#how-it-works">How it works</a>
-      <a class="nav-link" href="/#pricing">Pricing</a>
-      <a class="nav-link" href="/vault">The Vault</a>
-      <a class="nav-link is-active" href="/secondaries">Secondary AI</a>
+      <a class="nav-link" href="/vault" data-nav="vault">The Vault</a>
+      <a class="nav-link" href="/dashboard" data-nav="dashboard">Dashboard</a>
+      <a class="nav-link nav-auth-only" href="/secondaries" data-nav="secondaries" hidden>Secondary AI</a>
     </div>
     <div class="nav-right">
       <div class="user-menu-wrapper">
@@ -301,7 +337,11 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
               My Vault
             </a>
-            <a href="/secondaries" class="user-dropdown-item">
+            <a href="/dashboard" class="user-dropdown-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              Dashboard
+            </a>
+            <a href="/secondaries" class="user-dropdown-item nav-auth-only" hidden>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               Secondary AI
             </a>
@@ -350,20 +390,49 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
 <!-- HERO -->
 <div class="page-wrap">
   <section class="sec-hero">
-    <span class="section-eyebrow">Secondary AI · Texas Schools (more states coming soon)</span>
-    <h1 class="sec-hero-h">Your essay outlines,<br><em>built from your record.</em></h1>
-    <p class="sec-hero-sub">Select a school, pick a prompt — Scrubbed organizes your Vault material into a school-specific framework built from what you've actually done.</p>
+    <span class="section-eyebrow">Secondary AI</span>
+    <h1 class="sec-hero-h">Vault-built outlines for every prompt.</h1>
+    <p class="sec-hero-sub">Pick a school and prompt — Scrubbed maps your real experiences into a personalized scaffold. The writing stays yours.</p>
   </section>
 
-  <!-- PRO GATE BANNER -->
-  <div id="pro-gate-banner" class="hidden">
-    <div class="pro-gate-text">
-      <strong>Secondary AI is a Pro feature.</strong>
-      Upgrade to structure your Vault experiences into school-specific essay frameworks.
+  <div class="status-row" id="status-row" style="display:none">
+    <div class="readiness-card is-warn" id="readiness-card">
+      <div class="readiness-card-hd" id="readiness-hd">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="readiness-title">Checking Vault…</span>
+      </div>
+      <ul class="readiness-missing" id="readiness-missing"></ul>
+      <a href="/vault" class="readiness-cta" id="readiness-cta" style="display:none">Go to Vault →</a>
     </div>
-    <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">
-      <button class="btn-primary btn-sm" onclick="window.startCheckout('monthly')">Upgrade — $25/mo</button>
-      <button class="btn-secondary btn-sm" onclick="window.startCheckout('annual')" style="background:transparent">Annual — $199/yr</button>
+    <div class="usage-card" id="usage-card">
+      <div class="usage-label">Outlines this month</div>
+      <div class="usage-value" id="usage-value">—</div>
+      <div class="usage-bar" id="usage-bar-wrap" style="display:none"><div class="usage-bar-fill" id="usage-bar-fill" style="width:0%"></div></div>
+      <div class="usage-sub" id="usage-sub"></div>
+    </div>
+  </div>
+
+  <!-- UPGRADE GATE -->
+  <div id="pro-gate-banner" class="hidden">
+    <div class="pro-gate-inner">
+      <div class="pro-gate-text">
+        <strong>Secondary AI requires a paid plan.</strong>
+        Structure your Vault into school-specific essay scaffolds — built from what you've actually done.
+      </div>
+      <div class="pro-gate-tiers">
+        <div class="tier-pick">
+          <div class="tier-pick-name">Starter</div>
+          <div class="tier-pick-price">$10/mo</div>
+          <div class="tier-pick-feats">10 outlines / month · real Vault-based outlines<span>Encrypted storage · Automated backups</span></div>
+          <button class="btn-primary btn-sm" style="width:100%;justify-content:center" onclick="window.startCheckout('starter')">Start Starter</button>
+        </div>
+        <div class="tier-pick">
+          <div class="tier-pick-name">Pro</div>
+          <div class="tier-pick-price">$25/mo</div>
+          <div class="tier-pick-feats">Unlimited outlines · all schools<span>Encrypted storage · Automated backups</span></div>
+          <button class="btn-primary btn-sm" style="width:100%;justify-content:center" onclick="window.startCheckout('monthly')">Start Pro</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -411,6 +480,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     <div class="footer-links">
       <a href="/">Home</a>
       <a href="/vault">The Vault</a>
+      <a href="/dashboard">Dashboard</a>
       <a href="/secondaries">Secondary AI</a>
       <a href="/privacy">Privacy Policy</a>
     </div>
@@ -431,7 +501,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       </button>
     </div>
     <div class="outline-modal-body" id="modal-outline-body"></div>
-    <p style="padding:10px 26px 0;margin:0;font-size:12px;color:var(--stone);line-height:1.5;border-top:1px solid var(--rule)">This tool never writes your sentences — it shows you what to write about and why, so your final essay stays fully your own words. AMCAS, CASPA, and TMDSAS certification requires your essays to be entirely your own work.</p>
+    <p class="outline-modal-disclaimer">Scaffold only — write in your own words. Built exclusively from your Vault. AMCAS, CASPA, and TMDSAS require your essays to be entirely your own work.</p>
     <div class="outline-modal-foot">
       <button class="btn-primary btn-sm" id="modal-regen-btn" onclick="regenerateOutline()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -603,6 +673,10 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   const REFRESH_KEY = 'scrubbed_refresh';
   let _isPro = false;
   let _planType = null;
+  let _vaultReady = false;
+  let _readiness = null;
+  let _outlinesUsed = 0;
+  let _outlinesLimit = null;
   let _pending2faUserId = null;
   let _schools = [];
   let _customSchools = [];
@@ -613,10 +687,8 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   let _currentOutlineText = '';
   let _currentOutlineId = null;
 
-  const PLAN_REGEN_LIMITS   = { monthly: 3, annual: 5,  cycle: 2 };
-  const PLAN_MONTHLY_LIMITS = { monthly: 30, annual: 80, cycle: 15 };
-  function getRegenLimit()   { return PLAN_REGEN_LIMITS[_planType]   || 3; }
-  function getMonthlyLimit() { return PLAN_MONTHLY_LIMITS[_planType] || 30; }
+  const PLAN_REGEN_LIMITS   = { starter: 3, monthly: 3, annual: 5, cycle: 2 };
+  function getRegenLimit() { return PLAN_REGEN_LIMITS[_planType] || 3; }
 
   function loadCustomSchools() {
     try { _customSchools = JSON.parse(localStorage.getItem('scrubbed_custom_schools') || '[]'); }
@@ -802,11 +874,11 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         const u = await res.json();
         _isPro = u.subscription_status === 'pro';
         _planType = u.plan_type || null;
-        updateProGate();
+        updateGates();
       }
     } catch {}
     if (window.AccountMenu) window.AccountMenu.refresh();
-    await Promise.all([loadSchools(), loadOutlines()]);
+    await Promise.all([loadSchools(), loadOutlines(), loadVaultReadiness(), loadUsageStatus()]);
   }
 
   async function loadMeAndProceed() {
@@ -818,9 +890,9 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         _planType = u.plan_type || null;
       }
     } catch {}
-    updateProGate();
+    updateGates();
     if (window.AccountMenu) window.AccountMenu.refresh();
-    await Promise.all([loadSchools(), loadOutlines()]);
+    await Promise.all([loadSchools(), loadOutlines(), loadVaultReadiness(), loadUsageStatus()]);
   }
   async function init() {
     loadCustomSchools();
@@ -848,7 +920,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       setLoggedIn(user.username);
       _isPro = user.subscription_status === 'pro';
       _planType = user.plan_type || null;
-      updateProGate();
+      updateGates();
       if (window.AccountMenu) window.AccountMenu.refresh();
     } catch {
       const refreshed = await tryRefresh();
@@ -858,7 +930,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       return;
     }
 
-    await Promise.all([loadSchools(), loadOutlines()]);
+    await Promise.all([loadSchools(), loadOutlines(), loadVaultReadiness(), loadUsageStatus()]);
   }
 
   // ── AUTH UI ───────────────────────────────────────────────────────────
@@ -887,13 +959,107 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     window.location.href = '/';
   });
 
+  // ── VAULT READINESS & USAGE ───────────────────────────────────────────
+  async function loadVaultReadiness() {
+    if (!token()) return;
+    try {
+      const res = await fetch('/vault/readiness', { headers: authHeaders() });
+      if (!res.ok) return;
+      _readiness = await res.json();
+      _vaultReady = !!_readiness.ready;
+      renderReadinessCard();
+      updateGates();
+    } catch { /* skip */ }
+  }
+
+  async function loadUsageStatus() {
+    if (!token() || !_isPro) {
+      renderUsageCard();
+      return;
+    }
+    try {
+      const res = await fetch('/stripe/status', { headers: authHeaders() });
+      if (!res.ok) return;
+      const d = await res.json();
+      _outlinesUsed = d.generations_used ?? d.outlines_used ?? 0;
+      _outlinesLimit = d.generations_limit ?? d.outlines_limit ?? null;
+      if (d.plan_type) _planType = d.plan_type;
+      renderUsageCard();
+    } catch { /* skip */ }
+  }
+
+  function renderReadinessCard() {
+    const row = document.getElementById('status-row');
+    const card = document.getElementById('readiness-card');
+    const title = document.getElementById('readiness-title');
+    const list = document.getElementById('readiness-missing');
+    const cta = document.getElementById('readiness-cta');
+    if (!token()) { row.style.display = 'none'; return; }
+    row.style.display = '';
+    if (!_readiness) return;
+    if (_readiness.ready) {
+      card.className = 'readiness-card is-ready';
+      card.querySelector('.readiness-card-hd').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>Vault ready for outlines</span>`;
+      list.innerHTML = `<li>${_readiness.fileCount} files · ${_readiness.filledRows} filled entries</li>`;
+      cta.style.display = 'none';
+    } else {
+      card.className = 'readiness-card is-warn';
+      title.textContent = 'Vault needs more content';
+      list.innerHTML = (_readiness.missing || []).map(m => `<li>${escapeHtml(m)}</li>`).join('');
+      cta.style.display = '';
+    }
+  }
+
+  function renderUsageCard() {
+    const val = document.getElementById('usage-value');
+    const barWrap = document.getElementById('usage-bar-wrap');
+    const barFill = document.getElementById('usage-bar-fill');
+    const sub = document.getElementById('usage-sub');
+    if (!token()) return;
+    if (!_isPro) {
+      val.textContent = '—';
+      barWrap.style.display = 'none';
+      sub.textContent = 'Upgrade to generate outlines';
+      return;
+    }
+    if (_outlinesLimit == null) {
+      val.textContent = 'Unlimited';
+      barWrap.style.display = 'none';
+      sub.textContent = 'Pro · unlimited generations this month';
+    } else {
+      val.textContent = `${_outlinesUsed} / ${_outlinesLimit}`;
+      barWrap.style.display = '';
+      const pct = Math.min(100, (_outlinesUsed / _outlinesLimit) * 100);
+      barFill.style.width = pct + '%';
+      barFill.classList.toggle('is-full', _outlinesUsed >= _outlinesLimit);
+      sub.textContent = _outlinesUsed >= _outlinesLimit
+        ? 'Monthly limit reached — upgrade to Pro for unlimited'
+        : `${_outlinesLimit - _outlinesUsed} outline${(_outlinesLimit - _outlinesUsed) !== 1 ? 's' : ''} remaining`;
+    }
+  }
+
+  function canGenerate() {
+    if (!_isPro) return false;
+    if (!_vaultReady) return false;
+    if (_outlinesLimit != null && _outlinesUsed >= _outlinesLimit) return false;
+    return true;
+  }
+
+  function generateDisabledReason() {
+    if (!_isPro) return 'Upgrade to generate outlines';
+    if (!_vaultReady) return 'Add more content to your Vault first';
+    if (_outlinesLimit != null && _outlinesUsed >= _outlinesLimit) return 'Monthly outline limit reached';
+    return '';
+  }
+
   // ── PRO GATE ──────────────────────────────────────────────────────────
-  function updateProGate() {
+  function updateGates() {
     const banner = document.getElementById('pro-gate-banner');
     banner.classList.toggle('hidden', _isPro);
     document.querySelectorAll('.generate-btn').forEach(btn => {
-      btn.disabled = !_isPro;
-      btn.title = _isPro ? '' : 'Upgrade to Pro to generate outlines';
+      const disabled = !canGenerate();
+      btn.disabled = disabled;
+      btn.title = disabled ? generateDisabledReason() : '';
     });
   }
 
@@ -972,7 +1138,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
       grid.appendChild(card);
     });
     renderCustomSchools();
-    updateProGate();
+    updateGates();
   }
 
   function renderCustomSchools() {
@@ -1023,19 +1189,36 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     if (!Array.isArray(school.prompts) || school.prompts.length === 0) {
       return `<p class="school-prompts-empty">No prompts posted yet. Click <strong>Refresh</strong> to check the school's website.</p>`;
     }
-    return school.prompts.map(p => `
+    const genDisabled = !canGenerate();
+    const genTitle = genDisabled ? generateDisabledReason() : '';
+    return school.prompts.map((p, idx) => {
+      const long = (p.prompt_text || '').length > 180;
+      const pid = escapeHtml(p.prompt_id);
+      return `
       <div class="prompt-item">
-        <p class="prompt-text">${escapeHtml(p.prompt_text)}</p>
+        <p class="prompt-text ${long ? 'is-collapsed' : ''}" id="prompt-text-${school.slug}-${idx}">${escapeHtml(p.prompt_text)}</p>
+        ${long ? `<button type="button" class="prompt-read-more" onclick="togglePromptText('${school.slug}', ${idx})">Read more</button>` : ''}
         <div class="prompt-meta-row">
           <span class="prompt-wordlimit">${escapeHtml(p.limit_text || (p.word_limit ? p.word_limit + ' words' : 'No limit specified'))}</span>
-          <button class="generate-btn" ${_isPro ? '' : 'disabled title="Upgrade to Pro to generate outlines"'}
-            onclick="generateOutline('${school.slug}', '${escapeHtml(p.prompt_id)}', this)">
+          <button class="generate-btn" ${genDisabled ? `disabled title="${escapeHtml(genTitle)}"` : ''}
+            onclick="generateOutline('${school.slug}', '${pid}', this)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             Generate Outline
           </button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
+
+  window.togglePromptText = function(slug, idx) {
+    const el = document.getElementById('prompt-text-' + slug + '-' + idx);
+    const btn = el && el.nextElementSibling;
+    if (!el) return;
+    const collapsed = el.classList.toggle('is-collapsed');
+    if (btn && btn.classList.contains('prompt-read-more')) {
+      btn.textContent = collapsed ? 'Read more' : 'Show less';
+    }
+  };
 
   window.toggleSchool = function (slug) {
     const panel = document.getElementById('prompts-' + slug);
@@ -1075,7 +1258,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
           school.prompts_updated_at = data.prompts_updated_at;
           const panel = document.getElementById('prompts-' + slug);
           if (panel) panel.innerHTML = renderPromptsHTML(school);
-          updateProGate();
+          updateGates();
           const card = document.querySelector(`[data-slug="${slug}"]`);
           if (card) {
             const statusBadge = card.querySelector('.school-status');
@@ -1096,7 +1279,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
 
   // ── GENERATE OUTLINE ─────────────────────────────────────────────────
   window.generateOutline = async function (schoolSlug, promptId, btn) {
-    if (!_isPro) return;
+    if (!canGenerate()) return;
     btn.disabled = true;
     btn.classList.add('generating');
     btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Generating…`;
@@ -1119,19 +1302,35 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         body: JSON.stringify(body),
       });
       const data = await res.json();
+      if (res.status === 403 && data.limit_type === 'vault_insufficient') {
+        _vaultReady = false;
+        _readiness = data.readiness || { ready: false, missing: data.missing || [] };
+        renderReadinessCard();
+        updateGates();
+        alert(data.error || 'Your Vault needs more content before generating outlines.');
+        return;
+      }
       if (res.status === 429) {
         alert(data.error || 'Limit reached. Please try again next month or upgrade your plan.');
+        if (data.limit_type === 'monthly_outlines') {
+          _outlinesUsed = data.used ?? _outlinesLimit;
+          renderUsageCard();
+          updateGates();
+        }
         return;
       }
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       _outlines.unshift(data);
+      _outlinesUsed += 1;
+      renderUsageCard();
+      updateGates();
       renderOutlines();
       document.getElementById('outlines-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
       addFilterPill(schoolSlug);
     } catch (err) {
       alert(err.message || 'Generation failed. Please try again.');
     } finally {
-      btn.disabled = !_isPro;
+      btn.disabled = !canGenerate();
       btn.classList.remove('generating');
       btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generate Outline`;
     }
@@ -1203,7 +1402,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     if (!confirm('Delete this outline?')) return;
     btn.disabled = true;
     try {
-      const res = await fetch('/files/' + id, { method: 'DELETE', headers: authHeaders() });
+      const res = await fetch('/outlines/' + id, { method: 'DELETE', headers: authHeaders() });
       if (!res.ok) throw new Error();
       _outlines = _outlines.filter(o => String(o.id) !== String(id));
       renderOutlines();
@@ -1307,6 +1506,16 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         headers: authHeaders(),
       });
       const data = await res.json();
+      if (res.status === 403 && data.limit_type === 'vault_insufficient') {
+        _vaultReady = false;
+        _readiness = data.readiness || { ready: false, missing: data.missing || [] };
+        renderReadinessCard();
+        updateGates();
+        alert(data.error || 'Your Vault needs more content.');
+        regenBtn.disabled = false;
+        regenBtn.innerHTML = origHTML;
+        return;
+      }
       if (res.status === 429) {
         alert(data.error || 'Regeneration limit reached.');
         regenBtn.disabled = true;

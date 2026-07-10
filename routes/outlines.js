@@ -3,6 +3,16 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const supabase = require('../supabase');
 const authMiddleware = require('../middleware/auth');
+const { assessVaultReadiness } = require('../lib/vault-readiness');
+const { getPlanLimits, isPaidSubscriber } = require('../lib/plan-limits');
+const {
+  loadProfile,
+  checkGenerationAllowed,
+  incrementGeneration,
+  getUsage,
+  sleep,
+  STARTER_FREE_REGENS,
+} = require('../lib/generation-caps');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -12,17 +22,40 @@ const anthropic = new Anthropic({
   defaultHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31' },
 });
 
-// Per-plan limits — outlines_per_month: null = unlimited
-const PLAN_LIMITS = {
-  monthly:  { outlines_per_month: 30,  regen_per_prompt: 3, max_tokens: 2000 },
-  annual:   { outlines_per_month: 80,  regen_per_prompt: 5, max_tokens: 2400 },
-  cycle:    { outlines_per_month: 15,  regen_per_prompt: 2, max_tokens: 1800 },
-  _default: { outlines_per_month: 30,  regen_per_prompt: 3, max_tokens: 2000 },
-};
-
 // In-memory vault context cache: userId -> { context, buildAt }
 const _vaultCache = new Map();
 const VAULT_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function fetchVaultFiles(userId) {
+  const { data } = await supabase
+    .from('files')
+    .select('name, type, template_id, content, meta')
+    .eq('user_id', userId)
+    .neq('template_id', 'secondary-outline');
+  return data || [];
+}
+
+async function ensureVaultReady(userId, res) {
+  const files = await fetchVaultFiles(userId);
+  const readiness = assessVaultReadiness(files);
+  if (!readiness.ready) {
+    res.status(403).json({
+      error: 'Your Vault needs more content before generating outlines. Add experience logs and activities first.',
+      limit_type: 'vault_insufficient',
+      missing: readiness.missing,
+      readiness,
+    });
+    return null;
+  }
+  return readiness;
+}
+
+// GET /outlines/usage — generation meter for UI
+router.get('/usage', async (req, res) => {
+  const usage = await getUsage(req.user.id);
+  if (!usage) return res.status(404).json({ error: 'Profile not found.' });
+  res.json(usage);
+});
 
 // GET /outlines
 router.get('/', async (req, res) => {
@@ -46,32 +79,20 @@ router.post('/generate', async (req, res) => {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_status, plan_type')
+    .select('subscription_status, plan_type, generations_this_period, generation_period_start, cycle_started_at, cycle_expires_at, generation_throttle_count, renews_at')
     .eq('id', req.user.id)
     .single();
-  if (profile?.subscription_status !== 'pro') {
-    return res.status(403).json({ error: 'Secondary AI requires a Pro subscription.' });
+  if (!isPaidSubscriber(profile)) {
+    return res.status(403).json({ error: 'Secondary AI requires a paid subscription.' });
   }
 
-  const limits = PLAN_LIMITS[profile?.plan_type] || PLAN_LIMITS._default;
+  const limits = getPlanLimits(profile?.plan_type);
+  const fullProfile = await loadProfile(req.user.id) || profile;
+  const gate = await checkGenerationAllowed(req.user.id, fullProfile, { generationType: 'secondary-outline' });
+  if (!gate.ok) return res.status(gate.status).json(gate.body);
+  if (gate.delayMs) await sleep(gate.delayMs);
 
-  // Monthly outline count check
-  const monthStart = new Date();
-  monthStart.setUTCDate(1);
-  monthStart.setUTCHours(0, 0, 0, 0);
-  const { count } = await supabase
-    .from('files')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', req.user.id)
-    .eq('template_id', 'secondary-outline')
-    .gte('created_at', monthStart.toISOString());
-  if (count >= limits.outlines_per_month) {
-    return res.status(429).json({
-      error: `You've reached your ${limits.outlines_per_month} outline limit for this month. Upgrade to Annual for more outlines.`,
-      limit_type: 'monthly_outlines',
-      limit: limits.outlines_per_month,
-    });
-  }
+  if (!(await ensureVaultReady(req.user.id, res))) return;
 
   let school, prompt;
   if (isCustom) {
@@ -98,7 +119,10 @@ router.post('/generate', async (req, res) => {
   }
 
   const vaultContext = await getCachedVaultContext(req.user.id);
-  let outlineText = await generateOutlineText(vaultContext, school, prompt, limits.max_tokens);
+  let outlineText = await generateOutlineText(vaultContext, school, prompt, limits.max_tokens, {
+    priority: gate.priority,
+    throttled: gate.throttled,
+  });
   if (outlineText instanceof Error) {
     return res.status(500).json({ error: outlineText.message });
   }
@@ -123,13 +147,19 @@ router.post('/generate', async (req, res) => {
         word_limit: prompt.word_limit,
         prompt_id: prompt_id || null,
         regen_count: 0,
-        regen_limit: limits.regen_per_prompt,
+        regen_limit: limits.regen_per_prompt ?? STARTER_FREE_REGENS,
       },
     })
     .select('id, name, type, template_id, content, meta, created_at, updated_at')
     .single();
 
   if (saveErr) return res.status(500).json({ error: saveErr.message });
+  await incrementGeneration(req.user.id, gate.profile, {
+    consumesSlot: true,
+    generationType: 'secondary-outline',
+    priority: gate.priority,
+    throttled: gate.throttled,
+  });
   res.status(201).json(saved);
 });
 
@@ -146,19 +176,20 @@ router.post('/:id/regenerate', async (req, res) => {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_status, plan_type')
+    .select('subscription_status, plan_type, generations_this_period, generation_period_start, cycle_started_at, cycle_expires_at, generation_throttle_count, renews_at')
     .eq('id', req.user.id)
     .single();
-  if (profile?.subscription_status !== 'pro') {
-    return res.status(403).json({ error: 'Secondary AI requires a Pro subscription.' });
+  if (!isPaidSubscriber(profile)) {
+    return res.status(403).json({ error: 'Secondary AI requires a paid subscription.' });
   }
 
-  const limits = PLAN_LIMITS[profile?.plan_type] || PLAN_LIMITS._default;
+  const limits = getPlanLimits(profile?.plan_type);
   const meta = file.meta || {};
   const regenCount = meta.regen_count ?? 0;
-  const regenLimit = meta.regen_limit ?? limits.regen_per_prompt;
+  const isStarter = profile.plan_type === 'starter';
+  const regenLimit = meta.regen_limit ?? limits.regen_per_prompt ?? STARTER_FREE_REGENS;
 
-  if (regenCount >= regenLimit) {
+  if (!isStarter && limits.regen_per_prompt != null && regenCount >= regenLimit) {
     return res.status(429).json({
       error: `Regeneration limit reached (${regenLimit} per outline on your plan).`,
       limit_type: 'regen',
@@ -166,6 +197,17 @@ router.post('/:id/regenerate', async (req, res) => {
       regen_limit: regenLimit,
     });
   }
+
+  const fullProfile = await loadProfile(req.user.id) || profile;
+  const gate = await checkGenerationAllowed(req.user.id, fullProfile, {
+    isRegen: true,
+    regenCount,
+    generationType: 'secondary-outline',
+  });
+  if (!gate.ok) return res.status(gate.status).json(gate.body);
+  if (gate.delayMs) await sleep(gate.delayMs);
+
+  if (!(await ensureVaultReady(req.user.id, res))) return;
 
   // Re-fetch school + prompt from DB or fall back to stored meta
   let school, prompt;
@@ -193,7 +235,10 @@ router.post('/:id/regenerate', async (req, res) => {
   }
 
   const vaultContext = await getCachedVaultContext(req.user.id);
-  let outlineText = await generateOutlineText(vaultContext, school, prompt, limits.max_tokens);
+  let outlineText = await generateOutlineText(vaultContext, school, prompt, limits.max_tokens, {
+    priority: gate.priority,
+    throttled: gate.throttled,
+  });
   if (outlineText instanceof Error) {
     return res.status(500).json({ error: outlineText.message });
   }
@@ -210,6 +255,14 @@ router.post('/:id/regenerate', async (req, res) => {
     .single();
 
   if (updateErr) return res.status(500).json({ error: updateErr.message });
+  if (gate.consumesSlot) {
+    await incrementGeneration(req.user.id, gate.profile, {
+      consumesSlot: true,
+      generationType: 'secondary-outline-regen',
+      priority: gate.priority,
+      throttled: gate.throttled,
+    });
+  }
   res.json(updated);
 });
 
@@ -242,116 +295,88 @@ async function getCachedVaultContext(userId) {
   return context;
 }
 
-async function generateOutlineText(vaultContext, school, prompt, maxTokens) {
-  // Mock mode: set ANTHROPIC_API_KEY=mock in Netlify env vars to test without API calls
+async function generateOutlineText(vaultContext, school, prompt, maxTokens, opts = {}) {
+  const hasVault = vaultContext && vaultContext.trim().length > 0;
+
   if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'mock') {
-    const hasVault = vaultContext && vaultContext.length > 0;
-    return `**Hook — a specific clinical moment**
-- ${hasVault ? 'Draw from the strongest scene-level entry in your vault — cite it by name and date when you write.' : 'Add vault documents to get entry-specific pointers here.'}
-- What was the setting? Who was there? What made this moment different from a routine shift?
+    return `**Your strongest material for this prompt**
+- Clinical Hour Log — cite setting/date only; fits patient-facing themes in this prompt
+- Volunteer Hour Log — cite setting/date only; fits community/advocacy angle
 
-**Body P1 — Clinical Experience**
-- ${hasVault ? 'Use your clinical hours entries as source material for this section.' : 'Upload a clinical hours log to get a specific entry pointer here.'}
-- Which patient interaction shifted how you think about care? Name the setting, not the takeaway — build the scene around what made it visible.
-- Connect this section to ${school.name}'s stated mission${school.mission_snippet ? ` (${school.mission_snippet})` : ''} — reference their priority by name.
+**Angles to develop**
+- Which specific shift or patient interaction from Clinical Hour Log should anchor the opening scene?
+- What systemic gap did you observe in Volunteer Hour Log — name the setting, not the takeaway?
+- How does ${school.short_name || school.name}'s mission connect to one named program (reference by name only)?
+- No vault entry for research — add Research Log to your Vault if this prompt asks about scholarly work
 
-**Body P2 — Research / Academic**
-- ${hasVault ? 'Use your research log entries as source material.' : 'Upload a research log to get a specific entry pointer here.'}
-- What surprised you in the work? What question did it leave you with?
+**School connection points**
+- ${school.name}${school.mission_snippet ? ` — mission focus: ${school.mission_snippet}` : ''}
+- Name one concrete program, clinic, or curriculum feature at ${school.short_name || school.name} worth referencing
 
-**Body P3 — Community / Service**
-- ${hasVault ? 'Use your volunteer or shadowing records as source material.' : 'Upload volunteer hours to get a specific entry pointer here.'}
-- What systemic gap did you observe firsthand? What relationship made it concrete?
-
-**Closing — forward-looking, school-specific**
-- What do you want your training to make possible? Answer in your own words, then name one concrete ${school.name} program or feature that supports it.
-
-**Writing Notes**
-- Common mistake on this prompt type: restating the school's mission back at it instead of showing fit through your own material.
+**What to avoid**
+- Restating the school's mission back at them instead of showing fit through your own vault material
+- Drafting sentences you could paste into the essay — bullets are planning prompts only
 
 ---
 *[MOCK OUTLINE — set ANTHROPIC_API_KEY in Netlify to generate real outlines]*`;
   }
 
-  const systemPrompt = `You are a medical school admissions advisor helping an applicant STRUCTURE their own secondary essay. You are producing a planning framework — never essay content. AMCAS/CASPA/TMDSAS certification requires the essay to be entirely the applicant's own words, so nothing you output may be usable in the essay itself.
+  const systemPrompt = `OUTPUT FORMAT — use these exact bold section headers:
 
-ABSOLUTE RULES — violating any of these makes the output unusable:
-1. NEVER WRITE ESSAY PROSE. No complete or near-complete sentences that could appear in an essay — not as examples, not as "Do:" illustrations, not as fill-in-the-blank templates. Every bullet must be a directive ("Describe the moment when...") or a question ("What changed for you when...?") addressed to the applicant.
-2. NEVER SUPPLY INSIGHTS, REALIZATIONS, OR CONCLUSIONS. You identify WHERE an insight belongs in the structure; the applicant supplies the insight. Never state what an experience means, what they learned, or what they realized.
-3. NO FIRST-PERSON PHRASING. Never write anything in the applicant's voice ("I realized...", "I want...", "I am drawn to..."). Never prescribe emotional beats as written-out phrasing. Technique guidance is fine ("ground this in a specific moment, not an abstraction").
-4. CITE VAULT ENTRIES, NEVER NARRATE THEM. Reference entries by name, setting, and date, and say WHY they fit this prompt. Never retell what happened in the entry or state what it means. "Use your [entry name] experience (date) as source material for this section" — nothing more.
-5. NEVER FABRICATE. If no vault entry matches a theme the prompt asks about, say so explicitly and suggest what KIND of memory the applicant should add to their vault. Do not invent a plausible-sounding experience.
-6. COMMON-MISTAKE WARNINGS STAY AT PATTERN LEVEL. Describing a failure mode ("applicants often restate the school's mission back at it") is fine. Supplying a fix sentence is not.
-7. MISSION LOCK: Every body section must direct the applicant to connect their material to ${school.short_name || 'this school'}'s specific stated priorities — as a factual pointer ("reference [named program] by name here"), never as drafted content.
-8. SCALE TO WORD LIMIT: <300 words → 2 body sections. 300–500 words → 3 sections. 500+ words → 3 sections with richer connection points.`;
+**Your strongest material for this prompt**
+2–4 bullets. Each cites one vault entry by exact name with one-line factual fit (setting/date only).
+
+**Angles to develop**
+4–8 short bullets: questions and directives tied to named vault entries only.
+
+**School connection points**
+2–4 factual pointers to ${school.short_name || school.name}'s mission, programs, or priorities — no drafted sentences.
+
+**What to avoid**
+1–2 pattern-level notes (common mistakes on this prompt type).`;
 
   const wordLimitNote = prompt.word_limit
-    ? `WORD LIMIT: ${prompt.word_limit} words. Scale the outline depth accordingly — this determines how many body sections to write and how many bullets per section.`
-    : 'WORD LIMIT: Not specified — default to 3 body sections with 4–5 bullets each.';
-
-  const hasVault = vaultContext && vaultContext.trim().length > 0;
+    ? `WORD LIMIT: ${prompt.word_limit} words — scale number of angles accordingly (fewer bullets if under 300 words).`
+    : 'WORD LIMIT: Not specified — default to 4–6 angles.';
 
   const schoolBlock = `SCHOOL: ${school.name}
-MISSION: ${school.mission_snippet || '(not provided — use the school name and write mission-aligned bullets based on their reputation and location)'}
+MISSION: ${school.mission_snippet || '(not provided — use school name and known priorities only)'}
 SECONDARY PROMPT: "${prompt.prompt_text}"
 ${wordLimitNote}
 
-━━━ STEP 1: CLASSIFY THE PROMPT ━━━
-Before writing, identify which type this prompt is, then use that classification to decide which vault experiences to prioritize:
+Classify the prompt type (why school, diversity, challenge, research, service, clinical, why medicine) to decide which vault entries to prioritize.
 
-• WHY THIS SCHOOL — mission fit, specific programs, curriculum, dual degree, clinical partners, location
-• DIVERSITY / UNIQUE PERSPECTIVE — what background, identity, or experience makes this applicant different
-• CHALLENGE / ADVERSITY / GROWTH — a difficulty overcome; what it required and what it built
-• RESEARCH / SCHOLARLY INTEREST — academic work, intellectual curiosity, evidence-based medicine
-• COMMUNITY SERVICE / ADVOCACY — underserved work, systemic awareness, patient populations
-• CLINICAL EXPERIENCE — direct patient care, shadowing, specific observations
-• WHY MEDICINE / MOTIVATION — the origin and evolution of the applicant's commitment
+The student's Vault is in the message above. Select only entries that exist. For themes with no matching entry, use the "No vault entry for [theme]" format.
 
-━━━ STEP 2: SELECT SOURCE MATERIAL (CITE, NEVER NARRATE) ━━━
-${hasVault
-  ? `The student's application record is in the message above. Identify the 2–4 entries whose themes best match this prompt's classification. For each selected entry you may reference ONLY: its name, its setting (where/when/who), and one factual reason it fits this prompt and this school's priorities. Do NOT retell what happened in the entry or state what it means — that is the applicant's job.
-If a theme this prompt asks about has NO matching entry, state that plainly in the outline and suggest what kind of memory the applicant should add to their vault. Never invent or embellish an experience.`
-  : `No vault documents have been uploaded. Describe the TYPE of memory the applicant should reach for in each section — specific enough that they know which experience fits — phrased entirely as directives and questions. No bracket placeholders, no example prose.`}
+${systemPrompt}
 
-━━━ STEP 3: WRITE THE FRAMEWORK ━━━
-Use these exact bold headers. Under each, write 3–5 bullets. Every bullet is either a directive to the applicant or a question for them to answer — never prose they could paste into the essay.
-
-**Hook — [name the scene type to open with]**
-Direct the applicant to a specific moment: which vault entry to draw from (name/setting/date only), and questions that surface the concrete scene ("What was the setting? Who was there? What made this moment different?").
-
-**Body P1 — [name the experience or theme]**
-The most relevant material for this prompt. Cite the entry, then questions/directives that surface what the applicant should articulate. Include one factual school pointer ("connect this to ${school.short_name || school.name}'s [named program/priority] — reference it by name").
-
-**Body P2 — [name the experience or theme]**
-Second strongest thread — a different dimension. Same rules.
-
-**Body P3 — [third theme, or "Bridge / Synthesis"]**
-Include only if word limit supports it.
-
-**Closing — [forward-looking, school-specific]**
-Questions that surface the applicant's own forward-looking point, plus a factual pointer to something concrete at ${school.name} worth naming. Do not draft any closing language.
-
-━━━ STEP 4: WRITING NOTES ━━━
-After the framework, add 2–4 bullets:
-
-**Writing Notes**
-Pattern-level guidance only: why this structure fits this prompt type, the most common mistake applicants make on it (described as a failure mode, never with a fix sentence), school-specific facts worth weaving in, what to cut first if over the word limit.
-
-REMINDER: Output must contain zero sentences usable in the final essay. Directives and questions only.`;
+Write the scaffold using the four section headers. Directives and questions only — zero pasteable prose.`;
 
   try {
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: maxTokens,
-      system: systemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: `You are a medical school admissions advisor helping an applicant PLAN their own secondary essay. You produce a personalized scaffold built exclusively from their Vault — never essay content. AMCAS/CASPA/TMDSAS certification requires the essay to be entirely the applicant's own words.
+
+ABSOLUTE RULES:
+1. NEVER WRITE ESSAY PROSE. No complete or near-complete sentences usable in a final essay. Every bullet is a directive, question, or factual pointer — max ~40 words per bullet.
+2. NEVER SUPPLY INSIGHTS OR CONCLUSIONS. Identify WHERE material belongs; the applicant supplies meaning.
+3. NO FIRST-PERSON APPLICANT VOICE. Never write "I realized...", "I want...", "I am drawn to...".
+4. VAULT-ONLY CITATIONS. Reference entries by exact name, setting, and date. Never retell what happened or invent experiences.
+5. IF NO VAULT ENTRY MATCHES A THEME, write: "No vault entry for [theme] — add [type] to your Vault." Never fabricate.
+6. SCHOOL POINTERS ARE FACTUAL ONLY. Name programs, missions, or features — never draft connection sentences.`,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages: [{
         role: 'user',
         content: [
           {
             type: 'text',
-            text: hasVault
-              ? `STUDENT'S APPLICATION RECORD:\n\n${vaultContext}`
-              : `STUDENT'S APPLICATION RECORD: No documents uploaded yet.\n\nWrite the framework using directives and questions only — specific enough that the applicant knows which type of memory to reach for, with no bracket placeholders and no example prose.`,
+            text: `STUDENT'S VAULT:\n\n${vaultContext}`,
             cache_control: { type: 'ephemeral' },
           },
           {
@@ -375,26 +400,41 @@ REMINDER: Output must contain zero sentences usable in the final essay. Directiv
 // narrated vault content, or prose pasteable into a final essay.
 
 const LEAK_PATTERNS = [
-  /\bI (realized|realize|learned|felt|feel|knew|know|saw|understood|understand|discovered|found|wanted|want|am drawn|was drawn|hope|believe|aspire|will|chose|decided)\b/i,
+  /\bI (realized|realize|learned|felt|feel|knew|know|saw|understood|understand|discovered|found|wanted|want|am drawn|was drawn|hope|believe|aspire|will|chose|decided|experienced|became|grew)\b/i,
   /\bI['’]m\s/i,
-  /\bmy (journey|passion|calling|desire|commitment) (to|for|is)\b/i,
+  /\bI['’]ve\s/i,
+  /\bmy (journey|passion|calling|desire|commitment|goal|dream) (to|for|is|was)\b/i,
   /\btaught me that\b/i,
   /\bshowed me that\b/i,
   /\bmade me realize\b/i,
+  /\bthis experience (taught|showed|demonstrated|revealed)\b/i,
+  /\bas a (future|aspiring) (physician|doctor|medical student)\b/i,
+  /\b(through|from) this experience,?\s/i,
+  /\bwhat I learned\b/i,
+  /\bI have always\b/i,
+  /\bI am (committed|dedicated|passionate)\b/i,
+  /\b(?:^|\s)(?:For|Through|During) (?:this|my) (?:experience|time|work)\b/i,
 ];
 
 function findLeaks(outlineText) {
   const leaks = [];
   for (const rawLine of outlineText.split('\n')) {
     const line = rawLine.trim();
-    if (!line || line.startsWith('*[')) continue;
-    // Quoted first-person inside a question directed AT the applicant is still a leak
-    // if it reads as pasteable prose — flag any first-person match outside a question.
-    if (LEAK_PATTERNS.some(p => p.test(line)) && !line.endsWith('?')) {
+    if (!line || line.startsWith('*[') || line.startsWith('**')) continue;
+    const isBullet = line.startsWith('-') || line.startsWith('•');
+    if (!isBullet) continue;
+    const bulletText = line.replace(/^[-•]\s*/, '');
+    // Questions directed at applicant are usually OK
+    if (bulletText.endsWith('?') && !/\bI (realized|learned|felt|want)\b/i.test(bulletText)) continue;
+    if (LEAK_PATTERNS.some(p => p.test(bulletText))) {
+      leaks.push(rawLine);
+    }
+    // Flag declarative prose: complete sentence without ? that looks essay-like
+    if (!bulletText.endsWith('?') && bulletText.length > 60 && /\b(is|was|are|were|has|have|had)\b/.test(bulletText) && !/^No vault entry/i.test(bulletText)) {
       leaks.push(rawLine);
     }
   }
-  return leaks;
+  return [...new Set(leaks)];
 }
 
 // If leaks are found, one cheap repair call rewrites flagged lines into

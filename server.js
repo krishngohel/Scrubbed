@@ -15,6 +15,8 @@ const allowedOrigins = new Set(
     process.env.APP_URL,
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
   ].filter(Boolean).map(o => o.replace(/\/$/, ''))
 );
 app.use(cors({
@@ -50,14 +52,18 @@ app.get('/vault.html', (req, res) => res.redirect(301, '/vault'));
 app.get('/secondaries.html', (req, res) => res.redirect(301, '/secondaries'));
 app.get('/privacy.html', (req, res) => res.redirect(301, '/privacy'));
 app.get('/reset-password.html', (req, res) => res.redirect(301, '/reset-password'));
+app.get('/cycle.html', (req, res) => res.redirect(301, '/dashboard'));
 app.get('/earlyaccess', (req, res) => res.redirect(301, '/early-access'));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/early-access', (req, res) => res.sendFile(path.join(__dirname, 'landing.html')));
 app.get('/secondaries', (req, res) => res.sendFile(path.join(__dirname, 'secondaries.html')));
 app.get('/vault', (req, res) => res.sendFile(path.join(__dirname, 'vault.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/cycle', (req, res) => res.redirect(301, '/dashboard'));
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/reset-password', (req, res) => res.sendFile(path.join(__dirname, 'reset-password.html')));
+app.get('/auth-callback', (req, res) => res.sendFile(path.join(__dirname, 'auth-callback.html')));
 
 // Secret early-access link (share /earlyaccess/SECRET with invited users)
 if (process.env.EARLY_ACCESS_SECRET) {
@@ -70,12 +76,18 @@ if (process.env.EARLY_ACCESS_SECRET) {
 // (Previously `express.static(__dirname)` exposed server source, package.json,
 //  and scrubbed.db to anyone who requested them.)
 const PUBLIC_FILES = new Set([
+  '/index.html',
+  '/landing.html',
+  '/auth-callback.html',
   '/vault.html',
   '/secondaries.html',
+  '/dashboard.html',
   '/privacy.html',
   '/reset-password.html',
+  '/app.js',
   '/theme.js',
   '/account-menu.js',
+  '/navbar.js',
 ]);
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
@@ -87,9 +99,14 @@ app.use((req, res, next) => {
 
 app.use('/auth', authRoutes);
 app.use('/files', require('./routes/files'));
+app.use('/vault', require('./routes/vault'));
 app.use('/stripe', require('./routes/stripe'));
 app.use('/schools', require('./routes/schools'));
 app.use('/outlines', require('./routes/outlines'));
+app.use('/tracker', require('./routes/tracker'));
+app.use('/lor', require('./routes/lor'));
+app.use('/tools', require('./routes/tools'));
+app.use('/cycle-ai', require('./routes/cycle-ai'));
 
 app.get('/me', authMiddleware, async (req, res) => {
   const { data } = await supabase

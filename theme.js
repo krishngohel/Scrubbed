@@ -283,17 +283,23 @@ footer{border-color:${secDiv} !important;}
 
   window.applyTheme=applyTheme;
 
-  // Apply saved theme immediately (before first paint)
-  try{
-    const saved=localStorage.getItem('scrubbed_theme');
-    if(saved)applyTheme(JSON.parse(saved),false);
-  }catch(e){applyTheme(DEFAULT,false);}
+  function isHomePage(){
+    const p=location.pathname;
+    return p==='/'||p==='/index.html';
+  }
 
-  // Re-apply after DOM ready to update navbar bg and inject overrides into document
-  document.addEventListener('DOMContentLoaded',()=>{
+  // Themes apply on app pages only — homepage always uses default branding
+  if(!isHomePage()){
     try{
       const saved=localStorage.getItem('scrubbed_theme');
-      applyTheme(saved?JSON.parse(saved):DEFAULT,false);
-    }catch(e){}
-  });
+      if(saved)applyTheme(JSON.parse(saved),false);
+    }catch(e){applyTheme(DEFAULT,false);}
+
+    document.addEventListener('DOMContentLoaded',()=>{
+      try{
+        const saved=localStorage.getItem('scrubbed_theme');
+        applyTheme(saved?JSON.parse(saved):DEFAULT,false);
+      }catch(e){}
+    });
+  }
 })();

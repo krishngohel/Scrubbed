@@ -135,7 +135,25 @@ router.get('/', async (req, res) => {
   res.json(data);
 });
 
-// POST /schools/:slug/refresh-prompts — auth required, fetches and extracts prompts via Claude
+// GET /schools/search?q= — filter schools/prompts (public)
+router.get('/search', async (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase();
+  const { data, error } = await supabase
+    .from('schools')
+    .select('id, name, short_name, slug, location, mission_snippet, prompts, prompts_updated_at')
+    .eq('is_active', true)
+    .order('name');
+  if (error) return res.status(500).json({ error: error.message });
+  if (!q) return res.json(data || []);
+  const filtered = (data || []).filter((s) => {
+    const hay = `${s.name} ${s.short_name} ${s.location} ${s.slug}`.toLowerCase();
+    if (hay.includes(q)) return true;
+    return (s.prompts || []).some((p) => String(p.prompt_text).toLowerCase().includes(q));
+  });
+  res.json(filtered);
+});
+
+// POST /schools/:slug/refresh-prompts
 router.post('/:slug/refresh-prompts', authMiddleware, async (req, res) => {
   const { data: school, error: schoolErr } = await supabase
     .from('schools')
@@ -166,7 +184,7 @@ router.post('/:slug/refresh-prompts', authMiddleware, async (req, res) => {
   let prompts = [];
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       messages: [{
         role: 'user',

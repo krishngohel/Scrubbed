@@ -11,6 +11,7 @@ const IC = {
   spark: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
   logout:<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
   vault: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+  grid:  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
   lock:  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>,
   trash: <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>,
   theme: <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
@@ -30,11 +31,8 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
 
   useEffect(() => {
     if (user && window.AccountMenu) window.AccountMenu.refresh();
+    else if (window.NavBar) window.NavBar.sync();
   }, [user]);
-
-  useEffect(() => {
-    if (dropOpen && window.AccountMenu) window.AccountMenu.initThemePicker();
-  }, [dropOpen]);
 
   const closeDrop = () => setDropOpen(false);
 
@@ -43,10 +41,9 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
       <div className="nav-inner">
         <span className="wordmark">Scrubbed.</span>
         <div className="nav-links">
-          <a className="nav-link" href="#how-it-works">How it works</a>
-          <a className="nav-link" href="#pricing">Pricing</a>
           <a className="nav-link" href="/vault">The Vault</a>
-          <a className="nav-link" href="/secondaries">Secondary AI</a>
+          <a className="nav-link" href="/dashboard">Dashboard</a>
+          {user && <a className="nav-link" href="/secondaries">Secondary AI</a>}
         </div>
         <div className="nav-right">
           {user ? (
@@ -56,30 +53,18 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
                 <div className="nav-avatar" onClick={() => setDropOpen(o => !o)}>
                   {user.username[0].toUpperCase()}
                 </div>
-                <div className={cx('user-dropdown', dropOpen && 'open')}>
+                <div id="user-dropdown" className={cx('user-dropdown', dropOpen && 'open')}>
                   <div className="user-dropdown-header">
                     <div className="user-dropdown-greeting">Signed in as</div>
                     <div className="user-dropdown-username">{user.username}</div>
                   </div>
                   <div className="user-dropdown-list">
                     <a href="/vault" className="user-dropdown-item">{IC.vault} My Vault</a>
-                    <a href="/secondaries" className="user-dropdown-item">{IC.spark} Secondary AI</a>
+                    <a href="/dashboard" className="user-dropdown-item">{IC.grid} Dashboard</a>
+                    {user && <a href="/secondaries" className="user-dropdown-item">{IC.spark} Secondary AI</a>}
                     <div className="plan-row">
                       <span className="plan-badge" id="plan-badge">—</span>
                       <button className="plan-action-btn" id="plan-action-btn" style={{display:'none'}}></button>
-                    </div>
-                    <div className="theme-section">
-                      <div className="theme-section-hd">
-                        <span className="theme-section-lbl">{IC.theme} Appearance</span>
-                        <button type="button" className="theme-reset-btn" id="theme-reset">Reset</button>
-                      </div>
-                      <div className="theme-presets" id="theme-presets"></div>
-                      <div className="theme-custom-grid">
-                        <div className="theme-color-row"><label className="tc-label">Background</label><input type="color" className="tc-input" id="tc-bg"/></div>
-                        <div className="theme-color-row"><label className="tc-label">Text</label><input type="color" className="tc-input" id="tc-font"/></div>
-                        <div className="theme-color-row"><label className="tc-label">Primary</label><input type="color" className="tc-input" id="tc-primary"/></div>
-                        <div className="theme-color-row"><label className="tc-label">Accent</label><input type="color" className="tc-input" id="tc-accent"/></div>
-                      </div>
                     </div>
                     <hr className="user-dropdown-divider"/>
                     <button type="button" className="user-dropdown-item" onClick={() => { closeDrop(); window.toggle2FA && window.toggle2FA(); }}>
@@ -301,6 +286,7 @@ function Marketing({ onEnter, user, onLogout }) {
         <div className="pricing-inner">
           <div className="section-eyebrow">Simple pricing</div>
           <h2 className="section-h2">Start free. Upgrade when you're ready.</h2>
+          <p className="pricing-trust-bar">Encrypted storage · Automated backups on all paid plans</p>
           <div className="pricing-cards">
             <div className="price-card">
               <div className="price-name">Free</div>
@@ -310,9 +296,23 @@ function Marketing({ onEnter, user, onLogout }) {
                 <li>{IC.check} All 9 record templates</li>
                 <li>{IC.check} Unlimited files &amp; entries</li>
                 <li>{IC.check} XLSX &amp; PDF export</li>
-                <li>{IC.check} No AI features</li>
+                <li>{IC.check} Application &amp; LOR trackers</li>
+                <li>{IC.check} No AI generation</li>
               </ul>
               <button className="btn-secondary btn-md" onClick={onEnter}>Start free</button>
+            </div>
+            <div className="price-card">
+              <div className="price-name">Starter</div>
+              <div className="price-amt">$10<span style={{fontSize:'20px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'6px',display:'inline-block'}}>/mo</span></div>
+              <div className="price-sub">Try Secondary AI on a budget.</div>
+              <ul className="price-list">
+                <li>{IC.check} Everything in Free</li>
+                <li>{IC.check} 10 outlines / month (up to 3 regenerations per outline included)</li>
+                <li>{IC.check} School-specific prompt mapping</li>
+                <li>{IC.check} Built from your real Vault data</li>
+                <li>{IC.check} Encrypted storage · Automated backups</li>
+              </ul>
+              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('starter')}>Choose Starter {IC.arrow}</button>
             </div>
             <div className="price-card">
               <div className="price-name">Pro Monthly</div>
@@ -323,32 +323,37 @@ function Marketing({ onEnter, user, onLogout }) {
                 <li>{IC.check} Unlimited Secondary AI outlines</li>
                 <li>{IC.check} School-specific prompt mapping</li>
                 <li>{IC.check} Built from your real Vault data</li>
+                <li>{IC.check} Encrypted storage · Automated backups</li>
               </ul>
-              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('monthly')}>Start Pro {IC.arrow}</button>
+              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('monthly')}>Choose Pro {IC.arrow}</button>
             </div>
-            <div className="price-card">
+            <div className="price-card price-card--badge">
+              <div className="price-badge">Most flexible</div>
               <div className="price-name">Cycle Pass</div>
-              <div className="price-amt">$49<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}> once</span></div>
-              <div className="price-sub">6 months of Pro · no auto-renew</div>
+              <div className="price-amt">$99<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}> once</span></div>
+              <div className="price-sub">One price. Covers your whole application cycle. No auto-renew.</div>
               <ul className="price-list">
                 <li>{IC.check} Everything in Free</li>
                 <li>{IC.check} Unlimited Secondary AI outlines</li>
                 <li>{IC.check} School-specific prompt mapping</li>
                 <li>{IC.check} Built from your real Vault data</li>
+                <li>{IC.check} Encrypted storage · Automated backups</li>
               </ul>
-              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('cycle')}>Get the cycle {IC.arrow}</button>
+              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('cycle')}>Get Cycle Pass {IC.arrow}</button>
             </div>
             <div className="price-card price-card--featured">
+              <div className="price-badge price-badge--value">Best value</div>
               <div className="price-name">Pro Annual</div>
               <div className="price-amt">$199<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}>/yr</span></div>
               <div className="price-sub">~$16.60/mo · save 34% vs monthly</div>
               <ul className="price-list">
                 <li>{IC.check} Everything in Free</li>
                 <li>{IC.check} Unlimited Secondary AI outlines</li>
-                <li>{IC.check} School-specific prompt mapping</li>
+                <li>{IC.check} Priority generation during peak season (Aug–Oct)</li>
                 <li>{IC.check} Built from your real Vault data</li>
+                <li>{IC.check} Encrypted storage · Automated backups</li>
               </ul>
-              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('annual')}>Get a year {IC.arrow}</button>
+              <button className="btn-primary btn-md" onClick={()=>window.startCheckout('annual')}>Choose Annual {IC.arrow}</button>
             </div>
           </div>
         </div>
@@ -358,7 +363,7 @@ function Marketing({ onEnter, user, onLogout }) {
         <div className="footer-inner">
           <span className="wordmark">Scrubbed.</span>
           <div className="footer-links">
-            <a href="#how-it-works">How it works</a><a href="/vault">The Vault</a><a href="#pricing">Pricing</a><a href="/privacy">Privacy Policy</a>
+            <a href="#how-it-works">How it works</a><a href="/vault">The Vault</a><a href="/dashboard">Dashboard</a><a href="/secondaries">Secondary AI</a><a href="#pricing">Pricing</a><a href="/privacy">Privacy Policy</a>
           </div>
           <div className="footer-legal">© 2026 Scrubbed</div>
         </div>
@@ -394,22 +399,6 @@ function AppNav({ view, setView, user, onLogout }) {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  useEffect(() => {
-    if (dropOpen && window.THEME_PRESETS) {
-      const el = document.getElementById('app-theme-presets');
-      if (el && el.children.length === 0) {
-        window.THEME_PRESETS.forEach(p => {
-          const btn = document.createElement('button');
-          btn.className = 'theme-preset';
-          btn.title = p.name;
-          btn.style.background = `linear-gradient(135deg,${p.primary} 50%,${p.accent} 50%)`;
-          btn.addEventListener('click', () => window.applyTheme && window.applyTheme(p));
-          el.appendChild(btn);
-        });
-      }
-    }
-  }, [dropOpen]);
-
   const initial = user?.username?.[0]?.toUpperCase() || '?';
 
   return (
@@ -417,9 +406,9 @@ function AppNav({ view, setView, user, onLogout }) {
       <div className="nav-inner">
         <span className="wordmark" onClick={()=>setView('marketing')}>Scrubbed.</span>
         <div className="nav-links">
-          <a className={cx('nav-link', view==='record'&&'is-active')} onClick={()=>setView('record')}>Your record</a>
-          <a className={cx('nav-link', view==='secondaries'&&'is-active')} onClick={()=>setView('secondaries')}>Secondaries</a>
           <a className="nav-link" href="/vault">The Vault</a>
+          <a className="nav-link" href="/dashboard">Dashboard</a>
+          {user && <a className="nav-link" href="/secondaries">Secondary AI</a>}
         </div>
         <div className="nav-right">
           {user && <span className="nav-user">{user.username}</span>}
@@ -434,19 +423,14 @@ function AppNav({ view, setView, user, onLogout }) {
                 <a href="/vault" className="user-dropdown-item">
                   {IC.vault} My Vault
                 </a>
-                <div className="theme-section">
-                  <div className="theme-section-hd">
-                    <span className="theme-section-lbl">Appearance</span>
-                    <button className="theme-reset-btn" id="theme-reset">Reset</button>
-                  </div>
-                  <div className="theme-presets" id="app-theme-presets"></div>
-                  <div className="theme-custom-grid">
-                    <div className="theme-color-row"><label className="tc-label">Background</label><input type="color" className="tc-input" id="tc-bg"/></div>
-                    <div className="theme-color-row"><label className="tc-label">Text</label><input type="color" className="tc-input" id="tc-font"/></div>
-                    <div className="theme-color-row"><label className="tc-label">Primary</label><input type="color" className="tc-input" id="tc-primary"/></div>
-                    <div className="theme-color-row"><label className="tc-label">Accent</label><input type="color" className="tc-input" id="tc-accent"/></div>
-                  </div>
-                </div>
+                <a href="/dashboard" className="user-dropdown-item">
+                  {IC.grid} Dashboard
+                </a>
+                {user && (
+                <a href="/secondaries" className="user-dropdown-item">
+                  {IC.spark} Secondary AI
+                </a>
+                )}
                 <hr className="user-dropdown-divider"/>
                 <button className="user-dropdown-item user-dropdown-logout" onClick={onLogout}>
                   {IC.logout} Log out

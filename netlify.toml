@@ -26,6 +26,16 @@
   status = 200
 
 [[redirects]]
+  from = "/dashboard"
+  to = "/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/cycle"
+  to = "/dashboard"
+  status = 301
+
+[[redirects]]
   from = "/privacy"
   to = "/privacy.html"
   status = 200
@@ -70,6 +80,61 @@
   from = "/earlyaccess"
   to = "/early-access"
   status = 301
+
+# Block server source from static publish (must be before API catch-all)
+[[redirects]]
+  from = "/server.js"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/supabase.js"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/mailer.js"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/db.js"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package.json"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package-lock.json"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/routes/*"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/middleware/*"
+  to = "/404"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify/functions/*"
+  to = "/404"
+  status = 404
+  force = true
 
 # API routes → Express function
 # Without force = true, Netlify serves real files directly and only

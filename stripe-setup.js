@@ -6,6 +6,7 @@
  * Prints the env var values to paste into Netlify.
  */
 
+require('dotenv').config();
 const Stripe = require('stripe');
 
 const SECRET_KEY = process.env.STRIPE_SECRET_KEY;
@@ -21,20 +22,36 @@ const isLive = SECRET_KEY.startsWith('sk_live_');
 console.log(`\n🔑  Using ${isLive ? 'LIVE' : 'TEST'} mode key\n`);
 
 async function run() {
-  // ── 1. Product ──────────────────────────────────────────────────────────────
-  console.log('Creating product…');
+  // ── 1. Starter product ────────────────────────────────────────────────────
+  console.log('Creating Starter product…');
+  const starterProduct = await stripe.products.create({
+    name: 'Scrubbed Starter',
+    description: '10 Secondary AI outlines per month from your real Vault data, school-specific mapping. Same outline quality as Pro — capped at 10/month. Encrypted storage and automated backups.',
+  });
+  console.log(`  ✓ Starter product: ${starterProduct.id}`);
+
+  const starter = await stripe.prices.create({
+    product: starterProduct.id,
+    unit_amount: 1000,
+    currency: 'usd',
+    recurring: { interval: 'month' },
+    nickname: 'Starter Monthly',
+  });
+  console.log(`  ✓ Starter: ${starter.id}  ($10/mo)`);
+
+  // ── 2. Pro product ────────────────────────────────────────────────────────
+  console.log('Creating Pro product…');
   const product = await stripe.products.create({
     name: 'Scrubbed Pro',
-    description: 'Unlimited Secondary AI outlines, school-specific prompt mapping, built from your real Vault data.',
+    description: 'Unlimited Secondary AI outlines, school-specific prompt mapping, built from your real Vault data. Encrypted storage and automated backups.',
   });
-  console.log(`  ✓ Product: ${product.id}`);
+  console.log(`  ✓ Pro product: ${product.id}`);
 
-  // ── 2. Prices ───────────────────────────────────────────────────────────────
-  console.log('Creating prices…');
+  console.log('Creating Pro prices…');
 
   const monthly = await stripe.prices.create({
     product: product.id,
-    unit_amount: 2500,           // $25.00
+    unit_amount: 2500,
     currency: 'usd',
     recurring: { interval: 'month' },
     nickname: 'Pro Monthly',
@@ -43,23 +60,20 @@ async function run() {
 
   const annual = await stripe.prices.create({
     product: product.id,
-    unit_amount: 19900,          // $199.00
+    unit_amount: 19900,
     currency: 'usd',
     recurring: { interval: 'year' },
     nickname: 'Pro Annual',
   });
   console.log(`  ✓ Annual:  ${annual.id}  ($199/yr)`);
 
-  // Cycle Pass: billed every 6 months — webhook auto-sets cancel_at_period_end
-  // so it runs for exactly 6 months with no auto-renew.
   const cycle = await stripe.prices.create({
     product: product.id,
-    unit_amount: 4900,           // $49.00
+    unit_amount: 9900,
     currency: 'usd',
-    recurring: { interval: 'month', interval_count: 6 },
-    nickname: 'Cycle Pass (6 mo)',
+    nickname: 'Cycle Pass (6 mo, one-time)',
   });
-  console.log(`  ✓ Cycle:   ${cycle.id}  ($49 / 6 months)`);
+  console.log(`  ✓ Cycle:   ${cycle.id}  ($99 once — 6 months)`);
 
   // ── 3. Customer Portal ──────────────────────────────────────────────────────
   console.log('Configuring Customer Portal…');
@@ -71,7 +85,7 @@ async function run() {
       features: {
         subscription_cancel: {
           enabled: true,
-          mode: 'at_period_end',   // end-of-term cancellation
+          mode: 'at_period_end',
           proration_behavior: 'none',
         },
         subscription_update: {
@@ -79,10 +93,8 @@ async function run() {
           default_allowed_updates: ['price'],
           proration_behavior: 'always_invoice',
           products: [
-            {
-              product: product.id,
-              prices: [monthly.id, annual.id],
-            },
+            { product: starterProduct.id, prices: [starter.id] },
+            { product: product.id, prices: [monthly.id, annual.id] },
           ],
         },
         payment_method_update: { enabled: true },
@@ -91,7 +103,6 @@ async function run() {
     });
     console.log('  ✓ Customer Portal configured');
   } catch (err) {
-    // Portal config may already exist — not fatal
     console.log('  ⚠  Portal config skipped (may already exist):', err.message);
   }
 
@@ -100,15 +111,19 @@ async function run() {
   console.log('  Paste these into Netlify → Site settings → Environment variables');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   console.log(`STRIPE_SECRET_KEY            ${SECRET_KEY}`);
+  console.log(`STRIPE_STARTER_PRICE_ID      ${starter.id}`);
   console.log(`STRIPE_PRO_PRICE_ID          ${monthly.id}`);
   console.log(`STRIPE_PRO_ANNUAL_PRICE_ID   ${annual.id}`);
   console.log(`STRIPE_CYCLE_PASS_PRICE_ID   ${cycle.id}`);
+  console.log('  (Optional — grandfather existing $49 cycle subscribers:)');
+  console.log('STRIPE_CYCLE_PASS_LEGACY_PRICE_ID   <your-old-$49-price-id>');
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('  Next: create the webhook in the Stripe dashboard');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   console.log('  1. Go to https://dashboard.stripe.com/webhooks');
   console.log('  2. Click "Add endpoint"');
-  console.log('  3. URL: https://getscrubbed.netlify.app/.netlify/functions/api/stripe/webhook');
+  console.log('  3. URL: https://getscrubbed.netlify.app/stripe/webhook');
+  console.log('     (or https://getscrubbed.netlify.app/.netlify/functions/api/stripe/webhook)');
   console.log('  4. Select these events:');
   console.log('       checkout.session.completed');
   console.log('       customer.subscription.updated');

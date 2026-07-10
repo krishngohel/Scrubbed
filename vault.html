@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="theme.js"></script>
 <script src="account-menu.js"></script>
+<script src="navbar.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -500,10 +501,9 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
   <div class="nav-inner">
     <a href="/" class="wordmark">Scrubbed.</a>
     <div class="nav-links">
-      <a class="nav-link" href="/#how-it-works">How it works</a>
-      <a class="nav-link" href="/#pricing">Pricing</a>
-      <a class="nav-link is-active" href="/vault">The Vault</a>
-      <a class="nav-link" href="/secondaries">Secondary AI</a>
+      <a class="nav-link" href="/vault" data-nav="vault">The Vault</a>
+      <a class="nav-link" href="/dashboard" data-nav="dashboard">Dashboard</a>
+      <a class="nav-link nav-auth-only" href="/secondaries" data-nav="secondaries" hidden>Secondary AI</a>
     </div>
     <div class="nav-right">
       <div class="user-menu-wrapper">
@@ -518,7 +518,11 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
               My Vault
             </a>
-            <a href="/secondaries" class="user-dropdown-item">
+            <a href="/dashboard" class="user-dropdown-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              Dashboard
+            </a>
+            <a href="/secondaries" class="user-dropdown-item nav-auth-only" hidden>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               Secondary AI
             </a>
@@ -708,6 +712,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     <div class="footer-links">
       <a href="/">Home</a>
       <a href="/vault">The Vault</a>
+      <a href="/dashboard">Dashboard</a>
       <a href="/secondaries">Secondary AI</a>
       <a href="/privacy">Privacy Policy</a>
     </div>
@@ -831,6 +836,7 @@ const TEMPLATES = [
 /* ── NATURE CANVAS ── */
 (function(){
   const cv=document.getElementById('nature-canvas');
+  if(!cv)return;
   const cx=cv.getContext('2d');
   let W,H,leaves;
   const COLORS=['#B5563A','#C4705A','#EBD6CB','#9F8070','#DDD5C0','#A89C8A'];
@@ -864,6 +870,10 @@ let currentFileId=null;
 function openModal(id){
   const t=TEMPLATES.find(x=>x.id===id);
   if(!t)return;
+  const saveBtn=document.querySelector('.modal-save');
+  const cancelBtn=document.querySelector('.modal-cancel');
+  if(saveBtn)saveBtn.style.display='';
+  if(cancelBtn)cancelBtn.textContent='Cancel';
   currentTemplate=t;
   currentFileId=null;
   const isSheet=t.type==='spreadsheet';
@@ -883,6 +893,10 @@ function closeModal(){
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow='';
   currentTemplate=null;
+  const saveBtn=document.querySelector('.modal-save');
+  const cancelBtn=document.querySelector('.modal-cancel');
+  if(saveBtn)saveBtn.style.display='';
+  if(cancelBtn)cancelBtn.textContent='Cancel';
 }
 
 document.getElementById('modal-overlay').addEventListener('click',function(e){
@@ -1505,6 +1519,10 @@ function showModalLoading(title){
   document.getElementById('modal-title').textContent=title||'Loading…';
   const badge=document.getElementById('modal-badge');
   if(badge){badge.textContent='';badge.style.background='';badge.style.color=''}
+  const saveBtn=document.querySelector('.modal-save');
+  const cancelBtn=document.querySelector('.modal-cancel');
+  if(saveBtn)saveBtn.style.display='';
+  if(cancelBtn)cancelBtn.textContent='Cancel';
   document.getElementById('modal-body').innerHTML='<div class="modal-loading">Opening file…</div>';
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -3358,6 +3376,7 @@ if(logoutBtn){
     const dn=document.getElementById('dropdown-username');
     if(dn)dn.textContent='';
     if(typeof loadFilesFromServer==='function')loadFilesFromServer();
+    if(window.NavBar)window.NavBar.sync();
   });
 }
 
