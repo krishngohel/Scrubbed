@@ -59,6 +59,18 @@ strong{font-weight:600}
 .btn-ho:hover{border-color:var(--clay);color:var(--clay)}
 .btn-upload-nav{background:transparent;color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:0 14px;height:36px;font-size:13px;font-family:var(--font-body);font-weight:500;cursor:pointer;transition:all 160ms var(--ease);display:inline-flex;align-items:center;gap:7px}
 .btn-upload-nav:hover{background:rgba(31,27,22,0.04)}
+.vault-upload-zone{position:relative;margin-bottom:24px;border:1.5px dashed var(--rule);border-radius:14px;background:var(--cream);transition:border-color 0.2s,background 0.2s,box-shadow 0.2s}
+.vault-upload-zone.drag-over{border-color:var(--clay);background:var(--clay-s);box-shadow:0 0 0 4px rgba(181,86,58,0.08)}
+.upload-drop-inner{padding:28px 24px;text-align:center;pointer-events:none}
+.upload-drop-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.upload-drop-sub{font-size:13.5px;color:var(--graphite);line-height:1.5}
+.upload-drop-sub label{color:var(--clay);font-weight:500;text-decoration:underline;text-underline-offset:2px;cursor:pointer;pointer-events:auto}
+.upload-drop-formats{margin-top:10px;font-size:11px;font-family:var(--font-mono);color:var(--stone);letter-spacing:0.04em}
+.upload-drop-hint{margin-top:8px;font-size:12px;color:var(--stone);line-height:1.45;max-width:520px;margin-left:auto;margin-right:auto}
+.vault-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.pdf-readonly-banner{padding:10px 14px;background:rgba(192,57,43,0.08);border-bottom:1px solid rgba(192,57,43,0.15);font-size:12.5px;color:var(--graphite);line-height:1.5;flex-shrink:0}
+.pdf-readonly-banner strong{color:var(--ink);font-weight:600}
+.vf-card-readonly{font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#c0392b;background:rgba(192,57,43,0.1);padding:2px 6px;border-radius:4px}
 .btn-nav{background:var(--clay);color:var(--cream);border:none;cursor:pointer;font-size:13px;font-family:var(--font-body);font-weight:600;padding:0 14px;height:36px;border-radius:8px;transition:background 160ms var(--ease);text-decoration:none;display:inline-flex;align-items:center}
 .btn-nav:hover{background:var(--clay-d)}
 
@@ -552,6 +564,11 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Create new
       </button>
+      <label class="btn-upload-nav" style="cursor:pointer" title="Upload Excel, CSV, Word, or PDF">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload
+        <input type="file" id="vault-file-input-nav" style="display:none" multiple accept=".xlsx,.xls,.csv,.tsv,.docx,.pdf"/>
+      </label>
     </div>
   </div>
 </nav>
@@ -645,6 +662,16 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         </button>
       </div>
     </div>
+    <!-- Upload drop zone (shown when logged in) -->
+    <div id="vault-upload-zone" class="vault-upload-zone" style="display:none">
+      <input type="file" id="vault-file-input" multiple accept=".xlsx,.xls,.csv,.tsv,.docx,.pdf"/>
+      <div class="upload-drop-inner">
+        <div class="upload-drop-title">Upload files</div>
+        <div class="upload-drop-sub">Drop files here, or <label for="vault-file-input">browse</label></div>
+        <div class="upload-drop-formats">.xlsx · .csv · .xls · .docx · .pdf (read-only)</div>
+        <div class="upload-drop-hint">Spreadsheets and Word docs open in the Scrubbed editor. PDFs are stored for viewing only — they cannot be edited here.</div>
+      </div>
+    </div>
     <!-- Login wall (shown when not logged in) -->
     <div id="vault-login-wall" class="vault-login-wall">
       <div class="vlw-icon">
@@ -665,8 +692,9 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         </svg>
       </div>
       <h3 class="ves-title">Your vault is empty</h3>
-      <p class="ves-sub">Pick a template to start from scratch or import an existing file into the Scrubbed editor.</p>
+      <p class="ves-sub">Upload an existing spreadsheet or document, or start fresh with a Scrubbed template. PDFs are view-only.</p>
       <div class="ves-actions">
+        <label for="vault-file-input" class="btn-ho" style="cursor:pointer">Upload file</label>
         <button class="btn-hp" onclick="openCreateNew()">Create new file</button>
       </div>
     </div>
@@ -896,6 +924,8 @@ function collectContent(){
 
 async function saveModal(){
   if(!getToken()){showToast('Sign in to save files');return}
+  const existing=_vf.find(x=>String(x.id)===String(currentFileId));
+  if(existing&&existing.content&&existing.content.pdf){showToast('PDFs are read-only');return}
   const name=currentTemplate?currentTemplate.name:'Untitled';
   const type=currentTemplate?currentTemplate.type:'document';
   const template_id=currentTemplate?currentTemplate.id:null;
@@ -1277,12 +1307,12 @@ function pickTemplate(id){
   document.getElementById('cn-action-desc').textContent=t.desc;
   const input=document.getElementById('cn-file-input');
   if(input){
-    input.accept=t.type==='spreadsheet'?'.xlsx,.xls,.csv,.tsv':'.docx';
+    input.accept=t.type==='spreadsheet'?'.xlsx,.xls,.csv,.tsv,.pdf':'.docx,.pdf';
     input.value='';
   }
   document.getElementById('cn-action-formats').textContent=t.type==='spreadsheet'
-    ?'Accepts .xlsx · .csv · .xls'
-    :'Accepts .docx only';
+    ?'Accepts .xlsx · .csv · .xls · .pdf (read-only)'
+    :'Accepts .docx · .pdf (read-only)';
   showCnStep('action');
 }
 
@@ -1299,7 +1329,8 @@ async function handleCnFileUpload(file){
   showToast('Importing into '+(TEMPLATES.find(x=>x.id===tid)||{name:'file'}).name+'…');
   try{
     const created=await importTemplateFile(file,tid);
-    showToast('Imported to Vault');
+    const isPdf=file&&getFileExt(file)==='pdf';
+    showToast(isPdf?'PDF saved (read-only)':'Imported to Vault');
     await loadFilesFromServer();
     openFileForEdit(created.id);
   }catch(e){
@@ -1339,7 +1370,12 @@ function refreshVaultDisplay(){
   const loginWall=document.getElementById('vault-login-wall');
   const grid=document.getElementById('vault-files-grid');
   const empty=document.getElementById('vault-empty');
-  if(!getToken())return;
+  const uploadZone=document.getElementById('vault-upload-zone');
+  if(!getToken()){
+    if(uploadZone)uploadZone.style.display='none';
+    return;
+  }
+  if(uploadZone)uploadZone.style.display='';
   if(loginWall)loginWall.style.display='none';
   if(!_vf.length){
     if(grid)grid.style.display='none';
@@ -1419,6 +1455,7 @@ function renderVaultFiles(files,grid){
           <div class="vf-card-icon" style="color:${accent}">${iconSvg}</div>
           <div style="display:flex;align-items:center;gap:6px">
             <span class="vf-card-type" style="background:${accent}18;color:${accent}">${typeLabel}</span>
+            ${isPdf?'<span class="vf-card-readonly">Read-only</span>':''}
             <button class="vf-card-expand-btn" aria-label="Show details">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
@@ -1490,17 +1527,27 @@ async function mountFileEditor(f){
   if(f.content&&f.content.pdf){
     document.getElementById('modal-title').textContent=f.name;
     const badge=document.getElementById('modal-badge');
-    badge.textContent='PDF';
-    badge.style.background='rgba(90,110,74,0.1)';
-    badge.style.color='var(--moss)';
+    badge.textContent='PDF · Read-only';
+    badge.style.background='rgba(192,57,43,0.1)';
+    badge.style.color='#c0392b';
+    const saveBtn=document.querySelector('.modal-save');
+    const cancelBtn=document.querySelector('.modal-cancel');
+    if(saveBtn)saveBtn.style.display='none';
+    if(cancelBtn)cancelBtn.textContent='Close';
     const pdfSrc=String(f.content.dataUrl||'');
     document.getElementById('modal-body').innerHTML=pdfSrc.startsWith('data:application/pdf;base64,')
-      ?`<div style="flex:1;display:flex;flex-direction:column;min-height:0;background:#525659">
+      ?`<div class="pdf-readonly-banner"><strong>Read-only PDF.</strong> This file is stored for viewing only. To edit in Scrubbed, upload a spreadsheet (.xlsx) or Word document (.docx).</div>
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0;background:#525659">
         <iframe src="${pdfSrc}" style="flex:1;width:100%;border:none;min-height:500px" title="${escHtml(f.name)}"></iframe>
       </div>`
       :'<p style="padding:24px;color:var(--graphite)">This PDF could not be displayed.</p>';
     return;
   }
+
+  const saveBtn=document.querySelector('.modal-save');
+  const cancelBtn=document.querySelector('.modal-cancel');
+  if(saveBtn)saveBtn.style.display='';
+  if(cancelBtn)cancelBtn.textContent='Cancel';
 
   const isSheet=t.type==='spreadsheet';
   document.getElementById('modal-title').textContent=tpl?t.name:f.name;
@@ -1785,6 +1832,83 @@ window.makeDocBlank=function(){
 
 /* ── TEMPLATE FILE IMPORT ── */
 const MAX_FILE_SIZE=20*1024*1024;
+const MAX_PDF_SIZE=4*1024*1024;
+const FILE_EXT_BY_MIME={
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx',
+  'application/vnd.ms-excel':'xls',
+  'text/csv':'csv',
+  'text/tab-separated-values':'tsv',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx',
+  'application/pdf':'pdf',
+};
+
+function fileBaseName(file){return String(file.name||'Untitled').replace(/\.[^.]+$/,'')||'Untitled'}
+
+function getFileExt(file){
+  const parts=String(file.name||'').split('.');
+  const fromName=parts.length>1?parts.pop().toLowerCase():'';
+  if(fromName&&['xlsx','xls','csv','tsv','docx','pdf'].includes(fromName))return fromName;
+  return FILE_EXT_BY_MIME[file.type]||fromName;
+}
+
+function fileToDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);
+    r.onerror=()=>reject(r.error||new Error('Could not read file'));
+    r.readAsDataURL(file);
+  });
+}
+
+function jsonSafeCell(v){
+  if(v==null||v==='')return'';
+  if(v instanceof Date)return formatDisplayDate(v);
+  if(typeof v==='object')return String(v);
+  return String(v);
+}
+
+function jsonSafeSheetRows(rows){
+  return(rows||[]).map(row=>(row||[]).map(jsonSafeCell));
+}
+
+function looksLikeDataCell(s){
+  const v=String(s||'').trim();
+  if(!v)return false;
+  if(/^\d+([./]\d+)?$/.test(v))return true;
+  if(/^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}$/.test(v))return true;
+  if(/^\d{4}[\/\-.]\d{1,2}[\/\-.]\d{1,2}$/.test(v))return true;
+  return false;
+}
+
+function spreadsheetFromWorkbookData(data){
+  if(!data||!data.length)return{cols:['Column A'],rows:[]};
+  const first=(data[0]||[]).map(c=>jsonSafeCell(c).trim());
+  const hasHeader=first.some(c=>c)&&!first.every(looksLikeDataCell);
+  let cols,rows;
+  if(hasHeader){
+    cols=first.map((c,i)=>c||`Column ${i+1}`);
+    rows=data.slice(1);
+  }else{
+    const width=Math.max(...data.map(r=>(r||[]).length),1);
+    cols=Array.from({length:width},(_,i)=>`Column ${i+1}`);
+    rows=data;
+  }
+  const maxWidth=Math.max(cols.length,...rows.map(r=>(r||[]).length),1);
+  while(cols.length<maxWidth)cols.push(`Column ${cols.length+1}`);
+  rows=rows.map(r=>cols.map((_,i)=>jsonSafeCell((r&&r[i])??'')));
+  return{cols,rows};
+}
+
+async function convertReadOnlyPdf(file){
+  const dataUrl=await fileToDataUrl(file);
+  if(!String(dataUrl).startsWith('data:application/pdf'))throw new Error('Could not read this PDF');
+  return{
+    type:'document',
+    content:{pdf:true,readOnly:true,dataUrl},
+    meta:{},
+    displayName:fileBaseName(file),
+  };
+}
 
 function normColLabel(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
 
@@ -2038,7 +2162,7 @@ function mapSheetDataToTemplate(data,template,ws){
     })
   );
   const meta=extractImportMeta(data,hi,template,rows);
-  return{rows,meta};
+  return{rows:jsonSafeSheetRows(rows),meta};
 }
 
 function parseFlexibleDate(s){
@@ -2167,18 +2291,38 @@ function extractImportMeta(data,headerIdx,template,rows){
 }
 
 async function parseSpreadsheetWorkbook(file,ext){
-  if(typeof XLSX==='undefined')throw new Error('Spreadsheet library not loaded');
+  if(typeof XLSX==='undefined')throw new Error('Spreadsheet library not loaded — check your connection');
+  const e=ext||getFileExt(file);
   let wb;
-  if(ext==='csv'||ext==='tsv'){
-    const text=await file.text();
-    wb=XLSX.read(text,{type:'string',raw:false,cellDates:true});
-  }else{
-    const buf=await file.arrayBuffer();
-    wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true,cellNF:true});
+  try{
+    if(e==='csv'||e==='tsv'){
+      const text=await file.text();
+      if(!text.trim())throw new Error('File is empty');
+      wb=XLSX.read(text,{type:'string',raw:false,cellDates:true,FS:e==='tsv'?'\t':undefined});
+    }else{
+      const buf=await file.arrayBuffer();
+      if(!buf||buf.byteLength===0)throw new Error('File is empty');
+      const arr=new Uint8Array(buf);
+      const attempts=[
+        {type:'array',cellDates:true,cellNF:true},
+        {type:'array',cellDates:true},
+        {type:'array',cellDates:false,raw:false},
+      ];
+      let lastErr=null;
+      for(const opts of attempts){
+        try{wb=XLSX.read(arr,opts);lastErr=null;break}
+        catch(err){lastErr=err}
+      }
+      if(!wb)throw lastErr||new Error('Could not read spreadsheet');
+    }
+  }catch(err){
+    const msg=String(err&&err.message||err||'');
+    if(/password|encrypted/i.test(msg))throw new Error('This file is password-protected — remove the password and try again');
+    throw new Error(msg||'Could not read spreadsheet');
   }
+  if(!wb.SheetNames||!wb.SheetNames.length)throw new Error('No sheets found in this file');
   const ws=wb.Sheets[wb.SheetNames[0]];
   if(!ws)return{data:[],ws:null};
-  /* Keep raw values for serial detection; use ws cell metadata for formatted display (Excel/Sheets) */
   const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
   return{data,ws};
 }
@@ -2194,19 +2338,48 @@ function sheetColsFromContent(content){
 }
 
 function validateImportFile(file){
-  const ext=file.name.split('.').pop().toLowerCase();
-  if(ext==='pdf')throw new Error('PDF uploads are not supported — use .xlsx, .csv, or .docx');
+  const ext=getFileExt(file);
+  if(!ext)throw new Error('Could not tell what type of file this is — use .xlsx, .csv, .docx, or .pdf');
+  if(ext==='pdf'&&file.size>MAX_PDF_SIZE)throw new Error(file.name+' is too large — PDFs must be under 4 MB');
   if(file.size>MAX_FILE_SIZE)throw new Error(file.name+' is too large (max 20 MB)');
   return ext;
 }
 
+async function convertFileForVault(file){
+  const ext=validateImportFile(file);
+  const name=fileBaseName(file);
+  if(ext==='pdf')return{name,...await convertReadOnlyPdf(file)};
+  if(['xlsx','xls','csv','tsv'].includes(ext)){
+    const {data,ws}=await parseSpreadsheetWorkbook(file,ext);
+    if(!data.length)throw new Error('No data found in spreadsheet');
+    const template=detectTemplateForFile({name:file.name,type:'spreadsheet',content:{rows:data}});
+    if(template){
+      const mapped=mapSheetDataToTemplate(data,template,ws);
+      return{
+        name:template.name,type:'spreadsheet',template_id:template.id,
+        content:{rows:jsonSafeSheetRows(mapped.rows)},meta:mapped.meta||{},
+      };
+    }
+    const generic=spreadsheetFromWorkbookData(data);
+    return{name,type:'spreadsheet',content:generic,meta:{}};
+  }
+  if(ext==='docx'){
+    if(typeof mammoth==='undefined')throw new Error('DOCX library not loaded');
+    const result=await mammoth.convertToHtml({arrayBuffer:await file.arrayBuffer()});
+    return{name,type:'document',content:{blank:true,html:sanitizeImportedHtml(result.value)},meta:{}};
+  }
+  throw new Error('Use .xlsx, .csv, .docx, or .pdf');
+}
+
 async function convertFileToTemplate(file,template){
   const ext=validateImportFile(file);
+  if(ext==='pdf')return convertReadOnlyPdf(file);
   if(template.type==='spreadsheet'){
     if(!['xlsx','xls','csv','tsv'].includes(ext))throw new Error('Use .xlsx, .csv, or .xls for this log');
     const {data,ws}=await parseSpreadsheetWorkbook(file,ext);
+    if(!data.length)throw new Error('No data found in spreadsheet');
     const mapped=mapSheetDataToTemplate(data,template,ws);
-    return{type:'spreadsheet',content:{rows:mapped.rows},meta:mapped.meta||{}};
+    return{type:'spreadsheet',content:{rows:jsonSafeSheetRows(mapped.rows)},meta:mapped.meta||{}};
   }
   if(ext!=='docx')throw new Error('Use .docx for this document');
   if(typeof mammoth==='undefined')throw new Error('DOCX library not loaded');
@@ -2218,18 +2391,90 @@ async function convertFileToTemplate(file,template){
   return{type:'document',content:{blank:true,html},meta:{}};
 }
 
+async function uploadFile(file){
+  const converted=await convertFileForVault(file);
+  const resp=await fetch('/files',{method:'POST',headers:authHeaders(),body:JSON.stringify({
+    name:converted.name,
+    type:converted.type,
+    template_id:converted.template_id||null,
+    content:converted.content,
+    meta:converted.meta||{},
+  })});
+  if(!resp.ok){
+    const err=await resp.json().catch(()=>({}));
+    throw new Error(err.error||'Upload failed');
+  }
+  const created=await resp.json();
+  return{
+    id:created.id,
+    name:created.name||converted.name,
+    type:created.type||converted.type,
+    template_id:converted.template_id||null,
+    content:converted.content,
+    meta:converted.meta||{},
+    updated_at:new Date().toISOString(),
+  };
+}
+
+async function handleFiles(files){
+  if(!files||!files.length)return;
+  if(!getToken()){showToast('Sign in to upload files');return}
+  const ALLOWED=['xlsx','xls','csv','tsv','docx','pdf'];
+  const list=[...files];
+  const valid=[];
+  for(const file of list){
+    try{
+      const ext=validateImportFile(file);
+      if(!ALLOWED.includes(ext)){showToast(ext.toUpperCase()+' not supported — use .xlsx, .csv, .docx, or .pdf');continue}
+      valid.push(file);
+    }catch(e){
+      showToast(e.message||'Could not upload file');
+    }
+  }
+  if(!valid.length)return;
+
+  showToast(valid.length===1?'Uploading…':`Uploading ${valid.length} files…`);
+  let ok=0;
+  let lastPdf=false;
+  await Promise.all(valid.map(async file=>{
+    try{
+      const saved=await uploadFile(file);
+      const idx=_vf.findIndex(x=>x._pending&&x.name===fileBaseName(file));
+      if(idx>=0)_vf[idx]=saved;
+      else _vf.unshift(saved);
+      if(saved.content&&saved.content.pdf)lastPdf=true;
+      ok++;
+      refreshVaultDisplay();
+    }catch(e){
+      showToast((e.message||'Error uploading')+' — '+file.name);
+    }
+  }));
+
+  if(ok>0){
+    const msg=ok===1
+      ?(lastPdf?'"'+fileBaseName(valid[0])+'" saved (read-only PDF)':'"'+fileBaseName(valid[0])+'" ready in Vault')
+      :`${ok} file${ok===1?'':'s'} ready in Vault`;
+    showToast(msg);
+    loadFilesFromServer();
+  }
+}
+
 async function importTemplateFile(file,templateId){
   const template=TEMPLATES.find(x=>x.id===templateId);
   if(!template)throw new Error('Unknown template');
   const converted=await convertFileToTemplate(file,template);
+  const isPdf=converted.content&&converted.content.pdf;
   const resp=await fetch('/files',{method:'POST',headers:authHeaders(),body:JSON.stringify({
-    name:template.name,
+    name:isPdf?(converted.displayName||fileBaseName(file)):template.name,
     type:converted.type,
-    template_id:templateId,
+    template_id:isPdf?null:templateId,
     content:converted.content,
     meta:converted.meta||{},
   })});
-  if(!resp.ok)throw new Error('Could not save to Vault');
+  if(!resp.ok){
+    const err=await resp.json().catch(()=>({}));
+    throw new Error(err.error||'Could not save to Vault');
+  }
   return resp.json();
 }
 
@@ -2427,6 +2672,32 @@ document.addEventListener('change',function(e){
     if(file)handleCnFileUpload(file);
   }
 });
+
+function bindFileInputs(){
+  ['vault-file-input','vault-file-input-nav'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('change',function(){handleFiles(this.files);this.value=''});
+  });
+}
+bindFileInputs();
+
+(function bindUploadDropZone(){
+  const zone=document.getElementById('vault-upload-zone');
+  if(!zone)return;
+  let dragDepth=0;
+  const onDrag=p=>{p.preventDefault();p.stopPropagation()};
+  ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{onDrag(e);dragDepth++;zone.classList.add('drag-over')}));
+  ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{
+    onDrag(e);
+    if(ev==='dragleave'){dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)zone.classList.remove('drag-over')}
+    if(ev==='drop'){dragDepth=0;zone.classList.remove('drag-over');handleFiles(e.dataTransfer&&e.dataTransfer.files)}
+  }));
+  document.addEventListener('dragover',e=>{if(getToken())e.preventDefault()});
+  document.addEventListener('drop',e=>{
+    if(!getToken()||e.target.closest('#vault-upload-zone'))return;
+    if(e.target.closest('#my-vault')){e.preventDefault();handleFiles(e.dataTransfer&&e.dataTransfer.files)}
+  });
+})();
 
 /* ── TOAST ── */
 var toastTimer=null;
@@ -2731,12 +3002,12 @@ async function exportVault(){
             </div>
             <div>
               <div class="cn-action-btn-title">Upload existing file</div>
-              <div class="cn-action-btn-sub">Import your spreadsheet or document into this template.</div>
+              <div class="cn-action-btn-sub">Import your spreadsheet or document. PDFs are stored read-only for viewing.</div>
             </div>
             <input type="file" id="cn-file-input" style="display:none"/>
           </label>
         </div>
-        <div class="cn-action-formats" id="cn-action-formats">Accepts .xlsx · .csv · .docx</div>
+        <div class="cn-action-formats" id="cn-action-formats">Accepts .xlsx · .csv · .docx · .pdf (read-only)</div>
       </div>
     </div>
   </div>
