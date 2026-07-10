@@ -442,10 +442,10 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
       <p style="text-align:center;margin-top:10px"><button type="button" class="back-to-login" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
     </form>
     <form id="forgot-form" style="display:none">
-      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">Enter your email and we'll send a reset link.</p>
+      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">Enter your email and we’ll send a 6-digit verification code to reset your password.</p>
       <div class="auth-field"><label for="forgot-email">Email</label><input type="email" id="forgot-email" autocomplete="email" placeholder="your email"/></div>
       <p id="forgot-msg" class="auth-error"></p>
-      <button type="submit" class="auth-submit">Send reset link</button>
+      <button type="submit" class="auth-submit">Send verification code</button>
       <p style="text-align:center;margin-top:10px"><button type="button" class="back-to-login" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
     </form>
     <form id="signup-form" style="display:none">
@@ -476,24 +476,6 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     <div style="display:flex;gap:10px">
       <button type="button" onclick="close2faEnableModal()" style="flex:1;height:36px;background:transparent;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:13px;font-weight:500;cursor:pointer">Cancel</button>
       <button type="button" id="twofa-enable-btn" onclick="confirm2faEnable()" style="flex:1;height:36px;background:var(--clay);color:var(--cream);border:none;border-radius:8px;font:inherit;font-weight:600;font-size:13px;cursor:pointer">Verify &amp; enable</button>
-    </div>
-  </div>
-</div>
-
-<!-- DELETE ACCOUNT MODAL -->
-<div id="delete-account-modal" style="display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:900;align-items:center;justify-content:center;padding:24px">
-  <div style="background:var(--cream);border:1px solid var(--rule);border-radius:16px;padding:32px;max-width:420px;width:100%">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rust)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span style="font-size:16px;font-weight:700;color:var(--rust)">Delete account</span>
-    </div>
-    <p style="font-size:14px;color:var(--graphite);line-height:1.6;margin-bottom:8px">This will permanently delete your vault files, outlines, account, and subscription.</p>
-    <p style="font-size:13.5px;color:var(--graphite);margin-bottom:14px"><strong>This cannot be undone.</strong> Type <strong>DELETE</strong> to confirm.</p>
-    <input type="text" id="delete-confirm-input" placeholder="Type DELETE here" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:14px;margin-bottom:14px;outline:none"/>
-    <p id="delete-account-error" style="font-size:12.5px;color:var(--rust);min-height:16px;margin-bottom:12px"></p>
-    <div style="display:flex;gap:10px">
-      <button type="button" onclick="closeDeleteModal()" style="flex:1;height:36px;background:transparent;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:13px;font-weight:500;cursor:pointer">Cancel</button>
-      <button type="button" id="delete-confirm-btn" onclick="confirmDeleteAccount()" style="flex:1;height:36px;background:var(--rust);color:var(--cream);border:none;border-radius:8px;font:inherit;font-weight:600;font-size:13px;cursor:pointer">Delete my account</button>
     </div>
   </div>
 </div>
@@ -688,8 +670,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     btn.disabled = true;
     try {
       await fetch('/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
-      msgEl.textContent = 'If that email exists, a reset link is on its way.';
-      msgEl.style.color = 'var(--moss)';
+      window.location.href = '/reset-password?email=' + encodeURIComponent(email) + '&sent=1';
     } catch { msgEl.textContent = 'Connection error. Please try again.'; }
     finally { btn.disabled = false; }
   });

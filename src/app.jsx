@@ -69,14 +69,7 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
                       <span className="plan-badge" id="plan-badge">—</span>
                       <button type="button" className="plan-action-btn" id="plan-action-btn" style={{display:'none'}}></button>
                     </div>
-                    <a href="/dashboard#account" className="user-dropdown-item" onClick={closeDrop}>Account settings</a>
-                    <hr className="user-dropdown-divider"/>
-                    <button type="button" className="user-dropdown-item" onClick={() => { closeDrop(); window.toggle2FA && window.toggle2FA(); }}>
-                      {IC.lock} <span id="twofa-toggle-label">Two-factor auth: Off</span>
-                    </button>
-                    <button type="button" className="user-dropdown-item" style={{color:'var(--rust)'}} onClick={() => { closeDrop(); window.openDeleteModal && window.openDeleteModal(); }}>
-                      {IC.trash} Delete account
-                    </button>
+                    <a href="#" className="user-dropdown-item" data-account-settings onClick={(e) => { e.preventDefault(); closeDrop(); window.openAccountSettings && window.openAccountSettings(); }}>Account settings</a>
                     <hr className="user-dropdown-divider"/>
                     <button type="button" className="user-dropdown-item user-dropdown-logout" onClick={() => { closeDrop(); onLogout(); }}>
                       {IC.logout} Log out
@@ -438,7 +431,7 @@ function AppNav({ view, setView, user, onLogout }) {
                   {IC.spark} Secondary AI
                 </a>
                 )}
-                <a href="/dashboard#account" className="user-dropdown-item">Account settings</a>
+                <a href="#" className="user-dropdown-item" data-account-settings onClick={(e) => { e.preventDefault(); window.openAccountSettings && window.openAccountSettings(); }}>Account settings</a>
                 <hr className="user-dropdown-divider"/>
                 <button className="user-dropdown-item user-dropdown-logout" onClick={onLogout}>
                   {IC.logout} Log out

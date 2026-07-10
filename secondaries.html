@@ -366,32 +366,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
               <span class="plan-badge" id="plan-badge">—</span>
               <button type="button" class="plan-action-btn" id="plan-action-btn" style="display:none"></button>
             </div>
-            <a href="/dashboard#account" class="user-dropdown-item">Account settings</a>
-            <div class="theme-section">
-              <div class="theme-section-hd">
-                <span class="theme-section-lbl">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                  Appearance
-                </span>
-                <button class="theme-reset-btn" id="theme-reset">Reset</button>
-              </div>
-              <div class="theme-presets" id="theme-presets"></div>
-              <div class="theme-custom-grid">
-                <div class="theme-color-row"><label class="tc-label">Background</label><input type="color" class="tc-input" id="tc-bg"/></div>
-                <div class="theme-color-row"><label class="tc-label">Text</label><input type="color" class="tc-input" id="tc-font"/></div>
-                <div class="theme-color-row"><label class="tc-label">Primary</label><input type="color" class="tc-input" id="tc-primary"/></div>
-                <div class="theme-color-row"><label class="tc-label">Accent</label><input type="color" class="tc-input" id="tc-accent"/></div>
-              </div>
-            </div>
-            <hr class="user-dropdown-divider"/>
-            <button class="user-dropdown-item" id="twofa-toggle-btn" onclick="toggle2FA()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-              <span id="twofa-toggle-label">Two-factor auth: Off</span>
-            </button>
-            <button class="user-dropdown-item" style="color:var(--rust)" onclick="openDeleteModal()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-              Delete account
-            </button>
+            <a href="#" class="user-dropdown-item" data-account-settings>Account settings</a>
             <hr class="user-dropdown-divider"/>
             <button class="user-dropdown-item user-dropdown-logout" id="logout-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -585,29 +560,6 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   </div>
 </div>
 
-<div id="delete-account-modal" style="display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:500;align-items:center;justify-content:center;padding:24px">
-  <div style="background:var(--cream);border:1px solid var(--rule);border-radius:16px;padding:32px;max-width:420px;width:100%">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rust)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span style="font-size:16px;font-weight:700;color:var(--rust)">Delete account</span>
-    </div>
-    <p style="font-size:14px;color:var(--graphite);line-height:1.6;margin-bottom:8px">This will permanently delete:</p>
-    <ul style="font-size:13.5px;color:var(--graphite);line-height:1.8;margin:0 0 16px 18px">
-      <li>All your vault files and documents</li>
-      <li>All your secondary outlines</li>
-      <li>Your account and login credentials</li>
-      <li>Your active subscription (if any)</li>
-    </ul>
-    <p style="font-size:13.5px;color:var(--graphite);margin-bottom:14px"><strong>This cannot be undone.</strong> Type <strong>DELETE</strong> to confirm.</p>
-    <input type="text" id="delete-confirm-input" placeholder="Type DELETE here" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font:inherit;font-size:14px;margin-bottom:14px;outline:none"/>
-    <p id="delete-account-error" style="font-size:12.5px;color:var(--rust);min-height:16px;margin-bottom:12px"></p>
-    <div style="display:flex;gap:10px">
-      <button class="btn-secondary btn-sm" style="flex:1" onclick="closeDeleteModal()">Cancel</button>
-      <button class="btn-sm" id="delete-confirm-btn" onclick="confirmDeleteAccount()" style="flex:1;background:var(--rust);color:var(--cream);border-radius:8px;font-weight:600;font-size:13px">Delete my account</button>
-    </div>
-  </div>
-</div>
-
 <div id="auth-overlay">
   <div id="auth-modal">
     <button id="auth-close" aria-label="Close">&#x2715;</button>
@@ -643,13 +595,13 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     </form>
 
     <form id="forgot-form" style="display:none">
-      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">Enter your email and we'll send a reset link.</p>
+      <p style="font-size:13.5px;color:var(--graphite);line-height:1.6;margin-bottom:18px">Enter your email and we'll send a 6-digit verification code to reset your password.</p>
       <div class="auth-field">
         <label for="forgot-email">Email</label>
         <input type="text" id="forgot-email" autocomplete="email" placeholder="your email"/>
       </div>
       <p id="forgot-msg" class="auth-error"></p>
-      <button type="submit" class="auth-submit">Send reset link</button>
+      <button type="submit" class="auth-submit">Send verification code</button>
       <p style="text-align:center;margin-top:10px"><button type="button" onclick="switchAuthForm('login')" style="background:none;border:none;font:inherit;font-size:12.5px;color:var(--stone);cursor:pointer;padding:0">Back to login</button></p>
     </form>
     <form id="signup-form" style="display:none">
@@ -855,8 +807,7 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      msgEl.textContent = 'If that email exists, a reset link is on its way.';
-      msgEl.style.color = 'var(--moss)';
+      window.location.href = '/reset-password?email=' + encodeURIComponent(email) + '&sent=1';
     } catch { msgEl.textContent = 'Connection error. Please try again.'; }
     finally { btn.disabled = false; }
   });

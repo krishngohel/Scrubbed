@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const supabase = require('../supabase');
 const authMiddleware = require('../middleware/auth');
 const rateLimit = require('../middleware/rateLimit');
-const { sendWelcomeEmail, sendOtpEmail } = require('../mailer');
+const { sendEarlyAccessEmail, sendOtpEmail } = require('../mailer');
 
 const router = express.Router();
 
@@ -44,13 +44,28 @@ function firstNameFromFullName(name) {
   return n ? n.split(' ')[0] : '';
 }
 
-async function getFirstName(userId) {
-  const { data } = await supabase.from('profiles').select('first_name').eq('id', userId).single();
-  return (data?.first_name || '').trim();
+function firstNameFromMetadata(meta = {}) {
+  return normalizeFirstName(
+    meta.first_name || meta.given_name || firstNameFromFullName(meta.full_name || meta.name || '')
+  );
 }
 
-async function publicUser(userId, email) {
-  const first_name = await getFirstName(userId);
+async function getFirstName(userId, metaFallback = {}) {
+  const { data, error } = await supabase.from('profiles').select('first_name').eq('id', userId).maybeSingle();
+  if (!error && data?.first_name) return String(data.first_name).trim();
+  if (error) console.error('[profile] getFirstName select:', error.message);
+  const fromMeta = firstNameFromMetadata(metaFallback);
+  if (fromMeta) return fromMeta;
+  try {
+    const { data: authData } = await supabase.auth.admin.getUserById(userId);
+    return firstNameFromMetadata(authData?.user?.user_metadata || {});
+  } catch {
+    return '';
+  }
+}
+
+async function publicUser(userId, email, metaFallback = {}) {
+  const first_name = await getFirstName(userId, metaFallback);
   const safeEmail = email || '';
   return {
     id: userId,
@@ -63,26 +78,151 @@ async function publicUser(userId, email) {
 
 async function upsertFirstName(userId, firstName, { onlyIfEmpty = false } = {}) {
   const fn = normalizeFirstName(firstName);
-  if (!fn) return;
-  const { data } = await supabase.from('profiles').select('id, first_name').eq('id', userId).maybeSingle();
-  if (data) {
-    if (onlyIfEmpty && data.first_name) return;
-    await supabase.from('profiles').update({ first_name: fn }).eq('id', userId);
+  if (!fn) return { ok: false, error: 'First name is required.' };
+
+  let profileOk = false;
+  let profileError = null;
+
+  const { data, error: selErr } = await supabase
+    .from('profiles')
+    .select('id, first_name')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (selErr) {
+    profileError = selErr.message;
+    console.error('[profile] select error:', selErr.message);
+  } else if (data) {
+    if (onlyIfEmpty && data.first_name) {
+      return { ok: true, skipped: true };
+    }
+    const { error } = await supabase.from('profiles').update({ first_name: fn }).eq('id', userId);
+    if (error) {
+      profileError = error.message;
+      console.error('[profile] update error:', error.message);
+    } else {
+      profileOk = true;
+    }
   } else {
-    await supabase.from('profiles').insert({ id: userId, first_name: fn });
+    const { error } = await supabase.from('profiles').insert({ id: userId, first_name: fn });
+    if (error) {
+      profileError = error.message;
+      console.error('[profile] insert error:', error.message);
+    } else {
+      profileOk = true;
+    }
   }
+
+  const { error: metaErr } = await supabase.auth.admin.updateUserById(userId, {
+    user_metadata: { first_name: fn },
+  });
+  if (metaErr) console.error('[profile] metadata update:', metaErr.message);
+
+  if (profileOk || !metaErr) return { ok: true };
+  return {
+    ok: false,
+    error: profileError
+      || metaErr.message
+      || 'Could not save name. Make sure profiles.first_name exists (run schema-updates.sql).',
+  };
 }
 
 async function issueOtp(userId, extra = {}) {
   const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   otpAttempts.delete(userId);
-  await supabase.from('profiles').update({
+  const { error } = await supabase.from('profiles').update({
     otp_code: otp,
     otp_expires_at: expiresAt,
     ...extra,
   }).eq('id', userId);
+  if (error) {
+    console.error('[otp] issue error:', error.message);
+    throw new Error(error.message);
+  }
   return otp;
+}
+
+async function findUserIdByEmail(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return null;
+  try {
+    if (typeof supabase.auth.admin.getUserByEmail === 'function') {
+      const { data, error } = await supabase.auth.admin.getUserByEmail(normalized);
+      if (!error && data?.user?.id) return data.user.id;
+    }
+  } catch { /* fall through */ }
+
+  // Early-access scale: paginate admin list as fallback
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data?.users?.length) break;
+    const found = data.users.find((u) => (u.email || '').toLowerCase() === normalized);
+    if (found) return found.id;
+    if (data.users.length < 200) break;
+  }
+  return null;
+}
+
+async function sendEarlyAccessOnce(userId, email) {
+  if (!userId || !email) return;
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, welcome_email_sent')
+      .eq('id', userId)
+      .maybeSingle();
+    if (data?.welcome_email_sent) return;
+    await sendEarlyAccessEmail(email);
+    if (data) {
+      await supabase.from('profiles').update({ welcome_email_sent: true }).eq('id', userId);
+    } else {
+      await supabase.from('profiles').insert({ id: userId, welcome_email_sent: true });
+    }
+  } catch (err) {
+    console.error('Early access email error:', err.message);
+  }
+}
+
+async function verifyProfileOtp(userId, code) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('otp_code, otp_expires_at')
+    .eq('id', userId)
+    .single();
+
+  if (!profile?.otp_code) {
+    return { ok: false, status: 401, error: 'No pending verification. Request a new code.' };
+  }
+
+  async function clearOtp() {
+    await supabase.from('profiles').update({
+      otp_code: null,
+      otp_expires_at: null,
+    }).eq('id', userId);
+  }
+
+  if (!profile.otp_expires_at || new Date(profile.otp_expires_at) < new Date()) {
+    await clearOtp();
+    otpAttempts.delete(userId);
+    return { ok: false, status: 401, error: 'Code expired. Request a new one.' };
+  }
+
+  if (!safeEqual(profile.otp_code, code)) {
+    const a = otpAttempts.get(userId) || { count: 0 };
+    a.count++;
+    otpAttempts.set(userId, a);
+    if (a.count >= MAX_OTP_ATTEMPTS) {
+      await clearOtp();
+      otpAttempts.delete(userId);
+      return { ok: false, status: 401, error: 'Too many incorrect codes. Request a new one.' };
+    }
+    return { ok: false, status: 401, error: 'Incorrect code.' };
+  }
+
+  otpAttempts.delete(userId);
+  await clearOtp();
+  return { ok: true };
 }
 
 // In-memory OTP attempt tracking: userId -> { count, firstAt }
@@ -139,9 +279,11 @@ router.post('/signup', signupLimiter, async (req, res) => {
 
   if (data?.user?.id) {
     await upsertFirstName(data.user.id, firstName);
+    await sendEarlyAccessOnce(data.user.id, email.trim().toLowerCase());
+  } else {
+    await sendEarlyAccessEmail(email.trim().toLowerCase());
   }
 
-  await sendWelcomeEmail(email.trim().toLowerCase());
   res.status(201).json({ message: 'Account created successfully.' });
 });
 
@@ -271,24 +413,117 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-// ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
+// ── FORGOT PASSWORD (email OTP required) ──────────────────────────────────────
 router.post('/forgot-password', forgotLimiter, async (req, res) => {
-  const email = asString(req.body?.email);
+  const email = asString(req.body?.email).trim().toLowerCase();
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
-  await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-    redirectTo: `${(process.env.APP_URL || '').replace(/\/$/, '')}/reset-password`,
-  });
+  // Always return the same shape to avoid email enumeration
+  const okPayload = {
+    ok: true,
+    requires_code: true,
+    message: 'If that email exists, we sent a verification code.',
+  };
 
-  // Always return success to prevent email enumeration
+  try {
+    const userId = await findUserIdByEmail(email);
+    if (userId) {
+      const { data: profile } = await supabase.from('profiles').select('id').eq('id', userId).maybeSingle();
+      if (!profile) await supabase.from('profiles').insert({ id: userId });
+
+      const otp = await issueOtp(userId, { pending_password_reset: true });
+      await sendOtpEmail(email, otp, 'reset');
+    }
+  } catch (err) {
+    console.error('Forgot password error:', err.message);
+  }
+
+  res.json(okPayload);
+});
+
+const forgotConfirmLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, max: 10,
+  keyFn: req => asString(req.body?.email).trim().toLowerCase(),
+  message: 'Too many verification attempts. Please try again later.',
+});
+
+// ── FORGOT PASSWORD CONFIRM (code + new password) ─────────────────────────────
+router.post('/forgot-password/confirm', forgotConfirmLimiter, async (req, res) => {
+  const email = asString(req.body?.email).trim().toLowerCase();
+  const code = asString(req.body?.code).trim();
+  const newPassword = asString(req.body?.new_password);
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ error: 'Email, verification code, and new password are required.' });
+  }
+  if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: 'Enter the 6-digit code from your email.' });
+  for (const check of passwordChecks) {
+    if (!check.test(newPassword)) return res.status(400).json({ error: check.msg });
+  }
+
+  const userId = await findUserIdByEmail(email);
+  if (!userId) return res.status(401).json({ error: 'Invalid or expired reset request.' });
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('pending_password_reset')
+    .eq('id', userId)
+    .single();
+  if (!profile?.pending_password_reset) {
+    return res.status(401).json({ error: 'No pending password reset. Request a new code.' });
+  }
+
+  const verified = await verifyProfileOtp(userId, code);
+  if (!verified.ok) return res.status(verified.status).json({ error: verified.error });
+
+  const { error } = await supabase.auth.admin.updateUserById(userId, { password: newPassword });
+  await supabase.from('profiles').update({ pending_password_reset: false }).eq('id', userId);
+  if (error) return res.status(500).json({ error: 'Could not update password. Please try again.' });
+
   res.json({ ok: true });
 });
 
-// ── RESET PASSWORD ────────────────────────────────────────────────────────────
+// ── RESET PASSWORD (legacy recovery link + OTP) ───────────────────────────────
 router.post('/reset-password', async (req, res) => {
   const access_token = asString(req.body?.access_token);
   const new_password = asString(req.body?.new_password);
+  const code = asString(req.body?.code).trim();
+  const email = asString(req.body?.email).trim().toLowerCase();
+
+  // Preferred path: email + OTP + new password (no magic link)
+  if (!access_token && email) {
+    req.body.email = email;
+    req.body.code = code;
+    req.body.new_password = new_password;
+    // Reuse confirm handler logic inline
+    if (!code || !new_password) {
+      return res.status(400).json({ error: 'Email, verification code, and new password are required.' });
+    }
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: 'Enter the 6-digit code from your email.' });
+    for (const check of passwordChecks) {
+      if (!check.test(new_password)) return res.status(400).json({ error: check.msg });
+    }
+    const userId = await findUserIdByEmail(email);
+    if (!userId) return res.status(401).json({ error: 'Invalid or expired reset request.' });
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('pending_password_reset')
+      .eq('id', userId)
+      .single();
+    if (!profile?.pending_password_reset) {
+      return res.status(401).json({ error: 'No pending password reset. Request a new code from forgot password.' });
+    }
+    const verified = await verifyProfileOtp(userId, code);
+    if (!verified.ok) return res.status(verified.status).json({ error: verified.error });
+    const { error } = await supabase.auth.admin.updateUserById(userId, { password: new_password });
+    await supabase.from('profiles').update({ pending_password_reset: false }).eq('id', userId);
+    if (error) return res.status(500).json({ error: 'Could not update password. Please try again.' });
+    return res.json({ ok: true });
+  }
+
   if (!access_token || !new_password) return res.status(400).json({ error: 'Missing required fields.' });
+  if (!/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: 'Enter the 6-digit verification code sent to your email.' });
+  }
 
   for (const check of passwordChecks) {
     if (!check.test(new_password)) return res.status(400).json({ error: check.msg });
@@ -297,7 +532,13 @@ router.post('/reset-password', async (req, res) => {
   const { data: { user }, error: userErr } = await supabase.auth.getUser(access_token);
   if (userErr || !user) return res.status(401).json({ error: 'Invalid or expired reset link. Please request a new one.' });
 
+  const verified = await verifyProfileOtp(user.id, code);
+  if (!verified.ok) {
+    return res.status(verified.status).json({ error: verified.error, requires_code: true });
+  }
+
   const { error } = await supabase.auth.admin.updateUserById(user.id, { password: new_password });
+  await supabase.from('profiles').update({ pending_password_reset: false }).eq('id', user.id);
   if (error) return res.status(500).json({ error: 'Could not update password. Please try again.' });
 
   res.json({ ok: true });
@@ -473,8 +714,12 @@ async function ensureGoogleUser(email, name) {
     user_metadata: { full_name: name || '', first_name: firstName, auth_provider: 'google' },
   });
   if (!error) {
-    if (data?.user?.id) await upsertFirstName(data.user.id, firstName);
-    await sendWelcomeEmail(normalized);
+    if (data?.user?.id) {
+      await upsertFirstName(data.user.id, firstName);
+      await sendEarlyAccessOnce(data.user.id, normalized);
+    } else {
+      await sendEarlyAccessEmail(normalized);
+    }
     return data?.user?.id || null;
   }
   const msg = error.message?.toLowerCase() || '';
@@ -491,6 +736,11 @@ async function syncGoogleProfileName(session, fallbackName) {
     const meta = user.user_metadata || {};
     const name = fallbackName || meta.full_name || meta.name || meta.given_name || meta.first_name || '';
     await upsertFirstName(user.id, firstNameFromFullName(name), { onlyIfEmpty: true });
+    // New Google accounts (created in the last few minutes) get early-access email once
+    const createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;
+    if (createdAt && Date.now() - createdAt < 5 * 60 * 1000) {
+      await sendEarlyAccessOnce(user.id, user.email);
+    }
   } catch (err) {
     console.error('Google name sync error:', err.message);
   }
@@ -654,23 +904,43 @@ router.get('/2fa-status', authMiddleware, async (req, res) => {
   res.json({ two_fa_enabled: data?.two_fa_enabled || false });
 });
 
-// ── PROFILE (first name) ──────────────────────────────────────────────────────
-router.patch('/profile', authMiddleware, async (req, res) => {
+// ── PROFILE (first name / display name) ───────────────────────────────────────
+async function saveProfileHandler(req, res) {
   const firstName = normalizeFirstName(req.body?.first_name);
   if (!firstName) return res.status(400).json({ error: 'First name is required.' });
-  await upsertFirstName(req.user.id, firstName);
-  res.json({ ok: true, user: await publicUser(req.user.id, req.user.username) });
-});
-
-// ── CHANGE PASSWORD (logged in) ───────────────────────────────────────────────
-router.post('/change-password', authMiddleware, async (req, res) => {
-  const currentPassword = asString(req.body?.current_password);
-  const newPassword = asString(req.body?.new_password);
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: 'Current and new password are required.' });
+  const result = await upsertFirstName(req.user.id, firstName);
+  if (!result.ok) {
+    return res.status(500).json({
+      error: result.error || 'Could not save name.',
+    });
   }
-  for (const check of passwordChecks) {
-    if (!check.test(newPassword)) return res.status(400).json({ error: check.msg });
+  const user = await publicUser(req.user.id, req.user.username, {
+    ...(req.user.user_metadata || {}),
+    first_name: firstName,
+  });
+  res.json({ ok: true, user });
+}
+router.patch('/profile', authMiddleware, saveProfileHandler);
+router.post('/profile', authMiddleware, saveProfileHandler);
+router.put('/profile', authMiddleware, saveProfileHandler);
+// Alias — some hosts/proxies drop PATCH; POST is the reliable path
+router.post('/display-name', authMiddleware, saveProfileHandler);
+
+// ── CHANGE PASSWORD (requires 2FA + emailed code) ─────────────────────────────
+router.post('/change-password/request', authMiddleware, async (req, res) => {
+  const currentPassword = asString(req.body?.current_password);
+  if (!currentPassword) return res.status(400).json({ error: 'Current password is required.' });
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('two_fa_enabled')
+    .eq('id', req.user.id)
+    .single();
+  if (!profile?.two_fa_enabled) {
+    return res.status(403).json({
+      error: 'Turn on two-factor authentication before changing your password.',
+      requires_2fa: true,
+    });
   }
 
   const { error: signErr } = await supabase.auth.signInWithPassword({
@@ -679,9 +949,61 @@ router.post('/change-password', authMiddleware, async (req, res) => {
   });
   if (signErr) return res.status(401).json({ error: 'Current password is incorrect.' });
 
+  try {
+    const otp = await issueOtp(req.user.id, { pending_password_reset: true });
+    await sendOtpEmail(req.user.username, otp, 'password');
+  } catch (err) {
+    console.error('[change-password] otp:', err.message);
+    return res.status(500).json({ error: 'Could not send verification code. Please try again.' });
+  }
+  res.json({ ok: true, message: 'We sent a verification code to your email.' });
+});
+
+router.post('/change-password/confirm', authMiddleware, confirmLimiter, async (req, res) => {
+  const currentPassword = asString(req.body?.current_password);
+  const newPassword = asString(req.body?.new_password);
+  const code = asString(req.body?.code).trim();
+  if (!currentPassword || !newPassword || !code) {
+    return res.status(400).json({ error: 'Current password, new password, and verification code are required.' });
+  }
+  if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: 'Enter the 6-digit code from your email.' });
+  for (const check of passwordChecks) {
+    if (!check.test(newPassword)) return res.status(400).json({ error: check.msg });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('two_fa_enabled, pending_password_reset')
+    .eq('id', req.user.id)
+    .single();
+  if (!profile?.two_fa_enabled) {
+    return res.status(403).json({ error: 'Two-factor authentication is required to change your password.' });
+  }
+  if (!profile?.pending_password_reset) {
+    return res.status(401).json({ error: 'No pending password change. Request a new code.' });
+  }
+
+  const { error: signErr } = await supabase.auth.signInWithPassword({
+    email: req.user.username,
+    password: currentPassword,
+  });
+  if (signErr) return res.status(401).json({ error: 'Current password is incorrect.' });
+
+  const verified = await verifyProfileOtp(req.user.id, code);
+  if (!verified.ok) return res.status(verified.status).json({ error: verified.error });
+
   const { error } = await supabase.auth.admin.updateUserById(req.user.id, { password: newPassword });
+  await supabase.from('profiles').update({ pending_password_reset: false }).eq('id', req.user.id);
   if (error) return res.status(500).json({ error: 'Could not update password. Please try again.' });
   res.json({ ok: true });
+});
+
+// Back-compat: single-step endpoint no longer allowed
+router.post('/change-password', authMiddleware, async (req, res) => {
+  res.status(400).json({
+    error: 'Password changes require two-factor verification. Request a code first.',
+    requires_2fa_code: true,
+  });
 });
 
 // ── CHANGE EMAIL (requires 2FA + emailed code) ────────────────────────────────
@@ -712,8 +1034,13 @@ router.post('/change-email/request', authMiddleware, async (req, res) => {
   } catch { /* ignore — updateUserById will fail if taken */ }
   if (taken) return res.status(409).json({ error: 'That email is already in use.' });
 
-  const otp = await issueOtp(req.user.id, { pending_email: newEmail });
-  await sendOtpEmail(req.user.username, otp);
+  try {
+    const otp = await issueOtp(req.user.id, { pending_email: newEmail });
+    await sendOtpEmail(req.user.username, otp);
+  } catch (err) {
+    console.error('[change-email] otp:', err.message);
+    return res.status(500).json({ error: 'Could not send verification code. Please try again.' });
+  }
   res.json({ ok: true, message: 'We sent a verification code to your current email.' });
 });
 
@@ -775,41 +1102,186 @@ router.post('/change-email/confirm', authMiddleware, confirmLimiter, async (req,
   res.json({ ok: true, user: await publicUser(req.user.id, newEmail) });
 });
 
-// ── DELETE ACCOUNT ────────────────────────────────────────────────────────────
-router.delete('/account', authMiddleware, async (req, res) => {
+// ── EXPORT ALL DATA ───────────────────────────────────────────────────────────
+router.get('/export', authMiddleware, async (req, res) => {
   const userId = req.user.id;
+  try {
+    const [
+      { data: profile },
+      { data: files },
+      { data: schools },
+      { data: lor },
+    ] = await Promise.all([
+      supabase.from('profiles').select('first_name, subscription_status, plan_type, two_fa_enabled, deletion_scheduled_at').eq('id', userId).single(),
+      supabase.from('files').select('id, name, type, template_id, content, meta, created_at, updated_at').eq('user_id', userId),
+      supabase.from('application_schools').select('*').eq('user_id', userId),
+      supabase.from('lor_writers').select('*').eq('user_id', userId),
+    ]);
 
-  // Delete all user vault files
+    const payload = {
+      exported_at: new Date().toISOString(),
+      account: {
+        id: userId,
+        email: req.user.username,
+        first_name: profile?.first_name || null,
+        subscription_status: profile?.subscription_status || null,
+        plan_type: profile?.plan_type || null,
+      },
+      vault_files: files || [],
+      application_schools: schools || [],
+      lor_writers: lor || [],
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="scrubbed-export.json"');
+    res.json(payload);
+  } catch (err) {
+    console.error('Export error:', err.message);
+    res.status(500).json({ error: 'Could not export data.' });
+  }
+});
+
+// ── HARD DELETE (internal — after 30-day grace) ───────────────────────────────
+async function hardDeleteAccount(userId) {
   await supabase.from('files').delete().eq('user_id', userId);
+  try { await supabase.from('application_schools').delete().eq('user_id', userId); } catch { /* ignore */ }
+  try { await supabase.from('lor_writers').delete().eq('user_id', userId); } catch { /* ignore */ }
+  try { await supabase.from('outlines').delete().eq('user_id', userId); } catch { /* ignore */ }
+  try { await supabase.from('generation_events').delete().eq('user_id', userId); } catch { /* ignore */ }
 
-  // Cancel Stripe subscription if active
   const { data: profile } = await supabase
     .from('profiles')
     .select('stripe_subscription_id')
     .eq('id', userId)
     .single();
 
-  if (profile?.stripe_subscription_id) {
+  if (profile?.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
     try {
       const Stripe = require('stripe');
       const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
       await stripe.subscriptions.cancel(profile.stripe_subscription_id);
     } catch (err) {
-      console.error('[delete-account] Stripe cancel error:', err.message);
+      console.error('[hard-delete] Stripe cancel error:', err.message);
     }
   }
 
-  // Delete profile row
   await supabase.from('profiles').delete().eq('id', userId);
-
-  // Delete auth user (must be last)
   const { error } = await supabase.auth.admin.deleteUser(userId);
-  if (error) {
-    console.error('[delete-account] Auth delete error:', error.message);
-    return res.status(500).json({ error: 'Could not delete account. Please contact support.' });
+  if (error) console.error('[hard-delete] Auth delete error:', error.message);
+  return !error;
+}
+
+// ── SCHEDULE DELETE (30-day grace — keep access + export) ─────────────────────
+router.post('/account/delete', authMiddleware, async (req, res) => {
+  const userId = req.user.id;
+  const confirm = asString(req.body?.confirm).trim();
+  if (confirm !== 'DELETE') {
+    return res.status(400).json({ error: 'Type DELETE to confirm.' });
   }
 
-  res.json({ ok: true });
+  const requestedAt = new Date();
+  const scheduledAt = new Date(requestedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_subscription_id, deletion_scheduled_at')
+    .eq('id', userId)
+    .single();
+
+  if (profile?.deletion_scheduled_at) {
+    return res.json({
+      ok: true,
+      already_scheduled: true,
+      deletion_scheduled_at: profile.deletion_scheduled_at,
+      message: 'Account deletion is already scheduled.',
+    });
+  }
+
+  // End billing at period end if subscribed — access continues during grace
+  if (profile?.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const Stripe = require('stripe');
+      const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+      const sub = await stripe.subscriptions.update(profile.stripe_subscription_id, {
+        cancel_at_period_end: true,
+      });
+      const cancelAt = new Date(sub.current_period_end * 1000).toISOString();
+      await supabase.from('profiles').update({ cancel_at: cancelAt }).eq('id', userId);
+    } catch (err) {
+      console.error('[schedule-delete] Stripe cancel_at_period_end error:', err.message);
+    }
+  }
+
+  await supabase.from('profiles').update({
+    deletion_requested_at: requestedAt.toISOString(),
+    deletion_scheduled_at: scheduledAt.toISOString(),
+  }).eq('id', userId);
+
+  res.json({
+    ok: true,
+    deletion_scheduled_at: scheduledAt.toISOString(),
+    deletion_requested_at: requestedAt.toISOString(),
+    message: 'Your account is scheduled for deletion in 30 days. You can keep using Scrubbed and export your data until then.',
+  });
+});
+
+router.post('/account/cancel-deletion', authMiddleware, async (req, res) => {
+  await supabase.from('profiles').update({
+    deletion_scheduled_at: null,
+    deletion_requested_at: null,
+  }).eq('id', req.user.id);
+  res.json({ ok: true, message: 'Account deletion canceled. Your account will stay active.' });
+});
+
+// Back-compat: DELETE now schedules (does not wipe immediately)
+router.delete('/account', authMiddleware, async (req, res) => {
+  req.body = { ...(req.body || {}), confirm: 'DELETE' };
+  // Inline schedule logic by forwarding
+  const userId = req.user.id;
+  const requestedAt = new Date();
+  const scheduledAt = new Date(requestedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_subscription_id, deletion_scheduled_at')
+    .eq('id', userId)
+    .single();
+
+  if (profile?.deletion_scheduled_at) {
+    return res.json({
+      ok: true,
+      scheduled: true,
+      deletion_scheduled_at: profile.deletion_scheduled_at,
+    });
+  }
+
+  if (profile?.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const Stripe = require('stripe');
+      const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+      const sub = await stripe.subscriptions.update(profile.stripe_subscription_id, {
+        cancel_at_period_end: true,
+      });
+      await supabase.from('profiles').update({
+        cancel_at: new Date(sub.current_period_end * 1000).toISOString(),
+      }).eq('id', userId);
+    } catch (err) {
+      console.error('[schedule-delete] Stripe error:', err.message);
+    }
+  }
+
+  await supabase.from('profiles').update({
+    deletion_requested_at: requestedAt.toISOString(),
+    deletion_scheduled_at: scheduledAt.toISOString(),
+  }).eq('id', userId);
+
+  res.json({
+    ok: true,
+    scheduled: true,
+    deletion_scheduled_at: scheduledAt.toISOString(),
+    message: 'Account scheduled for deletion in 30 days. Export your data anytime before then.',
+  });
 });
 
 module.exports = router;
+module.exports.hardDeleteAccount = hardDeleteAccount;

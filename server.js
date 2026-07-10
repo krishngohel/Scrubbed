@@ -109,12 +109,30 @@ app.use('/tools', require('./routes/tools'));
 app.use('/cycle-ai', require('./routes/cycle-ai'));
 
 app.get('/me', authMiddleware, async (req, res) => {
-  const { data } = await supabase
+  // Purge accounts whose 30-day deletion window has ended
+  const { data: doomed } = await supabase
     .from('profiles')
-    .select('subscription_status, plan_type, first_name, two_fa_enabled')
+    .select('deletion_scheduled_at')
     .eq('id', req.user.id)
     .single();
-  const firstName = (data?.first_name || '').trim();
+  if (doomed?.deletion_scheduled_at && new Date(doomed.deletion_scheduled_at) <= new Date()) {
+    const { hardDeleteAccount } = require('./routes/auth');
+    if (typeof hardDeleteAccount === 'function') {
+      await hardDeleteAccount(req.user.id);
+    }
+    return res.status(401).json({ error: 'Account deleted.', account_deleted: true });
+  }
+
+  const { data } = await supabase
+    .from('profiles')
+    .select('subscription_status, plan_type, first_name, two_fa_enabled, deletion_scheduled_at, deletion_requested_at')
+    .eq('id', req.user.id)
+    .maybeSingle();
+  const meta = req.user.user_metadata || {};
+  const metaName = String(meta.first_name || meta.given_name || '').trim()
+    || String(meta.full_name || meta.name || '').trim().split(/\s+/)[0]
+    || '';
+  const firstName = (data?.first_name || '').trim() || metaName;
   const email = req.user.username;
   res.json({
     id: req.user.id,
@@ -125,6 +143,8 @@ app.get('/me', authMiddleware, async (req, res) => {
     two_fa_enabled: !!data?.two_fa_enabled,
     subscription_status: data?.subscription_status || 'free',
     plan_type: data?.plan_type || null,
+    deletion_scheduled_at: data?.deletion_scheduled_at || null,
+    deletion_requested_at: data?.deletion_requested_at || null,
   });
 });
 

@@ -136,9 +136,74 @@
   status = 404
   force = true
 
-# API routes → Express function
-# Without force = true, Netlify serves real files directly and only
-# falls through to the function when no matching file exists.
+# API routes → Express function (force so POST/PATCH aren't dropped)
+[[redirects]]
+  from = "/auth/*"
+  to = "/.netlify/functions/api/auth/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/me"
+  to = "/.netlify/functions/api/me"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/files/*"
+  to = "/.netlify/functions/api/files/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/vault/*"
+  to = "/.netlify/functions/api/vault/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/stripe/*"
+  to = "/.netlify/functions/api/stripe/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/schools/*"
+  to = "/.netlify/functions/api/schools/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/outlines/*"
+  to = "/.netlify/functions/api/outlines/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tracker/*"
+  to = "/.netlify/functions/api/tracker/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/lor/*"
+  to = "/.netlify/functions/api/lor/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tools/*"
+  to = "/.netlify/functions/api/tools/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/cycle-ai/*"
+  to = "/.netlify/functions/api/cycle-ai/:splat"
+  status = 200
+  force = true
+
+# Static files first; fall through to Express for anything else
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/api/:splat"

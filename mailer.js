@@ -114,25 +114,35 @@ function welcomeHtml(email) {
 </html>`;
 }
 
-async function sendWelcomeEmail(toEmail) {
+async function sendEarlyAccessEmail(toEmail) {
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('[mailer] Email env vars not set — skipping welcome email for', toEmail);
+    console.warn('[mailer] Email env vars not set — skipping early access email for', toEmail);
     return;
   }
   try {
     await transporter.sendMail({
       from:    FROM,
       to:      toEmail,
-      subject: 'Welcome to Scrubbed — you\'re in.',
+      subject: 'You\'re in — Scrubbed early access',
       html:    welcomeHtml(toEmail),
     });
-    console.log('[mailer] Welcome email sent to', toEmail);
+    console.log('[mailer] Early access email sent to', toEmail);
   } catch (err) {
-    console.error('[mailer] Failed to send welcome email to', toEmail, '—', err.message);
+    console.error('[mailer] Failed to send early access email to', toEmail, '—', err.message);
   }
 }
 
-function otpHtml(otp) {
+/** Alias — same early-access welcome email */
+async function sendWelcomeEmail(toEmail) {
+  return sendEarlyAccessEmail(toEmail);
+}
+
+function otpHtml(otp, purpose) {
+  const purposeText = purpose === 'password'
+    ? 'Use this code to confirm your password change. It expires in 10 minutes.'
+    : purpose === 'reset'
+      ? 'Use this code to reset your password. It expires in 10 minutes.'
+      : 'Use this code to complete your sign-in. It expires in 10 minutes.';
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your Scrubbed code</title></head>
@@ -145,7 +155,7 @@ function otpHtml(otp) {
           <table width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr><td style="padding:36px 36px 28px">
               <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#1F1B16">Verification code</h1>
-              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5C544A">Use this code to complete your sign-in. It expires in 10 minutes.</p>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5C544A">${purposeText}</p>
               <div style="background:#F6F1E8;border:1px solid #E5DDCD;border-radius:10px;padding:20px;text-align:center;letter-spacing:0.25em;font-size:32px;font-weight:700;color:#1F1B16;font-family:'Courier New',monospace">${otp}</div>
               <p style="margin:20px 0 0;font-size:12px;color:#A89C8A">If you didn't request this, you can safely ignore this email.</p>
             </td></tr>
@@ -158,7 +168,7 @@ function otpHtml(otp) {
 </body></html>`;
 }
 
-async function sendOtpEmail(toEmail, otp) {
+async function sendOtpEmail(toEmail, otp, purpose) {
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn('[mailer] Email env vars not set — skipping OTP email for', toEmail);
     return;
@@ -168,11 +178,12 @@ async function sendOtpEmail(toEmail, otp) {
       from:    FROM,
       to:      toEmail,
       subject: `${otp} is your Scrubbed verification code`,
-      html:    otpHtml(otp),
+      html:    otpHtml(otp, purpose),
     });
   } catch (err) {
     console.error('[mailer] Failed to send OTP to', toEmail, '—', err.message);
   }
 }
 
-module.exports = { sendWelcomeEmail, sendOtpEmail };
+module.exports = { sendWelcomeEmail, sendEarlyAccessEmail, sendOtpEmail };
+

@@ -3,6 +3,10 @@
 -- Account profile
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS first_name text;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS pending_email text;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS welcome_email_sent boolean NOT NULL DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS pending_password_reset boolean NOT NULL DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS deletion_scheduled_at timestamptz;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS deletion_requested_at timestamptz;
 
 -- Generation metering (Phase 1)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS generations_this_period integer NOT NULL DEFAULT 0;
