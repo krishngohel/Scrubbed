@@ -187,16 +187,19 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
   .health-card{justify-content:flex-start}
 }
 @media(max-width:900px){
-  .nav-links{display:none}
-  .nav-inner{padding:0 16px}
+  .nav-inner{padding:0 16px;gap:12px}
+  .nav-links{gap:14px}
+  .nav-link{font-size:13px}
   .nav-right{margin-left:auto}
 }
 @media(max-width:640px){
-  .nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:100%;z-index:300;overflow-x:clip}
+  .nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:100%;z-index:300;overflow:visible}
   body{padding-top:60px}
-  .nav-inner{padding:0 12px;min-width:0;overflow:hidden}
-  .nav-links{display:none}
-  .nav-right{margin-left:auto;gap:6px}
+  .nav-inner{padding:0 12px;min-width:0;overflow:visible}
+  .nav-links{gap:10px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-link{font-size:12.5px}
+  .nav-right{margin-left:auto;gap:6px;flex-shrink:0}
   .user-menu-wrapper{position:static}
   #user-dropdown{
     position:fixed;top:56px;right:12px;left:12px;width:auto;min-width:0;

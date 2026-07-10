@@ -363,20 +363,23 @@ footer{padding:40px 32px;border-top:1px solid var(--rule);background:var(--paper
   .template-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
 }
 @media (max-width:900px){
-  .nav-links{display:none}
-  .nav-inner{padding:0 16px;gap:10px;min-width:0}
+  .nav-inner{padding:0 16px;gap:12px;min-width:0}
+  .nav-links{gap:14px}
+  .nav-link{font-size:13px}
   .nav-right{margin-left:auto;gap:8px;flex-wrap:nowrap;min-width:0}
   .btn-upload-nav{padding:0 10px;height:36px}
   .nav-right .btn-secondary.btn-sm{padding:0 10px}
 }
 @media (max-width:767px){
-  .nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:100%;z-index:300;overflow-x:clip}
+  .nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:100%;z-index:300;overflow:visible}
   .nav.hidden{transform:none;opacity:1;pointer-events:auto}
   body{padding-top:60px}
-  .nav-inner{padding:0 12px;gap:8px;min-width:0;overflow:hidden}
-  .nav-links{display:none}
+  .nav-inner{padding:0 12px;gap:8px;min-width:0;overflow:visible}
+  .nav-links{gap:10px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-link{font-size:12.5px}
   .nav-user{display:none}
-  .nav-right{margin-left:auto;gap:6px;max-width:calc(100% - 100px)}
+  .nav-right{margin-left:auto;gap:6px;flex-shrink:0}
   .user-menu-wrapper{position:static}
   #user-dropdown{
     position:fixed;top:56px;right:12px;left:12px;width:auto;min-width:0;
@@ -484,14 +487,11 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
 .tc-input::-webkit-color-swatch{border:none;border-radius:3px}
 
 /* Mobile nav/dropdown must come after #user-dropdown base rules */
-@media (max-width:900px){
-  .nav-links{display:none}
-}
 @media (max-width:767px){
-  .nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:100%;z-index:300;overflow-x:clip}
+  .nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:100%;z-index:300;overflow:visible}
   .nav.hidden{transform:none;opacity:1;pointer-events:auto}
   body{padding-top:60px}
-  .nav-inner{overflow:hidden;padding:0 12px}
+  .nav-inner{overflow:visible;padding:0 12px}
   .user-menu-wrapper{position:static}
   #user-dropdown{
     position:fixed !important;top:56px;right:12px;left:12px;width:auto;min-width:0;

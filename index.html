@@ -336,17 +336,20 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
   .feature-inner{gap:40px}
 }
 @media (max-width:900px){
-  .nav-links{display:none}
-  .nav-inner{padding:0 16px;gap:10px}
-  .nav-right{margin-left:auto}
+  .nav-inner{padding:0 16px;gap:12px}
+  .nav-links{gap:14px}
+  .nav-link{font-size:13px}
+  .nav-right{margin-left:auto;gap:8px}
 }
 @media (max-width:767px){
   /* Fixed nav — overflow-x:clip on html/body breaks position:sticky */
-  .nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:100%;z-index:300;overflow-x:clip}
+  .nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:100%;z-index:300;overflow:visible}
   body{padding-top:60px}
-  .nav-inner{padding:0 12px;gap:8px;min-width:0;overflow:hidden}
-  .nav-links{display:none}
-  .nav-right{gap:6px;margin-left:auto;flex-shrink:0;min-width:0;max-width:100%}
+  .nav-inner{padding:0 12px;gap:8px;min-width:0;overflow:visible}
+  .nav-links{gap:10px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-link{font-size:12.5px}
+  .nav-right{gap:6px;margin-left:auto;flex-shrink:0}
   .nav-user{display:none}
   .user-menu-wrapper{position:static}
   .user-dropdown,#user-dropdown{
