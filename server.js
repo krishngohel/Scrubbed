@@ -111,12 +111,18 @@ app.use('/cycle-ai', require('./routes/cycle-ai'));
 app.get('/me', authMiddleware, async (req, res) => {
   const { data } = await supabase
     .from('profiles')
-    .select('subscription_status, plan_type')
+    .select('subscription_status, plan_type, first_name, two_fa_enabled')
     .eq('id', req.user.id)
     .single();
+  const firstName = (data?.first_name || '').trim();
+  const email = req.user.username;
   res.json({
     id: req.user.id,
-    username: req.user.username,
+    username: email,
+    email,
+    first_name: firstName,
+    display_name: firstName || (email ? email.split('@')[0] : 'there'),
+    two_fa_enabled: !!data?.two_fa_enabled,
     subscription_status: data?.subscription_status || 'free',
     plan_type: data?.plan_type || null,
   });

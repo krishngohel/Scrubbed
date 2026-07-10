@@ -364,8 +364,9 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
             </a>
             <div class="plan-row">
               <span class="plan-badge" id="plan-badge">—</span>
-              <button class="plan-action-btn" id="plan-action-btn" style="display:none"></button>
+              <button type="button" class="plan-action-btn" id="plan-action-btn" style="display:none"></button>
             </div>
+            <a href="/dashboard#account" class="user-dropdown-item">Account settings</a>
             <div class="theme-section">
               <div class="theme-section-hd">
                 <span class="theme-section-lbl">
@@ -653,6 +654,10 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
     </form>
     <form id="signup-form" style="display:none">
       <div class="auth-field">
+        <label for="signup-first-name">First name</label>
+        <input type="text" id="signup-first-name" autocomplete="given-name" placeholder="Alex" maxlength="80"/>
+      </div>
+      <div class="auth-field">
         <label for="signup-username">Email</label>
         <input type="text" id="signup-username" autocomplete="username" placeholder="your email"/>
       </div>
@@ -859,14 +864,15 @@ footer{margin-top:80px;padding:40px 0;border-top:1px solid var(--rule)}
   signupForm.addEventListener('submit', async e => {
     e.preventDefault(); signupError.textContent = '';
     const username = document.getElementById('signup-username').value.trim();
+    const first_name = document.getElementById('signup-first-name').value.trim();
     const password = document.getElementById('signup-password').value;
     const confirm = document.getElementById('signup-confirm').value;
-    if (!username || !password) { signupError.textContent = 'All fields are required.'; return; }
+    if (!first_name || !username || !password) { signupError.textContent = 'All fields are required.'; return; }
     if (!allMet(password)) { signupError.textContent = 'Password does not meet all requirements.'; return; }
     if (password !== confirm) { signupError.textContent = 'Passwords do not match.'; return; }
     const btn = signupForm.querySelector('.auth-submit'); btn.disabled = true;
     try {
-      const res = await fetch('/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+      const res = await fetch('/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, first_name }) });
       const data = await res.json();
       if (res.ok) {
         const lr = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });

@@ -1,5 +1,9 @@
 -- Run in Supabase SQL editor. Safe to re-run (IF NOT EXISTS).
 
+-- Account profile
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS first_name text;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS pending_email text;
+
 -- Generation metering (Phase 1)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS generations_this_period integer NOT NULL DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS generation_period_start timestamptz;

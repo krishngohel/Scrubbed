@@ -161,6 +161,20 @@ a{color:inherit;text-decoration:none}
 .manage-toggle span{font-size:12px;font-weight:400;color:var(--graphite,#5C544A)}
 .manage-body{padding:20px 0 0}
 .manage-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.account-section{margin-bottom:28px}
+.account-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.account-card{background:var(--cream,#FBF7EE);border:1px solid var(--rule,#E5DDCD);border-radius:12px;padding:18px 20px}
+.account-card h3{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--ink,#1F1B16)}
+.account-card p{font-size:12.5px;color:var(--graphite,#5C544A);line-height:1.45;margin-bottom:14px}
+.account-field{margin-bottom:10px}
+.account-field label{display:block;font-size:11.5px;font-weight:500;color:var(--stone,#A89C8A);margin-bottom:5px;letter-spacing:.02em}
+.account-field input{width:100%;height:38px;padding:0 12px;border:1px solid var(--rule,#E5DDCD);border-radius:8px;background:var(--paper,#F6F1E8);font:inherit;font-size:13.5px;color:var(--ink,#1F1B16);box-sizing:border-box}
+.account-field input:focus{outline:none;border-color:var(--clay,#B5563A)}
+.account-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.account-msg{font-size:12.5px;min-height:16px;margin-top:8px;color:var(--graphite,#5C544A)}
+.account-msg.is-error{color:var(--rust,#8B3A2E)}
+.account-msg.is-ok{color:var(--moss,#5A6E4A)}
+@media(max-width:900px){.account-grid{grid-template-columns:1fr}}
 .widget{background:var(--cream,#FBF7EE);border-radius:14px;padding:20px 22px;border:1px solid var(--rule,#E5DDCD)}
 .widget.span-2{grid-column:1/-1}
 .widget-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
@@ -237,8 +251,9 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
             <a href="/secondaries" class="user-dropdown-item nav-auth-only" hidden>Secondary AI</a>
             <div class="plan-row">
               <span class="plan-badge" id="plan-badge">—</span>
-              <button class="plan-action-btn" id="plan-action-btn" style="display:none"></button>
+              <button type="button" class="plan-action-btn" id="plan-action-btn" style="display:none"></button>
             </div>
+            <a href="#account" class="user-dropdown-item" id="account-settings-link">Account settings</a>
             <div class="theme-section">
               <div class="theme-presets" id="theme-presets"></div>
               <div class="theme-custom-grid">
@@ -401,6 +416,72 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
       </div>
     </section>
   </div>
+
+  <details class="manage-section account-section" id="account" open>
+    <summary class="manage-toggle">Account <span>Name, email, password &amp; plan</span></summary>
+    <div class="manage-body">
+      <div class="account-grid">
+        <div class="account-card">
+          <h3>Display name</h3>
+          <p>Shown on your dashboard instead of your email.</p>
+          <div class="account-field">
+            <label for="acct-first-name">First name</label>
+            <input id="acct-first-name" type="text" autocomplete="given-name" placeholder="Alex" maxlength="80"/>
+          </div>
+          <div class="account-actions">
+            <button type="button" class="btn-primary" id="acct-save-name">Save name</button>
+          </div>
+          <div class="account-msg" id="acct-name-msg"></div>
+        </div>
+        <div class="account-card">
+          <h3>Email</h3>
+          <p>Requires two-factor auth. We’ll email a code to your current address.</p>
+          <div class="account-field">
+            <label for="acct-email-current">Current email</label>
+            <input id="acct-email-current" type="email" disabled/>
+          </div>
+          <div class="account-field">
+            <label for="acct-email-new">New email</label>
+            <input id="acct-email-new" type="email" autocomplete="email" placeholder="new@email.com"/>
+          </div>
+          <div class="account-field" id="acct-email-code-wrap" style="display:none">
+            <label for="acct-email-code">Verification code</label>
+            <input id="acct-email-code" type="text" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"/>
+          </div>
+          <div class="account-actions">
+            <button type="button" class="btn-primary" id="acct-email-request">Send code</button>
+            <button type="button" class="btn-secondary" id="acct-email-confirm" style="display:none">Confirm change</button>
+          </div>
+          <div class="account-msg" id="acct-email-msg"></div>
+        </div>
+        <div class="account-card">
+          <h3>Password</h3>
+          <p>Change your password while signed in. Google-only accounts should use “Forgot password” first if they never set one.</p>
+          <div class="account-field">
+            <label for="acct-pw-current">Current password</label>
+            <input id="acct-pw-current" type="password" autocomplete="current-password"/>
+          </div>
+          <div class="account-field">
+            <label for="acct-pw-new">New password</label>
+            <input id="acct-pw-new" type="password" autocomplete="new-password"/>
+          </div>
+          <div class="account-actions">
+            <button type="button" class="btn-primary" id="acct-save-password">Update password</button>
+          </div>
+          <div class="account-msg" id="acct-pw-msg"></div>
+        </div>
+        <div class="account-card">
+          <h3>Plan &amp; billing</h3>
+          <p id="acct-plan-summary">Loading plan…</p>
+          <div class="account-actions">
+            <button type="button" class="btn-primary" id="acct-manage-plan">Manage plan</button>
+            <a class="btn-secondary" href="/#pricing">View pricing</a>
+          </div>
+          <div class="account-msg" id="acct-plan-msg"></div>
+        </div>
+      </div>
+    </div>
+  </details>
 
   <details class="manage-section" id="manage-section">
     <summary class="manage-toggle">Manage schools &amp; letters <span>Edit tracker data</span></summary>
@@ -866,19 +947,130 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
         const r = await fetch('/me', { headers: hdr() });
         if (r.ok) {
           const u = await r.json();
+          const display = u.display_name || u.first_name || (u.email || u.username || '').split('@')[0] || 'Your';
           document.getElementById('dash-greeting').textContent = greeting();
-          document.getElementById('dash-title').textContent = u.username + "'s cycle";
+          document.getElementById('dash-title').textContent = display + "'s cycle";
           document.getElementById('nav-user-btn').classList.add('visible');
-          document.getElementById('nav-user-btn').textContent = u.username[0].toUpperCase();
-          document.getElementById('dropdown-username').textContent = u.username;
+          document.getElementById('nav-user-btn').textContent = display[0].toUpperCase();
+          document.getElementById('dropdown-username').textContent = display;
+          fillAccountForm(u);
+          if (window.AccountMenu) window.AccountMenu.applyUserToUi(u);
         }
       } catch {}
       if (window.AccountMenu) window.AccountMenu.refresh();
-      await Promise.all([loadTracker(), loadReadiness(), loadUsage()]);
+      bindAccountForms();
+      await Promise.all([loadTracker(), loadReadiness(), loadUsage(), refreshAccountPlan()]);
+      if (location.hash === '#account') {
+        const acct = document.getElementById('account');
+        if (acct) { acct.open = true; acct.scrollIntoView({ behavior: 'smooth' }); }
+      }
     } else {
       renderDashboard([], []);
+      document.getElementById('account').style.display = 'none';
     }
     searchPrompts();
+  }
+
+  function fillAccountForm(u) {
+    const nameEl = document.getElementById('acct-first-name');
+    const emailEl = document.getElementById('acct-email-current');
+    if (nameEl) nameEl.value = u.first_name || '';
+    if (emailEl) emailEl.value = u.email || u.username || '';
+  }
+
+  function setMsg(id, text, ok) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'account-msg' + (text ? (ok ? ' is-ok' : ' is-error') : '');
+  }
+
+  async function refreshAccountPlan() {
+    const summary = document.getElementById('acct-plan-summary');
+    if (!summary || !loggedIn()) return;
+    try {
+      const res = await fetch('/stripe/status', { headers: hdr() });
+      if (!res.ok) { summary.textContent = 'Could not load plan.'; return; }
+      const d = await res.json();
+      const label = d.status === 'pro'
+        ? (d.plan_type === 'starter' ? 'Starter' : d.plan_type === 'annual' ? 'Pro Annual' : d.plan_type === 'cycle' ? 'Cycle Pass' : 'Pro')
+        : 'Free';
+      let text = 'You’re on ' + label;
+      if (d.status === 'pro' && d.cancel_at) text += ' · ends ' + fmtDate(d.cancel_at);
+      else if (d.status === 'pro' && d.renews_at) text += ' · renews ' + fmtDate(d.renews_at);
+      summary.textContent = text;
+    } catch { summary.textContent = 'Could not load plan.'; }
+  }
+
+  function bindAccountForms() {
+    const manageBtn = document.getElementById('acct-manage-plan');
+    if (manageBtn) manageBtn.onclick = () => window.openManagePlan && window.openManagePlan();
+
+    document.getElementById('acct-save-name').onclick = async () => {
+      const first_name = document.getElementById('acct-first-name').value.trim();
+      setMsg('acct-name-msg', '');
+      if (!first_name) { setMsg('acct-name-msg', 'Enter a first name.'); return; }
+      try {
+        const res = await fetch('/auth/profile', { method: 'PATCH', headers: hdr(), body: JSON.stringify({ first_name }) });
+        const d = await res.json();
+        if (!res.ok) { setMsg('acct-name-msg', d.error || 'Could not save.'); return; }
+        setMsg('acct-name-msg', 'Name updated.', true);
+        fillAccountForm(d.user);
+        const display = d.user.display_name || first_name;
+        document.getElementById('dash-title').textContent = display + "'s cycle";
+        document.getElementById('nav-user-btn').textContent = display[0].toUpperCase();
+        document.getElementById('dropdown-username').textContent = display;
+        if (window.AccountMenu) window.AccountMenu.applyUserToUi(d.user);
+      } catch { setMsg('acct-name-msg', 'Could not save.'); }
+    };
+
+    document.getElementById('acct-email-request').onclick = async () => {
+      const new_email = document.getElementById('acct-email-new').value.trim();
+      setMsg('acct-email-msg', '');
+      try {
+        const res = await fetch('/auth/change-email/request', { method: 'POST', headers: hdr(), body: JSON.stringify({ new_email }) });
+        const d = await res.json();
+        if (!res.ok) {
+          setMsg('acct-email-msg', d.error || 'Could not send code.');
+          if (d.requires_2fa) setMsg('acct-email-msg', d.error + ' Use the account menu to enable 2FA.');
+          return;
+        }
+        document.getElementById('acct-email-code-wrap').style.display = '';
+        document.getElementById('acct-email-confirm').style.display = '';
+        setMsg('acct-email-msg', 'Code sent to your current email.', true);
+      } catch { setMsg('acct-email-msg', 'Could not send code.'); }
+    };
+
+    document.getElementById('acct-email-confirm').onclick = async () => {
+      const code = document.getElementById('acct-email-code').value.trim();
+      setMsg('acct-email-msg', '');
+      try {
+        const res = await fetch('/auth/change-email/confirm', { method: 'POST', headers: hdr(), body: JSON.stringify({ code }) });
+        const d = await res.json();
+        if (!res.ok) { setMsg('acct-email-msg', d.error || 'Could not update email.'); return; }
+        setMsg('acct-email-msg', 'Email updated. Sign in again if prompted.', true);
+        fillAccountForm(d.user);
+        document.getElementById('acct-email-new').value = '';
+        document.getElementById('acct-email-code').value = '';
+        document.getElementById('acct-email-code-wrap').style.display = 'none';
+        document.getElementById('acct-email-confirm').style.display = 'none';
+        if (window.AccountMenu) window.AccountMenu.applyUserToUi(d.user);
+      } catch { setMsg('acct-email-msg', 'Could not update email.'); }
+    };
+
+    document.getElementById('acct-save-password').onclick = async () => {
+      const current_password = document.getElementById('acct-pw-current').value;
+      const new_password = document.getElementById('acct-pw-new').value;
+      setMsg('acct-pw-msg', '');
+      try {
+        const res = await fetch('/auth/change-password', { method: 'POST', headers: hdr(), body: JSON.stringify({ current_password, new_password }) });
+        const d = await res.json();
+        if (!res.ok) { setMsg('acct-pw-msg', d.error || 'Could not update password.'); return; }
+        setMsg('acct-pw-msg', 'Password updated.', true);
+        document.getElementById('acct-pw-current').value = '';
+        document.getElementById('acct-pw-new').value = '';
+      } catch { setMsg('acct-pw-msg', 'Could not update password.'); }
+    };
   }
 
   init();

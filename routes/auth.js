@@ -35,6 +35,56 @@ const passwordChecks = [
   { test: p => /[^A-Za-z0-9]/.test(p),  msg: 'Password must contain a special character (!@#$…).' },
 ];
 
+function normalizeFirstName(v) {
+  return asString(v).trim().replace(/\s+/g, ' ').slice(0, 80);
+}
+
+function firstNameFromFullName(name) {
+  const n = normalizeFirstName(name);
+  return n ? n.split(' ')[0] : '';
+}
+
+async function getFirstName(userId) {
+  const { data } = await supabase.from('profiles').select('first_name').eq('id', userId).single();
+  return (data?.first_name || '').trim();
+}
+
+async function publicUser(userId, email) {
+  const first_name = await getFirstName(userId);
+  const safeEmail = email || '';
+  return {
+    id: userId,
+    username: safeEmail,
+    email: safeEmail,
+    first_name,
+    display_name: first_name || (safeEmail ? safeEmail.split('@')[0] : 'there'),
+  };
+}
+
+async function upsertFirstName(userId, firstName, { onlyIfEmpty = false } = {}) {
+  const fn = normalizeFirstName(firstName);
+  if (!fn) return;
+  const { data } = await supabase.from('profiles').select('id, first_name').eq('id', userId).maybeSingle();
+  if (data) {
+    if (onlyIfEmpty && data.first_name) return;
+    await supabase.from('profiles').update({ first_name: fn }).eq('id', userId);
+  } else {
+    await supabase.from('profiles').insert({ id: userId, first_name: fn });
+  }
+}
+
+async function issueOtp(userId, extra = {}) {
+  const otp = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  otpAttempts.delete(userId);
+  await supabase.from('profiles').update({
+    otp_code: otp,
+    otp_expires_at: expiresAt,
+    ...extra,
+  }).eq('id', userId);
+  return otp;
+}
+
 // In-memory OTP attempt tracking: userId -> { count, firstAt }
 // (See middleware/rateLimit.js note about serverless instances.)
 const MAX_OTP_ATTEMPTS = 5;
@@ -63,6 +113,8 @@ const confirmLimiter = rateLimit({
 router.post('/signup', signupLimiter, async (req, res) => {
   const email = asString(req.body?.username);
   const password = asString(req.body?.password);
+  const firstName = normalizeFirstName(req.body?.first_name);
+  if (!firstName) return res.status(400).json({ error: 'First name is required.' });
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
   if (!isValidEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
 
@@ -70,10 +122,11 @@ router.post('/signup', signupLimiter, async (req, res) => {
     if (!check.test(password)) return res.status(400).json({ error: check.msg });
   }
 
-  const { error } = await supabase.auth.admin.createUser({
+  const { data, error } = await supabase.auth.admin.createUser({
     email: email.trim().toLowerCase(),
     password,
     email_confirm: true,
+    user_metadata: { first_name: firstName },
   });
 
   if (error) {
@@ -82,6 +135,10 @@ router.post('/signup', signupLimiter, async (req, res) => {
     }
     console.error('Signup error:', error);
     return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+
+  if (data?.user?.id) {
+    await upsertFirstName(data.user.id, firstName);
   }
 
   await sendWelcomeEmail(email.trim().toLowerCase());
@@ -124,7 +181,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   res.json({
     token: data.session.access_token,
     refresh_token: data.session.refresh_token,
-    user: { id: data.user.id, username: data.user.email },
+    user: await publicUser(data.user.id, data.user.email),
   });
 });
 
@@ -178,7 +235,7 @@ router.post('/verify-2fa', otpLimiter, async (req, res) => {
   res.json({
     token: profile.pending_token,
     refresh_token: profile.pending_refresh_token,
-    user: { id: userId, username: user?.email || '' },
+    user: await publicUser(userId, user?.email || ''),
   });
 });
 
@@ -206,7 +263,7 @@ router.post('/refresh', async (req, res) => {
     res.json({
       token: session.access_token,
       refresh_token: session.refresh_token,
-      user: { id: user.id, username: user.email },
+      user: await publicUser(user.id, user.email),
     });
   } catch (err) {
     console.error('Refresh error:', err);
@@ -409,18 +466,34 @@ async function sessionForEmail(email) {
 
 async function ensureGoogleUser(email, name) {
   const normalized = email.trim().toLowerCase();
-  const { error } = await supabase.auth.admin.createUser({
+  const firstName = firstNameFromFullName(name);
+  const { data, error } = await supabase.auth.admin.createUser({
     email: normalized,
     email_confirm: true,
-    user_metadata: { full_name: name || '', auth_provider: 'google' },
+    user_metadata: { full_name: name || '', first_name: firstName, auth_provider: 'google' },
   });
   if (!error) {
+    if (data?.user?.id) await upsertFirstName(data.user.id, firstName);
     await sendWelcomeEmail(normalized);
-    return;
+    return data?.user?.id || null;
   }
   const msg = error.message?.toLowerCase() || '';
-  if (msg.includes('already') || msg.includes('registered')) return;
+  if (msg.includes('already') || msg.includes('registered')) return null;
   throw error;
+}
+
+async function syncGoogleProfileName(session, fallbackName) {
+  try {
+    const access = session?.access_token;
+    if (!access) return;
+    const { data: { user } } = await supabase.auth.getUser(access);
+    if (!user?.id) return;
+    const meta = user.user_metadata || {};
+    const name = fallbackName || meta.full_name || meta.name || meta.given_name || meta.first_name || '';
+    await upsertFirstName(user.id, firstNameFromFullName(name), { onlyIfEmpty: true });
+  } catch (err) {
+    console.error('Google name sync error:', err.message);
+  }
 }
 
 function startSupabaseGoogleOAuth(req, res) {
@@ -481,6 +554,7 @@ router.get('/oauth-callback', async (req, res) => {
 
   try {
     const session = await exchangeSupabasePkce(String(code), verifier);
+    await syncGoogleProfileName(session, '');
     res.send(oauthResultPage({
       ok: true,
       access: session.access_token,
@@ -548,6 +622,7 @@ router.get('/google/callback', async (req, res) => {
       await ensureGoogleUser(email, name);
       session = await sessionForEmail(email);
     }
+    await syncGoogleProfileName(session, name);
 
     res.send(oauthResultPage({
       ok: true,
@@ -577,6 +652,127 @@ router.post('/disable-2fa', authMiddleware, async (req, res) => {
 router.get('/2fa-status', authMiddleware, async (req, res) => {
   const { data } = await supabase.from('profiles').select('two_fa_enabled').eq('id', req.user.id).single();
   res.json({ two_fa_enabled: data?.two_fa_enabled || false });
+});
+
+// ── PROFILE (first name) ──────────────────────────────────────────────────────
+router.patch('/profile', authMiddleware, async (req, res) => {
+  const firstName = normalizeFirstName(req.body?.first_name);
+  if (!firstName) return res.status(400).json({ error: 'First name is required.' });
+  await upsertFirstName(req.user.id, firstName);
+  res.json({ ok: true, user: await publicUser(req.user.id, req.user.username) });
+});
+
+// ── CHANGE PASSWORD (logged in) ───────────────────────────────────────────────
+router.post('/change-password', authMiddleware, async (req, res) => {
+  const currentPassword = asString(req.body?.current_password);
+  const newPassword = asString(req.body?.new_password);
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current and new password are required.' });
+  }
+  for (const check of passwordChecks) {
+    if (!check.test(newPassword)) return res.status(400).json({ error: check.msg });
+  }
+
+  const { error: signErr } = await supabase.auth.signInWithPassword({
+    email: req.user.username,
+    password: currentPassword,
+  });
+  if (signErr) return res.status(401).json({ error: 'Current password is incorrect.' });
+
+  const { error } = await supabase.auth.admin.updateUserById(req.user.id, { password: newPassword });
+  if (error) return res.status(500).json({ error: 'Could not update password. Please try again.' });
+  res.json({ ok: true });
+});
+
+// ── CHANGE EMAIL (requires 2FA + emailed code) ────────────────────────────────
+router.post('/change-email/request', authMiddleware, async (req, res) => {
+  const newEmail = asString(req.body?.new_email).trim().toLowerCase();
+  if (!isValidEmail(newEmail)) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  if (newEmail === req.user.username) return res.status(400).json({ error: 'That is already your email.' });
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('two_fa_enabled')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!profile?.two_fa_enabled) {
+    return res.status(403).json({
+      error: 'Turn on two-factor authentication before changing your email.',
+      requires_2fa: true,
+    });
+  }
+
+  let taken = false;
+  try {
+    if (typeof supabase.auth.admin.getUserByEmail === 'function') {
+      const { data: byEmail, error: byErr } = await supabase.auth.admin.getUserByEmail(newEmail);
+      if (!byErr && byEmail?.user && byEmail.user.id !== req.user.id) taken = true;
+    }
+  } catch { /* ignore — updateUserById will fail if taken */ }
+  if (taken) return res.status(409).json({ error: 'That email is already in use.' });
+
+  const otp = await issueOtp(req.user.id, { pending_email: newEmail });
+  await sendOtpEmail(req.user.username, otp);
+  res.json({ ok: true, message: 'We sent a verification code to your current email.' });
+});
+
+router.post('/change-email/confirm', authMiddleware, confirmLimiter, async (req, res) => {
+  const code = asString(req.body?.code).trim();
+  if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: 'Enter the 6-digit code from your email.' });
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('otp_code, otp_expires_at, pending_email, two_fa_enabled')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!profile?.two_fa_enabled) {
+    return res.status(403).json({ error: 'Two-factor authentication is required to change email.' });
+  }
+  if (!profile?.otp_code || !profile?.pending_email) {
+    return res.status(401).json({ error: 'No pending email change. Request a new code.' });
+  }
+
+  async function clearPending() {
+    await supabase.from('profiles').update({
+      otp_code: null,
+      otp_expires_at: null,
+      pending_email: null,
+    }).eq('id', req.user.id);
+  }
+
+  if (!profile.otp_expires_at || new Date(profile.otp_expires_at) < new Date()) {
+    await clearPending();
+    otpAttempts.delete(req.user.id);
+    return res.status(401).json({ error: 'Code expired. Request a new one.' });
+  }
+
+  if (!safeEqual(profile.otp_code, code)) {
+    const a = otpAttempts.get(req.user.id) || { count: 0 };
+    a.count++;
+    otpAttempts.set(req.user.id, a);
+    if (a.count >= MAX_OTP_ATTEMPTS) {
+      await clearPending();
+      otpAttempts.delete(req.user.id);
+      return res.status(401).json({ error: 'Too many incorrect codes. Request a new one.' });
+    }
+    return res.status(401).json({ error: 'Incorrect code.' });
+  }
+
+  const newEmail = profile.pending_email.trim().toLowerCase();
+  const { error } = await supabase.auth.admin.updateUserById(req.user.id, {
+    email: newEmail,
+    email_confirm: true,
+  });
+  if (error) {
+    console.error('Change email error:', error.message);
+    return res.status(500).json({ error: error.message || 'Could not update email.' });
+  }
+
+  otpAttempts.delete(req.user.id);
+  await clearPending();
+  res.json({ ok: true, user: await publicUser(req.user.id, newEmail) });
 });
 
 // ── DELETE ACCOUNT ────────────────────────────────────────────────────────────

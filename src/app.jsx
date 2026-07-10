@@ -35,6 +35,9 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
   }, [user]);
 
   const closeDrop = () => setDropOpen(false);
+  const display = user
+    ? (user.display_name || user.first_name || (user.username || '').split('@')[0] || user.username)
+    : '';
 
   return (
     <nav className="nav">
@@ -48,15 +51,15 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
         <div className="nav-right">
           {user ? (
             <>
-              <span className="nav-user">{user.username}</span>
+              <span className="nav-user">{display}</span>
               <div className="user-menu-wrapper" ref={wrapRef}>
                 <div className="nav-avatar" onClick={() => setDropOpen(o => !o)}>
-                  {user.username[0].toUpperCase()}
+                  {(display || '?')[0].toUpperCase()}
                 </div>
                 <div id="user-dropdown" className={cx('user-dropdown', dropOpen && 'open')}>
                   <div className="user-dropdown-header">
-                    <div className="user-dropdown-greeting">Signed in as</div>
-                    <div className="user-dropdown-username">{user.username}</div>
+                    <div className="user-dropdown-greeting">{user.email || user.username || 'Signed in as'}</div>
+                    <div className="user-dropdown-username">{display}</div>
                   </div>
                   <div className="user-dropdown-list">
                     <a href="/vault" className="user-dropdown-item">{IC.vault} My Vault</a>
@@ -64,8 +67,9 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
                     {user && <a href="/secondaries" className="user-dropdown-item">{IC.spark} Secondary AI</a>}
                     <div className="plan-row">
                       <span className="plan-badge" id="plan-badge">—</span>
-                      <button className="plan-action-btn" id="plan-action-btn" style={{display:'none'}}></button>
+                      <button type="button" className="plan-action-btn" id="plan-action-btn" style={{display:'none'}}></button>
                     </div>
+                    <a href="/dashboard#account" className="user-dropdown-item" onClick={closeDrop}>Account settings</a>
                     <hr className="user-dropdown-divider"/>
                     <button type="button" className="user-dropdown-item" onClick={() => { closeDrop(); window.toggle2FA && window.toggle2FA(); }}>
                       {IC.lock} <span id="twofa-toggle-label">Two-factor auth: Off</span>
@@ -399,7 +403,10 @@ function AppNav({ view, setView, user, onLogout }) {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  const initial = user?.username?.[0]?.toUpperCase() || '?';
+  const display = user
+    ? (user.display_name || user.first_name || (user.username || '').split('@')[0] || user.username)
+    : '';
+  const initial = (display || '?')[0].toUpperCase();
 
   return (
     <nav className="nav nav--app">
@@ -411,13 +418,13 @@ function AppNav({ view, setView, user, onLogout }) {
           {user && <a className="nav-link" href="/secondaries">Secondary AI</a>}
         </div>
         <div className="nav-right">
-          {user && <span className="nav-user">{user.username}</span>}
+          {user && <span className="nav-user">{display}</span>}
           <div className="user-menu-wrapper" ref={wrapRef}>
             <div className="nav-avatar" onClick={()=>setDropOpen(o=>!o)}>{initial}</div>
             <div className={cx('user-dropdown', dropOpen && 'open')}>
               <div className="user-dropdown-header">
-                <div className="user-dropdown-greeting">Signed in as</div>
-                <div className="user-dropdown-username">{user?.username}</div>
+                <div className="user-dropdown-greeting">{user?.email || user?.username || 'Signed in as'}</div>
+                <div className="user-dropdown-username">{display}</div>
               </div>
               <div className="user-dropdown-list">
                 <a href="/vault" className="user-dropdown-item">
@@ -431,6 +438,7 @@ function AppNav({ view, setView, user, onLogout }) {
                   {IC.spark} Secondary AI
                 </a>
                 )}
+                <a href="/dashboard#account" className="user-dropdown-item">Account settings</a>
                 <hr className="user-dropdown-divider"/>
                 <button className="user-dropdown-item user-dropdown-logout" onClick={onLogout}>
                   {IC.logout} Log out
@@ -593,7 +601,16 @@ function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    window.__scrubbedLogin = (username) => { setUser({ username }); };
+    window.__scrubbedLogin = (u) => {
+      if (u && typeof u === 'object') setUser(u);
+      else if (typeof u === 'string') {
+        setUser({
+          username: u,
+          email: u,
+          display_name: u.includes('@') ? u.split('@')[0] : u,
+        });
+      }
+    };
     window.__scrubbedLogout = () => { setUser(null); };
     if (window._checkSession) window._checkSession();
   }, []);

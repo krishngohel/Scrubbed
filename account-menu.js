@@ -1,4 +1,4 @@
-/* Shared account dropdown: plan, theme, 2FA, delete account */
+/* Shared account dropdown: plan, theme, 2FA, delete account, billing */
 (function (global) {
   'use strict';
 
@@ -51,6 +51,7 @@
       presetsEl.dataset.ready = '1';
       global.THEME_PRESETS.forEach((p, i) => {
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = 'theme-preset';
         btn.title = p.name;
         btn.style.background = `linear-gradient(135deg,${p.primary} 50%,${p.accent} 50%)`;
@@ -97,12 +98,24 @@
     } catch { /* ignore */ }
   }
 
+  function planLabel(planType) {
+    return planType === 'starter' ? 'Starter'
+      : planType === 'annual' ? 'Pro Annual'
+      : planType === 'cycle' ? 'Cycle Pass'
+      : planType === 'monthly' ? 'Pro'
+      : 'Pro';
+  }
+
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   async function reactivatePlan() {
     if (!token()) return;
     try {
       const res = await fetch('/stripe/reactivate', { method: 'POST', headers: authHeaders() });
       const d = await res.json();
-      if (d.ok) { notify('Subscription reactivated'); loadPlanStatus(); }
+      if (d.ok) { notify('Subscription reactivated'); loadPlanStatus(); closeManagePlanModal(); }
       else notify(d.error || 'Could not reactivate.');
     } catch { notify('Error reactivating plan.'); }
   }
@@ -121,6 +134,98 @@
     } catch { notify('Could not open billing portal.'); }
   };
 
+  async function cancelPlan() {
+    if (!token()) return;
+    if (!global.confirm('Cancel at the end of your billing period? You keep access until then.')) return;
+    try {
+      const res = await fetch('/stripe/cancel', { method: 'POST', headers: authHeaders() });
+      const d = await res.json();
+      if (res.ok) {
+        notify(d.cancel_at ? 'Canceled — access until ' + fmtDate(d.cancel_at) : 'Subscription set to cancel.');
+        loadPlanStatus();
+        closeManagePlanModal();
+      } else notify(d.error || 'Could not cancel.');
+    } catch { notify('Could not cancel subscription.'); }
+  }
+
+  function ensureManagePlanModal() {
+    if (document.getElementById('manage-plan-modal')) return;
+    const el = document.createElement('div');
+    el.id = 'manage-plan-modal';
+    el.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(31,27,22,0.5);z-index:900;align-items:center;justify-content:center;padding:24px';
+    el.innerHTML = `
+      <div style="background:var(--cream,#FBF7EE);border:1px solid var(--rule,#E5DDCD);border-radius:16px;padding:28px;max-width:420px;width:100%;box-shadow:0 16px 48px rgba(31,27,22,0.16)">
+        <div style="font-size:17px;font-weight:700;color:var(--ink,#1F1B16);margin-bottom:6px">Manage plan</div>
+        <p id="manage-plan-summary" style="font-size:13.5px;color:var(--graphite,#5C544A);line-height:1.55;margin-bottom:18px"></p>
+        <div id="manage-plan-actions" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button type="button" id="manage-plan-close" style="margin-top:14px;width:100%;height:36px;background:transparent;border:1px solid var(--rule,#E5DDCD);border-radius:8px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink,#1F1B16)">Close</button>
+      </div>`;
+    el.addEventListener('click', (e) => { if (e.target === el) closeManagePlanModal(); });
+    document.body.appendChild(el);
+    document.getElementById('manage-plan-close').onclick = closeManagePlanModal;
+  }
+
+  function closeManagePlanModal() {
+    const m = document.getElementById('manage-plan-modal');
+    if (m) m.style.display = 'none';
+  }
+
+  global.openManagePlan = async function openManagePlan() {
+    if (!token()) { notify('Sign in first'); return; }
+    closeDropdown();
+    ensureManagePlanModal();
+    const modal = document.getElementById('manage-plan-modal');
+    const summary = document.getElementById('manage-plan-summary');
+    const actions = document.getElementById('manage-plan-actions');
+    summary.textContent = 'Loading…';
+    actions.innerHTML = '';
+    modal.style.display = 'flex';
+
+    let d = null;
+    try {
+      const res = await fetch('/stripe/status', { headers: authHeaders() });
+      if (res.ok) d = await res.json();
+    } catch { /* ignore */ }
+
+    if (!d) {
+      summary.textContent = 'Could not load plan status.';
+      return;
+    }
+
+    const label = d.status === 'pro' ? planLabel(d.plan_type) : 'Free';
+    let detail = label + ' plan';
+    if (d.status === 'pro' && d.cancel_at) detail += ' · ends ' + fmtDate(d.cancel_at);
+    else if (d.status === 'pro' && d.renews_at) detail += ' · renews ' + fmtDate(d.renews_at);
+    if (d.plan_type === 'starter' && d.outlines_limit != null) {
+      detail += ` · ${d.outlines_used ?? 0}/${d.outlines_limit} outlines used`;
+    }
+    summary.textContent = detail;
+
+    function addBtn(text, onClick, primary) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = text;
+      b.style.cssText = primary
+        ? 'height:40px;border:none;border-radius:8px;background:var(--clay,#B5563A);color:var(--cream,#FBF7EE);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer'
+        : 'height:40px;border:1px solid var(--rule,#E5DDCD);border-radius:8px;background:transparent;color:var(--ink,#1F1B16);font:inherit;font-size:13.5px;font-weight:500;cursor:pointer';
+      b.onclick = onClick;
+      actions.appendChild(b);
+    }
+
+    if (d.status !== 'pro') {
+      addBtn('Upgrade plan', () => { closeManagePlanModal(); global.location.href = '/#pricing'; }, true);
+    } else if (d.cancel_at) {
+      addBtn('Reactivate subscription', reactivatePlan, true);
+      addBtn('Open billing portal', () => global.openBillingPortal());
+    } else {
+      addBtn('Upgrade or change plan', () => { closeManagePlanModal(); global.location.href = '/#pricing'; }, true);
+      if (d.plan_type !== 'cycle') {
+        addBtn('Cancel at period end', cancelPlan);
+      }
+      addBtn('Open billing portal', () => global.openBillingPortal());
+    }
+  };
+
   async function loadPlanStatus() {
     if (!token()) return;
     try {
@@ -130,27 +235,36 @@
       const badge = document.getElementById('plan-badge');
       const btn = document.getElementById('plan-action-btn');
       if (!badge) return;
-      const fmt = iso => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      const planLabel = d.plan_type === 'starter' ? 'Starter'
-        : d.plan_type === 'annual' ? 'Pro Annual'
-        : d.plan_type === 'cycle' ? 'Cycle Pass'
-        : d.plan_type === 'monthly' ? 'Pro'
-        : 'Pro';
       const usageSuffix = d.plan_type === 'starter' && d.outlines_limit != null
         ? ` · ${d.outlines_used ?? 0}/${d.outlines_limit} outlines`
         : (d.status === 'pro' ? ' · Unlimited' : '');
       if (d.status === 'pro' && d.cancel_at) {
-        badge.textContent = planLabel + usageSuffix + ' · ends ' + fmt(d.cancel_at);
+        badge.textContent = planLabel(d.plan_type) + usageSuffix + ' · ends ' + fmtDate(d.cancel_at);
         badge.className = 'plan-badge is-canceling';
-        if (btn) { btn.textContent = 'Reactivate'; btn.style.display = ''; btn.onclick = reactivatePlan; }
+        if (btn) {
+          btn.type = 'button';
+          btn.textContent = 'Reactivate';
+          btn.style.display = '';
+          btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); reactivatePlan(); };
+        }
       } else if (d.status === 'pro') {
-        badge.textContent = planLabel + usageSuffix + (d.renews_at ? ' · renews ' + fmt(d.renews_at) : '');
+        badge.textContent = planLabel(d.plan_type) + usageSuffix + (d.renews_at ? ' · renews ' + fmtDate(d.renews_at) : '');
         badge.className = 'plan-badge is-pro';
-        if (btn) { btn.textContent = 'Manage plan'; btn.style.display = ''; btn.onclick = global.openBillingPortal; }
+        if (btn) {
+          btn.type = 'button';
+          btn.textContent = 'Manage plan';
+          btn.style.display = '';
+          btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); global.openManagePlan(); };
+        }
       } else {
         badge.textContent = 'Free plan';
         badge.className = 'plan-badge';
-        if (btn) { btn.textContent = 'Upgrade'; btn.style.display = ''; btn.onclick = () => { global.location.href = '/#pricing'; }; }
+        if (btn) {
+          btn.type = 'button';
+          btn.textContent = 'Upgrade';
+          btn.style.display = '';
+          btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); global.location.href = '/#pricing'; };
+        }
       }
     } catch { /* ignore */ }
   }
@@ -246,9 +360,34 @@
       .finally(() => { btn.disabled = false; });
   };
 
-  function setAvatarLetter(username) {
+  function setAvatarLetter(nameOrEmail) {
     const el = document.getElementById('nav-user-btn');
-    if (el && username) el.textContent = username[0].toUpperCase();
+    if (el && nameOrEmail) el.textContent = String(nameOrEmail)[0].toUpperCase();
+  }
+
+  function applyUserToUi(user) {
+    if (!user) return;
+    const display = user.display_name || user.first_name || user.email || user.username || '';
+    const email = user.email || user.username || '';
+    setAvatarLetter(display || email);
+    const dn = document.getElementById('dropdown-username');
+    if (dn) dn.textContent = display && email && display !== email ? `${display}` : (display || email);
+    const de = document.getElementById('dropdown-email');
+    if (de) de.textContent = email;
+    const greeting = document.querySelector('.user-dropdown-greeting');
+    if (greeting && display && email && display !== email) greeting.textContent = email;
+    else if (greeting) greeting.textContent = 'Signed in as';
+  }
+
+  async function loadUserProfile() {
+    if (!token()) return null;
+    try {
+      const res = await fetch('/me', { headers: authHeaders() });
+      if (!res.ok) return null;
+      const user = await res.json();
+      applyUserToUi(user);
+      return user;
+    } catch { return null; }
   }
 
   function refresh() {
@@ -256,6 +395,7 @@
     initThemePicker();
     loadPlanStatus();
     load2FAStatus();
+    loadUserProfile();
   }
 
   global.AccountMenu = {
@@ -263,9 +403,12 @@
     authHeaders,
     refresh,
     setAvatarLetter,
+    applyUserToUi,
+    loadUserProfile,
     initThemePicker,
     loadPlanStatus,
     load2FAStatus,
+    openManagePlan: () => global.openManagePlan(),
   };
 
   if (document.readyState === 'loading') {

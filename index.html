@@ -450,6 +450,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     </form>
     <form id="signup-form" style="display:none">
       <p id="selected-plan-note"></p>
+      <div class="auth-field"><label for="signup-first-name">First name</label><input type="text" id="signup-first-name" autocomplete="given-name" placeholder="Alex" maxlength="80"/></div>
       <div class="auth-field"><label for="signup-username">Email</label><input type="email" id="signup-username" autocomplete="email" placeholder="your email"/></div>
       <div class="auth-field"><label for="signup-password">Password</label><input type="password" id="signup-password" autocomplete="new-password" placeholder="create a password"/></div>
       <ul id="pw-reqs"><li data-req="length">At least 8 characters</li><li data-req="upper">One uppercase letter (A–Z)</li><li data-req="lower">One lowercase letter (a–z)</li><li data-req="digit">One number (0–9)</li><li data-req="special">One special character (!@#$…)</li></ul>
@@ -571,9 +572,9 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     } catch { alert('Could not start checkout. Please try again.'); }
   };
 
-  function setLoggedIn(username) {
+  function setLoggedIn(usernameOrUser) {
     overlay.classList.remove('open');
-    if (window.__scrubbedLogin) window.__scrubbedLogin(username);
+    if (window.__scrubbedLogin) window.__scrubbedLogin(usernameOrUser);
     if (window.AccountMenu) window.AccountMenu.refresh();
     const pending = sessionStorage.getItem('pending_checkout_plan');
     if (pending) {
@@ -647,7 +648,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         } else {
           localStorage.setItem(TOKEN_KEY, data.token);
           if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
-          setLoggedIn(data.user.username);
+          setLoggedIn(data.user);
         }
       }
       else { loginError.textContent = data.error || 'Login failed.'; }
@@ -671,7 +672,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
         pending2faUserId = null;
         document.getElementById('twofa-code').value = '';
-        setLoggedIn(data.user.username);
+        setLoggedIn(data.user);
       } else { errorEl.textContent = data.error || 'Verification failed.'; }
     } catch { errorEl.textContent = 'Connection error. Please try again.'; }
     finally { btn.disabled = false; }
@@ -698,10 +699,11 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     signupError.textContent = '';
     const emailInput = document.getElementById('signup-username');
     const username = emailInput.value.trim();
+    const first_name = document.getElementById('signup-first-name').value.trim();
     const password = document.getElementById('signup-password').value;
     const confirm  = document.getElementById('signup-confirm').value;
     emailInput.classList.remove('input-error');
-    if (!username || !password) { signupError.textContent = 'All fields are required.'; return; }
+    if (!first_name || !username || !password) { signupError.textContent = 'All fields are required.'; return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(username)) {
       emailInput.classList.add('input-error');
       signupError.textContent = 'Please enter a valid email address (e.g. you@example.com).';
@@ -712,7 +714,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     const btn = signupForm.querySelector('.auth-submit');
     btn.disabled = true;
     try {
-      const res = await fetch('/auth/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) });
+      const res = await fetch('/auth/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password, first_name }) });
       const data = await res.json();
       if (res.ok) {
         const lr = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) });
@@ -720,7 +722,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
         if (lr.ok) {
           localStorage.setItem(TOKEN_KEY, ld.token);
           if (ld.refresh_token) localStorage.setItem(REFRESH_KEY, ld.refresh_token);
-          setLoggedIn(ld.user.username);
+          setLoggedIn(ld.user);
         }
         else { signupError.textContent = 'Account created! Please log in.'; switchTab('login'); }
       } else { signupError.textContent = data.error || 'Signup failed.'; }
@@ -733,7 +735,11 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
     if (!token) return;
     try {
       const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const u = await res.json(); if (window.__scrubbedLogin) window.__scrubbedLogin(u.username); if (window.AccountMenu) window.AccountMenu.refresh(); }
+      if (res.ok) {
+        const u = await res.json();
+        if (window.__scrubbedLogin) window.__scrubbedLogin(u);
+        if (window.AccountMenu) window.AccountMenu.refresh();
+      }
       else { localStorage.removeItem(TOKEN_KEY); }
     } catch { localStorage.removeItem(TOKEN_KEY); }
   }
