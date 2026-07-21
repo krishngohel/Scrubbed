@@ -550,6 +550,7 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
+      else if (data.use_portal && window.openBillingPortal) window.openBillingPortal();
       else alert(data.error || 'Could not start checkout. Please try again.');
     } catch { alert('Could not start checkout. Please try again.'); }
   };

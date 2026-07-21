@@ -109,7 +109,7 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
       .single();
 
     if (!canStartCheckout(profile)) {
-      return res.status(400).json({ error: 'Already subscribed. Use the billing portal to change your plan.' });
+      return res.status(400).json({ error: 'Already subscribed. Opening the billing portal to change your plan…', use_portal: true });
     }
 
     const customerId = await ensureStripeCustomer(userId, userEmail, profile?.stripe_customer_id);
