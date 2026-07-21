@@ -235,17 +235,23 @@ router.post('/reactivate', authMiddleware, async (req, res) => {
 
 // ── SUBSCRIPTION STATUS ───────────────────────────────────────────────────────
 router.get('/status', authMiddleware, async (req, res) => {
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('subscription_status, plan_type, stripe_subscription_id, cancel_at, renews_at')
     .eq('id', req.user.id)
     .single();
 
+  if (profileError) {
+    console.error('Status profile lookup failed:', profileError.message);
+    return res.status(500).json({ error: 'Plan lookup failed: ' + profileError.message });
+  }
   if (!profile) return res.status(404).json({ error: 'Profile not found.' });
 
   const planType = profile.plan_type || null;
   const limits = getPlanLimits(planType);
-  const usage = await getUsage(req.user.id);
+  let usage = null;
+  try { usage = await getUsage(req.user.id); }
+  catch (err) { console.warn('getUsage failed:', err.message); }
   const outlinesUsed = usage?.used ?? 0;
   const hardCap = usage?.hard_cap ?? limits.outlines_per_month;
 

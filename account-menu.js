@@ -159,11 +159,17 @@
     actions.innerHTML = '';
     modal.style.display = 'flex';
     let d = null;
+    let errMsg = null;
     try {
       const res = await fetch('/stripe/status', { headers: authHeaders() });
       if (res.ok) d = await res.json();
-    } catch { /* ignore */ }
-    if (!d) { summary.textContent = 'Could not load plan status.'; return; }
+      else if (res.status === 401) errMsg = 'Session expired. Please sign out and back in.';
+      else {
+        const e = await res.json().catch(() => ({}));
+        errMsg = e.error || ('Could not load plan status (error ' + res.status + ').');
+      }
+    } catch { errMsg = 'Network error loading plan status.'; }
+    if (!d) { summary.textContent = errMsg || 'Could not load plan status.'; return; }
     const label = d.status === 'pro' ? planLabel(d.plan_type) : 'Free';
     let detail = label + ' plan';
     if (d.status === 'pro' && d.cancel_at) detail += ' · ends ' + fmtDate(d.cancel_at);
