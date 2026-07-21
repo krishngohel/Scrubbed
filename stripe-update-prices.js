@@ -26,22 +26,47 @@ const archiveOld = process.argv.includes('--archive-old');
 console.log(`\n🔑  Using ${isLive ? 'LIVE' : 'TEST'} mode key\n`);
 
 const PLANS = [
-  { env: 'STRIPE_STARTER_PRICE_ID', nickname: 'Starter Monthly', unit_amount: 500, recurring: { interval: 'month' }, label: '$5/mo' },
-  { env: 'STRIPE_PRO_PRICE_ID', nickname: 'Pro Monthly', unit_amount: 1200, recurring: { interval: 'month' }, label: '$12/mo' },
-  { env: 'STRIPE_PRO_ANNUAL_PRICE_ID', nickname: 'Pro Annual', unit_amount: 9900, recurring: { interval: 'year' }, label: '$99/yr' },
-  { env: 'STRIPE_CYCLE_PASS_PRICE_ID', nickname: 'Cycle Pass (6 mo, one-time)', unit_amount: 4900, recurring: null, label: '$49 once' },
+  { env: 'STRIPE_STARTER_PRICE_ID', nickname: 'Starter Monthly', unit_amount: 500, recurring: { interval: 'month' }, label: '$5/mo', productMatch: /starter/i, interval: 'month' },
+  { env: 'STRIPE_PRO_PRICE_ID', nickname: 'Pro Monthly', unit_amount: 1200, recurring: { interval: 'month' }, label: '$12/mo', productMatch: /pro/i, interval: 'month' },
+  { env: 'STRIPE_PRO_ANNUAL_PRICE_ID', nickname: 'Pro Annual', unit_amount: 9900, recurring: { interval: 'year' }, label: '$99/yr', productMatch: /pro/i, interval: 'year' },
+  { env: 'STRIPE_CYCLE_PASS_PRICE_ID', nickname: 'Cycle Pass (6 mo, one-time)', unit_amount: 4900, recurring: null, label: '$49 once', productMatch: /pro|cycle/i, interval: null },
 ];
+
+// Fallback when the env price ID doesn't exist in this mode (e.g. test IDs in
+// .env while running with a live key): match by product name + billing interval.
+async function findCurrentPrice(plan, allPrices) {
+  const candidates = allPrices.filter((p) => {
+    const name = typeof p.product === 'object' ? p.product.name : '';
+    if (!plan.productMatch.test(name)) return false;
+    const interval = p.recurring ? p.recurring.interval : null;
+    return interval === plan.interval;
+  });
+  if (candidates.length === 0) return null;
+  // Prefer exact nickname match, then most recent
+  candidates.sort((a, b) => (b.nickname === plan.nickname) - (a.nickname === plan.nickname) || b.created - a.created);
+  return candidates[0];
+}
 
 async function run() {
   const results = [];
+  const allPrices = (await stripe.prices.list({ active: true, limit: 100, expand: ['data.product'] })).data
+    .filter((p) => p.product && p.product.active !== false);
 
   for (const plan of PLANS) {
-    const oldId = process.env[plan.env];
-    if (!oldId || !oldId.startsWith('price_')) {
-      console.log(`⚠  ${plan.env} not set — skipping ${plan.nickname}`);
+    const envId = process.env[plan.env];
+    let oldPrice = null;
+    if (envId && envId.startsWith('price_')) {
+      oldPrice = await stripe.prices.retrieve(envId).catch(() => null);
+    }
+    if (!oldPrice) {
+      oldPrice = await findCurrentPrice(plan, allPrices);
+      if (oldPrice) console.log(`ℹ  ${plan.nickname}: env ID unusable in this mode — matched ${oldPrice.id} ($${oldPrice.unit_amount / 100}) on "${oldPrice.product.name}"`);
+    }
+    if (!oldPrice) {
+      console.log(`⚠  ${plan.nickname}: no existing price found — skipping`);
       continue;
     }
-    const oldPrice = await stripe.prices.retrieve(oldId);
+    const oldId = oldPrice.id;
     const productId = typeof oldPrice.product === 'string' ? oldPrice.product : oldPrice.product.id;
 
     if (oldPrice.unit_amount === plan.unit_amount) {
