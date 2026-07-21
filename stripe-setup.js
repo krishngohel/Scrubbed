@@ -32,12 +32,12 @@ async function run() {
 
   const starter = await stripe.prices.create({
     product: starterProduct.id,
-    unit_amount: 1000,
+    unit_amount: 500,
     currency: 'usd',
     recurring: { interval: 'month' },
     nickname: 'Starter Monthly',
   });
-  console.log(`  ✓ Starter: ${starter.id}  ($10/mo)`);
+  console.log(`  ✓ Starter: ${starter.id}  ($5/mo)`);
 
   // ── 2. Pro product ────────────────────────────────────────────────────────
   console.log('Creating Pro product…');
@@ -51,29 +51,29 @@ async function run() {
 
   const monthly = await stripe.prices.create({
     product: product.id,
-    unit_amount: 2500,
+    unit_amount: 1200,
     currency: 'usd',
     recurring: { interval: 'month' },
     nickname: 'Pro Monthly',
   });
-  console.log(`  ✓ Monthly: ${monthly.id}  ($25/mo)`);
+  console.log(`  ✓ Monthly: ${monthly.id}  ($12/mo)`);
 
   const annual = await stripe.prices.create({
     product: product.id,
-    unit_amount: 19900,
+    unit_amount: 9900,
     currency: 'usd',
     recurring: { interval: 'year' },
     nickname: 'Pro Annual',
   });
-  console.log(`  ✓ Annual:  ${annual.id}  ($199/yr)`);
+  console.log(`  ✓ Annual:  ${annual.id}  ($99/yr)`);
 
   const cycle = await stripe.prices.create({
     product: product.id,
-    unit_amount: 9900,
+    unit_amount: 4900,
     currency: 'usd',
     nickname: 'Cycle Pass (6 mo, one-time)',
   });
-  console.log(`  ✓ Cycle:   ${cycle.id}  ($99 once — 6 months)`);
+  console.log(`  ✓ Cycle:   ${cycle.id}  ($49 once — 6 months)`);
 
   // ── 3. Customer Portal ──────────────────────────────────────────────────────
   console.log('Configuring Customer Portal…');

@@ -1,5 +1,5 @@
 /**
- * Scrubbed — add Starter ($10/mo) + Cycle Pass ($99 one-time)
+ * Scrubbed — add Starter ($5/mo) + Cycle Pass ($49 one-time)
  * Run: node stripe-add-prices.js
  */
 
@@ -29,12 +29,12 @@ async function run() {
 
   const starter = await stripe.prices.create({
     product: starterProduct.id,
-    unit_amount: 1000,
+    unit_amount: 500,
     currency: 'usd',
     recurring: { interval: 'month' },
     nickname: 'Starter Monthly',
   });
-  console.log(`  ✓ Starter price:   ${starter.id}  ($10/mo)`);
+  console.log(`  ✓ Starter price:   ${starter.id}  ($5/mo)`);
 
   // ── Cycle Pass $99 one-time ──────────────────────────────────────────────────
   console.log('Creating Cycle Pass product…');
@@ -46,11 +46,11 @@ async function run() {
 
   const cycle = await stripe.prices.create({
     product: cycleProduct.id,
-    unit_amount: 9900,
+    unit_amount: 4900,
     currency: 'usd',
     nickname: 'Cycle Pass (one-time)',
   });
-  console.log(`  ✓ Cycle price:   ${cycle.id}  ($99 once)\n`);
+  console.log(`  ✓ Cycle price:   ${cycle.id}  ($49 once)\n`);
 
   // ── Print env vars ───────────────────────────────────────────────────────────
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
