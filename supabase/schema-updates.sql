@@ -8,6 +8,9 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS pending_password_reset boolean NOT
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS deletion_scheduled_at timestamptz;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS deletion_requested_at timestamptz;
 
+-- Custom vault hour goals (dashboard "Edit goals")
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS goal_hours jsonb NOT NULL DEFAULT '{}';
+
 -- Generation metering (Phase 1)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS generations_this_period integer NOT NULL DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS generation_period_start timestamptz;

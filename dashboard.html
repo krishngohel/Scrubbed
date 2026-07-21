@@ -113,6 +113,14 @@ a{color:inherit;text-decoration:none}
 .vault-sec-hours{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--ink,#1F1B16);text-align:right;white-space:nowrap}
 .vault-sec-hours span{display:block;font-size:10px;font-weight:400;color:var(--stone,#A89C8A);margin-top:2px}
 .vault-stats-empty{font-size:13.5px;color:var(--graphite,#5C544A);line-height:1.55;padding:4px 0 2px}
+.vault-goals-btn{font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--clay,#B5563A);background:none;border:0;padding:0;cursor:pointer;font-weight:500}
+.vault-goals-btn:hover{text-decoration:underline}
+.vault-goal-input{width:72px;font-family:var(--font-mono);font-size:12px;font-weight:500;padding:3px 6px;border:1px solid var(--rule,#E5DDCD);border-radius:6px;background:var(--paper,#F6F1E8);color:var(--ink,#1F1B16);text-align:right}
+.vault-goal-input:focus{outline:none;border-color:var(--clay,#B5563A)}
+.vault-goals-actions{display:flex;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap}
+.vault-goals-actions .action-chip{cursor:pointer}
+.vault-goals-err{font-size:12px;color:var(--rust,#8B3A2E)}
+.vault-goal-custom{color:var(--clay,#B5563A)}
 
 /* ── Analytics grid ── */
 .analytics-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin-bottom:24px}
@@ -361,7 +369,10 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
   <section class="panel vault-stats" id="vault-stats-panel">
     <div class="panel-hd">
       <h2>Vault hours</h2>
-      <span id="vault-stats-hd">Experience logs</span>
+      <div style="display:flex;align-items:center;gap:14px">
+        <button type="button" class="vault-goals-btn" id="vault-goals-btn" onclick="toggleGoalEdit()" hidden>Edit goals</button>
+        <span id="vault-stats-hd">Experience logs</span>
+      </div>
     </div>
     <div id="vault-stats-body">
       <p class="vault-stats-empty">Sign in to see hour totals from your Vault experience logs.</p>
@@ -510,6 +521,7 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
   let _readiness = null;
   let _usage = null;
   let _vaultStats = null;
+  let _editingGoals = false;
 
   function esc(s) {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -783,7 +795,12 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
   function renderVaultStats() {
     const body = document.getElementById('vault-stats-body');
     const hd = document.getElementById('vault-stats-hd');
+    const goalsBtn = document.getElementById('vault-goals-btn');
     if (!body) return;
+    if (goalsBtn) {
+      goalsBtn.hidden = !(loggedIn() && _vaultStats);
+      goalsBtn.textContent = _editingGoals ? 'Cancel' : 'Edit goals';
+    }
     if (!loggedIn()) {
       if (hd) hd.textContent = 'Experience logs';
       body.innerHTML = '<p class="vault-stats-empty">Sign in to see hour totals from your Vault experience logs.</p>';
@@ -797,22 +814,33 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
     const s = _vaultStats;
     if (hd) hd.textContent = s.totalEntries ? `${s.totalEntries} entries` : 'Experience logs';
 
-    if (!s.fileCount && !s.totalHours) {
+    if (!s.fileCount && !s.totalHours && !_editingGoals) {
       body.innerHTML = `<p class="vault-stats-empty">No experience logs yet. <a href="/vault" style="color:var(--clay,#B5563A);font-weight:500">Open the Vault</a> to log clinical, volunteer, shadowing, research, and employment hours.</p>`;
       return;
     }
 
     const sectionsHtml = (s.sections || []).map((sec) => {
       const pct = Math.max(0, Math.min(100, sec.pct || 0));
+      const target = _editingGoals
+        ? `of <input type="number" min="1" max="99999" step="any" class="vault-goal-input" data-goal-id="${esc(sec.id)}" value="${fmtHours(sec.targetHours)}" aria-label="${esc(sec.label)} hour goal">`
+        : `of ${fmtHours(sec.targetHours)}${sec.customTarget ? ` <em class="vault-goal-custom" title="Custom goal — default is ${fmtHours(sec.defaultTargetHours)}" style="font-style:normal">•</em>` : ''}`;
       return `<div class="vault-sec">
         <div>
           <div class="vault-sec-label">${esc(sec.label)}</div>
           <div class="vault-sec-meta">${sec.entries} entr${sec.entries === 1 ? 'y' : 'ies'}${sec.files ? ` · ${sec.files} file${sec.files === 1 ? '' : 's'}` : ''}</div>
         </div>
         <div class="vault-sec-track" title="${pct}% of ${fmtHours(sec.targetHours)} hr target"><i style="width:${pct}%;background:${esc(sec.color || 'var(--moss,#5A6E4A)')}"></i></div>
-        <div class="vault-sec-hours">${fmtHours(sec.hours)} hrs<span>of ${fmtHours(sec.targetHours)}</span></div>
+        <div class="vault-sec-hours">${fmtHours(sec.hours)} hrs<span>${target}</span></div>
       </div>`;
     }).join('');
+
+    const goalsActions = _editingGoals
+      ? `<div class="vault-goals-actions">
+          <button type="button" class="action-chip primary" onclick="saveVaultGoals()">Save goals</button>
+          <button type="button" class="vault-goals-btn" onclick="resetVaultGoals()">Reset to defaults</button>
+          <span class="vault-goals-err" id="vault-goals-err"></span>
+        </div>`
+      : '';
 
     body.innerHTML = `
       <div class="vault-stats-top">
@@ -829,8 +857,49 @@ th{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-s
           <a href="/vault" class="vault-chip" style="color:var(--clay,#B5563A);font-weight:500">Open Vault →</a>
         </div>
       </div>
-      <div class="vault-sections">${sectionsHtml}</div>`;
+      <div class="vault-sections">${sectionsHtml}</div>${goalsActions}`;
   }
+
+  window.toggleGoalEdit = function () {
+    _editingGoals = !_editingGoals;
+    renderVaultStats();
+  };
+
+  window.saveVaultGoals = async function () {
+    const payload = {};
+    document.querySelectorAll('.vault-goal-input').forEach((inp) => {
+      payload[inp.dataset.goalId] = inp.value;
+    });
+    const err = document.getElementById('vault-goals-err');
+    try {
+      const r = await fetch('/vault/goals', { method: 'PUT', headers: hdr(), body: JSON.stringify(payload) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (err) err.textContent = data.error || 'Could not save goals.';
+        return;
+      }
+      _editingGoals = false;
+      await loadVaultStats();
+    } catch {
+      if (err) err.textContent = 'Could not save goals.';
+    }
+  };
+
+  window.resetVaultGoals = async function () {
+    const err = document.getElementById('vault-goals-err');
+    try {
+      const r = await fetch('/vault/goals', { method: 'PUT', headers: hdr(), body: '{}' });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        if (err) err.textContent = data.error || 'Could not reset goals.';
+        return;
+      }
+      _editingGoals = false;
+      await loadVaultStats();
+    } catch {
+      if (err) err.textContent = 'Could not reset goals.';
+    }
+  };
 
   async function loadVaultStats() {
     if (!loggedIn()) { renderVaultStats(); return; }
