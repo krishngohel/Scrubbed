@@ -300,7 +300,7 @@ function Marketing({ onEnter, user, onLogout }) {
             </div>
             <div className="price-card">
               <div className="price-name">Starter</div>
-              <div className="price-amt">$10<span style={{fontSize:'20px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'6px',display:'inline-block'}}>/mo</span></div>
+              <div className="price-amt">$5<span style={{fontSize:'20px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'6px',display:'inline-block'}}>/mo</span></div>
               <div className="price-sub">Try Secondary AI on a budget.</div>
               <ul className="price-list">
                 <li>{IC.check} Everything in Free</li>
@@ -313,7 +313,7 @@ function Marketing({ onEnter, user, onLogout }) {
             </div>
             <div className="price-card">
               <div className="price-name">Pro Monthly</div>
-              <div className="price-amt">$25<span style={{fontSize:'20px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'6px',display:'inline-block'}}>/mo</span></div>
+              <div className="price-amt">$12<span style={{fontSize:'20px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'6px',display:'inline-block'}}>/mo</span></div>
               <div className="price-sub">Cancel anytime.</div>
               <ul className="price-list">
                 <li>{IC.check} Everything in Free</li>
@@ -327,7 +327,7 @@ function Marketing({ onEnter, user, onLogout }) {
             <div className="price-card price-card--badge">
               <div className="price-badge">Most flexible</div>
               <div className="price-name">Cycle Pass</div>
-              <div className="price-amt">$99<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}> once</span></div>
+              <div className="price-amt">$49<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}> once</span></div>
               <div className="price-sub">One price. Covers your whole application cycle. No auto-renew.</div>
               <ul className="price-list">
                 <li>{IC.check} Everything in Free</li>
@@ -341,8 +341,8 @@ function Marketing({ onEnter, user, onLogout }) {
             <div className="price-card price-card--featured">
               <div className="price-badge price-badge--value">Best value</div>
               <div className="price-name">Pro Annual</div>
-              <div className="price-amt">$199<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}>/yr</span></div>
-              <div className="price-sub">~$16.60/mo · save 34% vs monthly</div>
+              <div className="price-amt">$99<span style={{fontSize:'16px',fontFamily:'var(--font-sans)',letterSpacing:'0',fontWeight:500,verticalAlign:'bottom',paddingBottom:'8px',display:'inline-block'}}>/yr</span></div>
+              <div className="price-sub">~$8.25/mo · save 31% vs monthly</div>
               <ul className="price-list">
                 <li>{IC.check} Everything in Free</li>
                 <li>{IC.check} Unlimited Secondary AI outlines</li>

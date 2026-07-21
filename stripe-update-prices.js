@@ -91,22 +91,37 @@ async function run() {
     }
   }
 
-  // Refresh the Customer Portal plan-switch options to the new prices
-  const starter = results.find((r) => r.env === 'STRIPE_STARTER_PRICE_ID');
-  const monthly = results.find((r) => r.env === 'STRIPE_PRO_PRICE_ID');
-  const annual = results.find((r) => r.env === 'STRIPE_PRO_ANNUAL_PRICE_ID');
-  if (starter && monthly && annual) {
-    const products = [
-      { product: starter.productId, prices: [starter.id] },
-      { product: monthly.productId, prices: [monthly.id, annual.id].filter((v, i, a) => a.indexOf(v) === i) },
-    ];
+  // Sync portal plan-switch options. Stripe allows only ONE price per billing
+  // interval per product in a portal config, so offer the newest price for
+  // each interval — subscribers on old prices switch TO these.
+  const productIds = [...new Set(results.map((r) => r.productId))];
+  const portalProducts = [];
+  for (const pid of productIds) {
+    const prices = (await stripe.prices.list({ product: pid, active: true, limit: 100 })).data.filter((p) => p.recurring);
+    const byInterval = {};
+    for (const p of prices) {
+      const key = p.recurring.interval;
+      if (!byInterval[key] || p.created > byInterval[key].created) byInterval[key] = p;
+    }
+    const picked = Object.values(byInterval).map((p) => p.id);
+    if (picked.length) portalProducts.push({ product: pid, prices: picked });
+  }
+  if (portalProducts.length) {
     const configs = await stripe.billingPortal.configurations.list({ active: true, limit: 10 });
     for (const cfg of configs.data) {
       if (!cfg.features?.subscription_update?.enabled) continue;
       await stripe.billingPortal.configurations.update(cfg.id, {
-        features: { subscription_update: { enabled: true, default_allowed_updates: ['price'], products } },
+        features: { subscription_update: { enabled: true, default_allowed_updates: ['price'], products: portalProducts } },
       });
-      console.log(`✓  Portal config ${cfg.id} now offers the new prices`);
+      // products is only returned when expanded — without expand it looks unset
+      const check = await stripe.billingPortal.configurations.retrieve(cfg.id, { expand: ['features.subscription_update.products'] });
+      const got = check.features?.subscription_update?.products || [];
+      const priceCount = got.reduce((n, p) => n + (p.prices?.length || 0), 0);
+      if (priceCount === 0) {
+        console.log(`❌  Portal config ${cfg.id}: products did NOT persist — plan switching will be broken`);
+      } else {
+        console.log(`✓  Portal config ${cfg.id}: offers ${priceCount} prices across ${got.length} products`);
+      }
     }
   }
 
