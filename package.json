@@ -12,10 +12,14 @@
     "build": "esbuild src/app.jsx --loader:.jsx=jsx --jsx=transform --minify --outfile=app.js",
     "test": "node scripts/smoke-test.js",
     "stripe:setup": "node stripe-setup.js",
-    "stripe:check": "node scripts/stripe-prod-check.js"
+    "stripe:check": "node scripts/stripe-prod-check.js",
+    "build:www": "npm run build && node scripts/build-www.js",
+    "ios:sync": "npm run build:www && npx cap sync ios"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "@supabase/supabase-js": "^2.106.2",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
@@ -25,8 +29,10 @@
     "stripe": "^22.1.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "esbuild": "^0.24.0",
     "nodemon": "^3.1.0",
+    "typescript": "^7.0.2",
     "xlsx": "^0.18.5"
   }
 }
