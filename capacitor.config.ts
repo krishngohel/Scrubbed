@@ -4,13 +4,16 @@ const config: CapacitorConfig = {
   appId: 'com.getscrubbed.app',
   appName: 'Scrubbed',
   webDir: 'www',
-  // The WebView origin becomes https://getscrubbed.netlify.app so every
-  // relative fetch('/auth/...'), Stripe checkout return URL, and Supabase
-  // redirect matches production exactly. Assets still load from the bundle;
-  // only the origin string changes.
+  // Unlike a bundled SPA that only talks to an external API host, Scrubbed's
+  // frontend calls its own same-origin backend (relative fetch('/auth/...')
+  // etc). Bundling assets locally with a spoofed hostname (the Necto
+  // approach) only renames the origin for the local asset handler — it
+  // doesn't proxy same-origin fetches to the real network, so those calls
+  // get intercepted locally and fail with "Unable to connect". Loading the
+  // live URL directly means every request, assets and API alike, is a real
+  // network round-trip to production.
   server: {
-    hostname: 'getscrubbed.netlify.app',
-    iosScheme: 'https',
+    url: 'https://getscrubbed.netlify.app',
   },
   ios: {
     contentInset: 'never',
