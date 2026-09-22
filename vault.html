@@ -7,9 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-app');</script>
 <script src="theme.js"></script>
 <script src="account-menu.js"></script>
 <script src="navbar.js"></script>
+<script src="native.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -77,6 +79,15 @@ strong{font-weight:600}
 
 /* ── NAV ── */
 .nav{position:sticky;top:0;z-index:100;background:var(--navbar-bg);border-bottom:1px solid var(--rule);transition:transform 0.44s cubic-bezier(0.16,1,0.3,1),opacity 0.44s ease;overflow:visible;width:100%;max-width:100%;box-sizing:border-box}
+/* ── native app shell: bottom dock replaces the top nav-links on iOS/Android ── */
+html.native-app .nav{padding-top:env(safe-area-inset-top)}
+html.native-app .nav-links{display:none}
+.native-dock{display:none}
+html.native-app .native-dock{display:flex;position:fixed;left:50%;bottom:max(0.5rem,calc(env(safe-area-inset-bottom) - 0.4rem));transform:translateX(-50%);gap:2px;padding:8px 10px;border-radius:20px;background:rgba(251,247,238,0.92);backdrop-filter:blur(16px);border:1px solid var(--rule);box-shadow:0 8px 30px rgba(31,27,22,0.14);z-index:200}
+.nd-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:68px;height:52px;border-radius:14px;color:var(--graphite);background:none;border:none;font:inherit;font-size:10px;font-weight:500;letter-spacing:0.01em;text-decoration:none;cursor:pointer;transition:background 140ms var(--ease),color 140ms var(--ease)}
+.nd-item svg{width:20px;height:20px}
+.nd-item.is-active{color:var(--clay);background:var(--clay-s)}
+html.native-app body{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
 .nav.hidden{transform:translateY(-100%);opacity:0;pointer-events:none}
 .nav-inner{max-width:1200px;margin:0 auto;padding:0 32px;height:60px;display:flex;align-items:center;gap:28px;overflow:visible;width:100%;box-sizing:border-box;min-width:0}
 .wordmark{font-family:var(--font-display);font-style:italic;font-weight:500;font-size:24px;letter-spacing:-0.01em;color:var(--ink);cursor:pointer;flex-shrink:0;text-decoration:none}
@@ -599,6 +610,22 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
       </label>
     </div>
   </div>
+</nav>
+
+<!-- NATIVE APP DOCK (iOS/Android only; replaces top nav-links) -->
+<nav class="native-dock" aria-label="Primary">
+  <a href="/vault" class="nd-item" data-nav="vault">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <span>Vault</span>
+  </a>
+  <a href="/dashboard" class="nd-item" data-nav="dashboard">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    <span>Dashboard</span>
+  </a>
+  <a href="/secondaries" class="nd-item nav-auth-only" data-nav="secondaries" hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    <span>Secondary AI</span>
+  </a>
 </nav>
 
 <!-- VAULT HERO -->

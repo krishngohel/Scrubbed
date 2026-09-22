@@ -18,6 +18,16 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'never',
   },
+  plugins: {
+    SplashScreen: {
+      // Not a timed splash: the shell keeps the launch image up until the
+      // page has painted (native.js hides it), covering the black WebView
+      // frame before first paint instead of a fixed delay.
+      launchAutoHide: false,
+      backgroundColor: '#F6F1E8',
+      launchFadeOutDuration: 250,
+    },
+  },
 };
 
 export default config;

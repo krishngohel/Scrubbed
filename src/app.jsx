@@ -90,6 +90,72 @@ function Nav({ onEnter, onSignIn, user, onLogout }) {
   );
 }
 
+const INTRO = [
+  { title: 'One record. Every secondary.', text: "Enter your activities, hours, letters, and essays once — Scrubbed gives every piece of your application a home.", icon: IC.file, bg: 'var(--clay-s)', fg: 'var(--clay)' },
+  { title: 'The Vault.', text: "Every clinical hour, every recommender, every activity — stored in one structured profile that never forgets what you've done.", icon: IC.vault, bg: 'var(--moss-s)', fg: 'var(--moss)' },
+  { title: 'Secondary AI.', text: "School-specific outlines built from your real record — not a generic template, not a guess.", icon: IC.spark, bg: 'var(--rust-s)', fg: 'var(--rust)' },
+  { title: 'Track your cycle.', text: "Schools, deadlines, submissions, and letters — one dashboard for the whole application season.", icon: IC.grid, bg: 'var(--clay-s)', fg: 'var(--clay)' },
+];
+
+// The phone's signed-out home screen (native only): what Scrubbed is, in
+// four slides, then Create account (or Sign in from the corner). Shown
+// every time the app opens without a session — the auth modal it hands
+// off to lives outside #root in index.html, so onFinish just opens it.
+function Welcome({ onFinish }) {
+  const scroller = useRef(null);
+  const [index, setIndex] = useState(0);
+  const last = index === INTRO.length - 1;
+
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return undefined;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const w = el.clientWidth || 1;
+        setIndex(Math.round(el.scrollLeft / w));
+      });
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const goTo = (i) => {
+    const el = scroller.current;
+    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="intro-screen" role="dialog" aria-label="Welcome to Scrubbed">
+      <div className="intro-top">
+        <span className="wordmark">Scrubbed.</span>
+        <button type="button" className="intro-skip" onClick={() => onFinish('skip')}>Sign in</button>
+      </div>
+      <div ref={scroller} className="intro-scroller">
+        {INTRO.map(({ title, text, icon, bg, fg }) => (
+          <div className="intro-slide" key={title}>
+            <div className="intro-icon" style={{ background: bg, color: fg }}>{icon}</div>
+            <h2 className="intro-title">{title}</h2>
+            <p className="intro-text">{text}</p>
+          </div>
+        ))}
+      </div>
+      <div className="intro-bottom">
+        <div className="intro-dots" aria-hidden="true">
+          {INTRO.map((_, i) => (
+            <button key={i} type="button" tabIndex={-1} className={cx('intro-dot', i === index && 'is-active')} onClick={() => goTo(i)}/>
+          ))}
+        </div>
+        <button type="button" className="intro-btn" onClick={() => (last ? onFinish('primary') : goTo(index + 1))}>
+          {last ? 'Get started' : 'Next'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function HeroMockup() {
   const sections = [
     { key:'clinical', title:'Clinical hours', icon: IC.clock, count: 3, meta: <>Total <strong>408</strong> hrs</>, rows: [
@@ -590,8 +656,22 @@ function SecView() {
   );
 }
 
+function isNative() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
 function App() {
   const [user, setUser] = useState(null);
+  const native = isNative();
+  // Synchronous: checkSession() below is only needed to CONFIRM a token is
+  // still valid. Whether one exists at all is known immediately, so a
+  // returning native user skips the marketing page entirely instead of
+  // flashing it before the redirect below fires.
+  const hasToken = !!localStorage.getItem('scrubbed_token');
+
+  useEffect(() => {
+    if (native && hasToken) window.location.href = '/vault';
+  }, []);
 
   useEffect(() => {
     window.__scrubbedLogin = (u) => {
@@ -629,6 +709,13 @@ function App() {
     setUser(null);
   };
 
+  // Native: "Home is gone" — a returning user with a token redirects above
+  // (rendering nothing while that happens), a signed-out one gets the
+  // welcome slides instead of the marketing site.
+  if (native && hasToken) return null;
+  if (native) {
+    return <Welcome onFinish={(how) => window._openAuthModal && window._openAuthModal(how === 'primary' ? 'signup' : 'login')}/>;
+  }
   return <Marketing onEnter={handleEnter} user={user} onLogout={handleLogout}/>;
 }
 

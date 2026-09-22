@@ -20,6 +20,7 @@ const files = [
   'account-menu.js',
   'navbar.js',
   'theme.js',
+  'native.js',
 ];
 
 fs.rmSync(outDir, { recursive: true, force: true });

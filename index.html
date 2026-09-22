@@ -407,9 +407,29 @@ body.theme-transition *,body.theme-transition *::before,body.theme-transition *:
   *,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}
   html{scroll-behavior:auto}
 }
+
+/* ── native welcome carousel (phone, signed-out) ── */
+.intro-screen{position:fixed;inset:0;z-index:300;background:var(--paper);display:flex;flex-direction:column;padding-top:calc(env(safe-area-inset-top) + 12px);padding-bottom:calc(env(safe-area-inset-bottom) + 20px)}
+.intro-top{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:44px;flex-shrink:0}
+.intro-skip{font-size:14px;color:var(--graphite);cursor:pointer;background:none;border:none;font:inherit;padding:8px 4px}
+.intro-scroller{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.intro-scroller::-webkit-scrollbar{display:none}
+.intro-slide{scroll-snap-align:center;flex:0 0 100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 32px}
+.intro-icon{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:28px}
+.intro-icon svg{width:32px;height:32px}
+.intro-title{font-family:var(--font-display,"Newsreader",serif);font-weight:400;font-size:clamp(24px,7vw,32px);line-height:1.15;color:var(--ink);margin-bottom:12px}
+.intro-text{font-size:16px;line-height:1.55;color:var(--graphite);max-width:340px}
+.intro-bottom{padding:20px 20px 0;flex-shrink:0}
+.intro-dots{display:flex;justify-content:center;gap:6px;margin-bottom:20px}
+.intro-dot{height:6px;border-radius:3px;background:var(--rule);width:6px;border:none;padding:0;transition:width 260ms var(--ease),background 260ms var(--ease)}
+.intro-dot.is-active{width:22px;background:var(--clay)}
+.intro-btn{width:100%;height:52px;border-radius:14px;background:var(--clay);color:var(--cream);font:inherit;font-size:16px;font-weight:600;border:none;cursor:pointer;transition:background 160ms var(--ease),transform 100ms var(--ease)}
+.intro-btn:active{transform:scale(0.98)}
 </style>
+<script>if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-app');</script>
 <script src="theme.js"></script>
 <script src="account-menu.js"></script>
+<script src="native.js"></script>
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 </head>
