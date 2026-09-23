@@ -148,7 +148,7 @@ function Welcome({ onFinish }) {
             <button key={i} type="button" tabIndex={-1} className={cx('intro-dot', i === index && 'is-active')} onClick={() => goTo(i)}/>
           ))}
         </div>
-        <button type="button" className="intro-btn" onClick={() => (last ? onFinish('primary') : goTo(index + 1))}>
+        <button type="button" className="intro-btn" onClick={() => { console.log('[welcome] btn click', last, index); return last ? onFinish('primary') : goTo(index + 1); }}>
           {last ? 'Get started' : 'Next'}
         </button>
       </div>
@@ -714,7 +714,14 @@ function App() {
   // welcome slides instead of the marketing site.
   if (native && hasToken) return null;
   if (native) {
-    return <Welcome onFinish={(how) => window._openAuthModal && window._openAuthModal(how === 'primary' ? 'signup' : 'login')}/>;
+    return <Welcome onFinish={(how) => {
+      console.log('[welcome] onFinish', how, typeof window._openAuthModal);
+      try {
+        window._openAuthModal && window._openAuthModal(how === 'primary' ? 'signup' : 'login');
+      } catch (err) {
+        console.log('[welcome] onFinish error', err && err.message);
+      }
+    }}/>;
   }
   return <Marketing onEnter={handleEnter} user={user} onLogout={handleLogout}/>;
 }
